@@ -106,7 +106,7 @@ class RoleAndPermissionSeeder extends Seeder
         $adminUser = User::firstOrCreate(
             ['email' => 'admin@mariachileon.com'],
             [
-                'name' => 'Ing. Carlos Andrés Álvarez',
+                'name' => 'Enrrique Escalera',
                 'telefono' => '70000000',
                 'activo' => true,
                 'password' => Hash::make('admin12345'),

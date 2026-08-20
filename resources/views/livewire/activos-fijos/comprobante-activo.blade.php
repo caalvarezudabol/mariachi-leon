@@ -149,7 +149,7 @@
         <!-- Signatures Block -->
         <div class="grid grid-cols-2 gap-12 pt-16 text-center">
             <div class="space-y-2 border-t-2 border-slate-900 pt-3">
-                <div class="font-bold text-sm text-slate-950">{{ $registro->user->name ?? 'Carlos Álvarez' }}</div>
+                <div class="font-bold text-sm text-slate-950">{{ $registro->user->name ?? 'Enrrique Escalera' }}</div>
                 <div class="text-xs text-slate-500 uppercase font-semibold">Firma Entregador / Operador</div>
                 <div class="text-[10px] text-slate-400">Mariachi León Guanajuato</div>
             </div>
