@@ -5,11 +5,24 @@
             <h1 class="text-2xl font-bold text-white">Kardex Valorizado (Precio Promedio Ponderado - PPP)</h1>
             <p class="text-xs text-slate-400">Historial cronológico de movimientos de entradas, salidas, saldos y valoración monetaria.</p>
         </div>
-        <button wire:click="resetFiltros" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all flex items-center justify-center gap-2">
-            <i class="fa-solid fa-filter-circle-xmark"></i>
-            <span>Limpiar Filtros</span>
-        </button>
+        <div class="flex items-center gap-3">
+            <button wire:click="exportarPdf" class="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 text-white hover:bg-rose-500 shadow-lg shadow-rose-600/20 transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-file-pdf text-sm"></i>
+                <span>Exportar PDF</span>
+            </button>
+            <button wire:click="resetFiltros" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-filter-circle-xmark"></i>
+                <span>Limpiar Filtros</span>
+            </button>
+        </div>
     </div>
+
+    @if (session()->has('warning'))
+        <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>{{ session('warning') }}</span>
+        </div>
+    @endif
 
     <!-- Filter Bar -->
     <div class="bg-brand-card p-4 rounded-2xl border border-brand-border space-y-4">

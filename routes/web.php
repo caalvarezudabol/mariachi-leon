@@ -35,6 +35,7 @@ use App\Livewire\ActivosFijos\GestionDevolucionesActivos;
 use App\Livewire\ActivosFijos\GestionBajasActivos;
 use App\Livewire\ActivosFijos\GestionKardexActivos;
 use App\Livewire\ActivosFijos\ComprobanteActivo;
+use App\Http\Controllers\ActivosFijos\KardexPdfController;
 
 /*
 |--------------------------------------------------------------------------
@@ -97,6 +98,7 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
         Route::get('/devoluciones', GestionDevolucionesActivos::class)->name('admin.activos-fijos.devoluciones');
         Route::get('/bajas', GestionBajasActivos::class)->name('admin.activos-fijos.bajas');
         Route::get('/kardex', GestionKardexActivos::class)->name('admin.activos-fijos.kardex');
+        Route::get('/kardex/pdf/{asset_id}', [KardexPdfController::class, 'exportarPdf'])->name('admin.activos-fijos.kardex.pdf');
         Route::get('/comprobante/{tipo}/{id}', ComprobanteActivo::class)->name('admin.activos-fijos.comprobante');
     });
 });

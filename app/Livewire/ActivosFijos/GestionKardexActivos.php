@@ -32,6 +32,16 @@ class GestionKardexActivos extends Component
         $this->resetPage();
     }
 
+    public function exportarPdf()
+    {
+        if (!$this->asset_id) {
+            session()->flash('warning', 'Seleccione un producto para generar el Kardex en PDF.');
+            return;
+        }
+
+        return redirect()->route('admin.activos-fijos.kardex.pdf', ['asset_id' => $this->asset_id]);
+    }
+
     public function render()
     {
         $query = InventoryMovement::with(['asset', 'user', 'responsable']);
