@@ -18,6 +18,7 @@ use App\Livewire\Admin\GestionRoles;
 use App\Livewire\Admin\GestionAuditoria;
 use App\Livewire\Admin\GestionGaleria;
 use App\Livewire\Admin\GestionBanners;
+use App\Livewire\Configuracion\GestionEmpresa;
 use App\Livewire\Configuracion\GestionParametros;
 use App\Livewire\Configuracion\GestionTiposEvento;
 use App\Livewire\Configuracion\GestionServicios;
@@ -73,6 +74,7 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
     Route::get('/auditoria', GestionAuditoria::class)->name('admin.auditoria');
 
     // Módulo 2: Configuración
+    Route::get('/configuracion/empresa', GestionEmpresa::class)->name('config.empresa');
     Route::get('/configuracion/parametros', GestionParametros::class)->name('config.parametros');
     Route::get('/configuracion/tipos-evento', GestionTiposEvento::class)->name('config.tipos-evento');
     Route::get('/configuracion/servicios', GestionServicios::class)->name('config.servicios');

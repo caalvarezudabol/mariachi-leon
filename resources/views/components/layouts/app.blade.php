@@ -104,6 +104,10 @@
                     <i class="fa-solid fa-list-check w-5 text-center"></i>
                     <span>Auditoría de Logs</span>
                 </a>
+                <a href="{{ route('config.empresa') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('config.empresa') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                    <i class="fa-solid fa-building-user w-5 text-center"></i>
+                    <span>Datos de la Empresa</span>
+                </a>
                 <a href="{{ route('config.parametros') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('config.parametros') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
                     <i class="fa-solid fa-sliders w-5 text-center"></i>
                     <span>Parámetros</span>
