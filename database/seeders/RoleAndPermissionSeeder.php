@@ -12,6 +12,7 @@ use App\Models\Servicio;
 use App\Models\Paquete;
 use App\Models\GaleriaItem;
 use App\Models\Banner;
+use App\Models\MusicoPersonal;
 use Illuminate\Support\Facades\Hash;
 
 class RoleAndPermissionSeeder extends Seeder
@@ -43,11 +44,37 @@ class RoleAndPermissionSeeder extends Seeder
             'gestionar-fondo-comun',
             'gestionar-anticipos',
             'ver-reportes',
+            // Permisos Activos Fijos
+            'ver-activos',
+            'crear-activos',
+            'editar-activos',
+            'desactivar-activos',
+            'registrar-ingresos-activos',
+            'registrar-egresos-activos',
+            'asignar-activos',
+            'registrar-devoluciones-activos',
+            'registrar-bajas-activos',
+            'consultar-kardex-activos',
+            'realizar-ajustes-activos',
+            'generar-comprobantes-activos',
         ];
 
         foreach ($permissions as $permission) {
             Permission::findOrCreate($permission, 'web');
         }
+
+        // Músico/Personal de Prueba Centralizado (Idempotente)
+        MusicoPersonal::firstOrCreate(
+            ['nombre_completo' => 'Juan Pérez'],
+            [
+                'nombre' => 'Juan',
+                'apellido' => 'Pérez',
+                'tipo' => 'Músico',
+                'telefono' => '70000000',
+                'estado' => 'Activo',
+                'observaciones' => 'Registro generado automáticamente para pruebas del Módulo de Activos Fijos.',
+            ]
+        );
 
         // Crear Roles
         $adminRole = Role::findOrCreate('Administrador', 'web');

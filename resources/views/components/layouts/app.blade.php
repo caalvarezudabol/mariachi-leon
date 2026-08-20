@@ -126,6 +126,44 @@
                     <span>Gestión de Galería</span>
                 </a>
 
+                <div class="px-3 pt-4 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Activos Fijos</div>
+                <a href="{{ route('admin.activos-fijos.dashboard') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.activos-fijos.dashboard') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                    <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+                    <span>Dashboard Activos</span>
+                </a>
+                <a href="{{ route('admin.activos-fijos.categorias') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.activos-fijos.categorias') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                    <i class="fa-solid fa-folder-tree w-5 text-center"></i>
+                    <span>Categorías</span>
+                </a>
+                <a href="{{ route('admin.activos-fijos.articulos') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.activos-fijos.articulos') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                    <i class="fa-solid fa-boxes-stacked w-5 text-center"></i>
+                    <span>Artículos & Productos</span>
+                </a>
+                <a href="{{ route('admin.activos-fijos.ingresos') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.activos-fijos.ingresos') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                    <i class="fa-solid fa-arrow-down-to-bracket w-5 text-center"></i>
+                    <span>Ingresos</span>
+                </a>
+                <a href="{{ route('admin.activos-fijos.egresos') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.activos-fijos.egresos') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                    <i class="fa-solid fa-arrow-up-from-bracket w-5 text-center"></i>
+                    <span>Egresos</span>
+                </a>
+                <a href="{{ route('admin.activos-fijos.asignaciones') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.activos-fijos.asignaciones') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                    <i class="fa-solid fa-user-check w-5 text-center"></i>
+                    <span>Asignaciones</span>
+                </a>
+                <a href="{{ route('admin.activos-fijos.devoluciones') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.activos-fijos.devoluciones') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                    <i class="fa-solid fa-arrow-rotate-left w-5 text-center"></i>
+                    <span>Devoluciones</span>
+                </a>
+                <a href="{{ route('admin.activos-fijos.bajas') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.activos-fijos.bajas') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                    <i class="fa-solid fa-trash-can w-5 text-center"></i>
+                    <span>Bajas</span>
+                </a>
+                <a href="{{ route('admin.activos-fijos.kardex') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.activos-fijos.kardex') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                    <i class="fa-solid fa-chart-line w-5 text-center"></i>
+                    <span>Kardex (PPP)</span>
+                </a>
+
                 <div class="px-3 pt-4 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Acceso Público</div>
                 <a href="{{ route('web.home') }}" target="_blank" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm text-gold-400 hover:bg-brand-hover transition-all">
                     <span class="flex items-center gap-3">

@@ -23,6 +23,18 @@ use App\Livewire\Configuracion\GestionTiposEvento;
 use App\Livewire\Configuracion\GestionServicios;
 use App\Livewire\Configuracion\GestionPaquetes;
 
+// Livewire Components - Módulo de Activos Fijos
+use App\Livewire\ActivosFijos\DashboardActivos;
+use App\Livewire\ActivosFijos\GestionCategoriasActivos;
+use App\Livewire\ActivosFijos\GestionArticulosActivos;
+use App\Livewire\ActivosFijos\GestionIngresosActivos;
+use App\Livewire\ActivosFijos\GestionEgresosActivos;
+use App\Livewire\ActivosFijos\GestionAsignacionesActivos;
+use App\Livewire\ActivosFijos\GestionDevolucionesActivos;
+use App\Livewire\ActivosFijos\GestionBajasActivos;
+use App\Livewire\ActivosFijos\GestionKardexActivos;
+use App\Livewire\ActivosFijos\ComprobanteActivo;
+
 /*
 |--------------------------------------------------------------------------
 | Rutas Públicas (Sitio Web Institucional)
@@ -39,10 +51,7 @@ Route::get('/contacto', PaginaContacto::class)->name('web.contacto');
 | Autenticación
 |--------------------------------------------------------------------------
 */
-Route::middleware('guest')->group(function () {
-    Route::get('/login', Login::class)->name('login');
-});
-
+Route::get('/login', Login::class)->name('login')->middleware('guest');
 Route::post('/logout', function () {
     Auth::logout();
     request()->session()->invalidate();
@@ -73,5 +82,19 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
     Route::prefix('sitio-web')->group(function () {
         Route::get('/banners', GestionBanners::class)->name('admin.sitio-web.banners');
         Route::get('/galeria', GestionGaleria::class)->name('admin.sitio-web.galeria');
+    });
+
+    // Módulo 4: ACTIVOS FIJOS (Gestión de Bienes, Inventario & Kardex)
+    Route::prefix('activos-fijos')->group(function () {
+        Route::get('/dashboard', DashboardActivos::class)->name('admin.activos-fijos.dashboard');
+        Route::get('/categorias', GestionCategoriasActivos::class)->name('admin.activos-fijos.categorias');
+        Route::get('/articulos', GestionArticulosActivos::class)->name('admin.activos-fijos.articulos');
+        Route::get('/ingresos', GestionIngresosActivos::class)->name('admin.activos-fijos.ingresos');
+        Route::get('/egresos', GestionEgresosActivos::class)->name('admin.activos-fijos.egresos');
+        Route::get('/asignaciones', GestionAsignacionesActivos::class)->name('admin.activos-fijos.asignaciones');
+        Route::get('/devoluciones', GestionDevolucionesActivos::class)->name('admin.activos-fijos.devoluciones');
+        Route::get('/bajas', GestionBajasActivos::class)->name('admin.activos-fijos.bajas');
+        Route::get('/kardex', GestionKardexActivos::class)->name('admin.activos-fijos.kardex');
+        Route::get('/comprobante/{tipo}/{id}', ComprobanteActivo::class)->name('admin.activos-fijos.comprobante');
     });
 });
