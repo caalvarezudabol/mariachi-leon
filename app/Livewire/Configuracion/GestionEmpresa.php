@@ -3,13 +3,15 @@
 namespace App\Livewire\Configuracion;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use App\Models\Empresa;
 use App\Models\Configuracion;
 use App\Traits\Auditable;
+use App\Services\ImageOptimizerService;
 
 class GestionEmpresa extends Component
 {
-    use Auditable;
+    use WithFileUploads, Auditable;
 
     public $empresa_id;
     public $nombre_comercial;
@@ -33,6 +35,11 @@ class GestionEmpresa extends Component
     public $terminos_contrato;
     public $observaciones;
 
+    // Propiedades para la Gestión del Logotipo
+    public $logo_file;
+    public $logo_eliminado = false;
+    public $showConfirmDeleteLogo = false;
+
     public $activeTab = 'general';
 
     protected function rules()
@@ -49,6 +56,7 @@ class GestionEmpresa extends Component
             'direccion_fisica' => 'required|string|max:255',
             'ciudad_pais' => 'nullable|string|max:100',
             'logo_url' => 'nullable|string|max:255',
+            'logo_file' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120', // Máximo 5MB (5120 KB)
             'moneda_nombre' => 'required|string|max:50',
             'moneda_simbolo' => 'required|string|max:10',
             'redes_linktree' => 'nullable|url|max:255',
@@ -68,6 +76,9 @@ class GestionEmpresa extends Component
         'email_contacto.required' => 'El correo de contacto es obligatorio.',
         'email_contacto.email' => 'Ingrese una dirección de correo válida.',
         'redes_linktree.url' => 'El enlace a Linktree/Redes debe ser una URL válida (http:// o https://).',
+        'logo_file.image' => 'El archivo seleccionado no es una imagen válida.',
+        'logo_file.mimes' => 'Solo se permiten imágenes en formato JPG, JPEG, PNG o WEBP.',
+        'logo_file.max' => 'El archivo seleccionado supera el tamaño máximo permitido de 5 MB.',
     ];
 
     public function mount()
@@ -96,16 +107,64 @@ class GestionEmpresa extends Component
         $this->observaciones = $empresa->observaciones;
     }
 
+    public function updatedLogoFile()
+    {
+        $this->validateOnly('logo_file');
+        $this->logo_eliminado = false;
+        session()->flash('info_logo', 'Imagen seleccionada correctamente. Haga clic en "Guardar Cambios" para procesar y actualizar.');
+    }
+
+    public function abrirConfirmacionEliminarLogo()
+    {
+        $this->showConfirmDeleteLogo = true;
+    }
+
+    public function cancelarEliminarLogo()
+    {
+        $this->showConfirmDeleteLogo = false;
+    }
+
+    public function eliminarLogo()
+    {
+        $this->logo_file = null;
+        $this->logo_eliminado = true;
+        $this->showConfirmDeleteLogo = false;
+        session()->flash('info_logo', 'Logo marcado para eliminación. Guarde los cambios para confirmar la eliminación definitiva.');
+    }
+
     public function setTab($tab)
     {
         $this->activeTab = $tab;
     }
 
-    public function guardar()
+    public function guardar(ImageOptimizerService $optimizer)
     {
         $this->validate();
 
         $empresa = Empresa::findOrFail($this->empresa_id);
+
+        // Procesamiento del Logotipo
+        if ($this->logo_file) {
+            // Eliminar logo anterior si existía
+            if ($empresa->logo_url) {
+                $optimizer->eliminarArchivo($empresa->logo_url);
+            }
+
+            // Optimización automática (máx 2000px, compresión de calidad) y guardado
+            $nuevaRuta = $optimizer->optimizarYGuardar($this->logo_file, 'logos');
+            $this->logo_url = $nuevaRuta;
+            $this->logo_file = null;
+            $this->logo_eliminado = false;
+            session()->flash('info_logo', 'El logo fue optimizado y actualizado correctamente.');
+        } elseif ($this->logo_eliminado) {
+            if ($empresa->logo_url) {
+                $optimizer->eliminarArchivo($empresa->logo_url);
+            }
+            $this->logo_url = null;
+            $this->logo_eliminado = false;
+            session()->flash('info_logo', 'Logo eliminado correctamente.');
+        }
+
         $empresa->update([
             'nombre_comercial' => trim($this->nombre_comercial),
             'razon_social' => trim($this->razon_social),
@@ -117,7 +176,7 @@ class GestionEmpresa extends Component
             'email_contacto' => trim($this->email_contacto),
             'direccion_fisica' => trim($this->direccion_fisica),
             'ciudad_pais' => trim($this->ciudad_pais),
-            'logo_url' => trim($this->logo_url),
+            'logo_url' => $this->logo_url,
             'moneda_nombre' => trim($this->moneda_nombre),
             'moneda_simbolo' => trim($this->moneda_simbolo),
             'redes_linktree' => trim($this->redes_linktree),
@@ -139,14 +198,15 @@ class GestionEmpresa extends Component
             'email_contacto' => $this->email_contacto,
             'direccion_oficina' => $this->direccion_fisica,
             'terminos_contrato' => $this->terminos_contrato,
+            'logo_url' => $this->logo_url,
         ];
 
         foreach ($syncKeys as $clave => $valor) {
             Configuracion::where('clave', $clave)->update(['valor' => $valor]);
         }
 
-        $this->registrarAuditoria('Configuración', 'Actualizar Empresa', 'Se actualizaron los datos institucionales de la empresa: ' . $empresa->nombre_comercial);
-        session()->flash('success', 'Datos de la empresa y parámetros institucionales guardados correctamente.');
+        $this->registrarAuditoria('Configuración', 'Actualizar Empresa', 'Se actualizaron los datos e identidad visual de la empresa: ' . $empresa->nombre_comercial);
+        session()->flash('success', 'Datos de la empresa, logotipo e identidad visual guardados correctamente.');
     }
 
     public function render()
