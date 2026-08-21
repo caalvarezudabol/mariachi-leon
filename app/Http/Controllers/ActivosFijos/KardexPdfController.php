@@ -126,6 +126,7 @@ class KardexPdfController extends Controller
         $pdf = Pdf::loadView('pdf.kardex-producto', $datos)
             ->setPaper('letter', 'portrait')
             ->setOption('isRemoteEnabled', false)
+            ->setOption('isPhpEnabled', true)
             ->setOption('isFontSubsettingEnabled', true)
             ->setOption('defaultFont', 'DejaVu Sans');
 

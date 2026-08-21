@@ -344,21 +344,32 @@
     <div class="page-footer">
         <table class="footer-table">
             <tr>
-                <td style="width: 40%; text-align: left;">
+                <td style="width: 45%; text-align: left;">
                     <div style="font-weight: bold; color: #0f172a;">Mariachi León Guanajuato</div>
                     <div>Sistema de Gestión de Activos Fijos e Inventario</div>
                     <div style="font-size: 6.5pt; color: #94a3b8;">Documento generado automáticamente</div>
                 </td>
-                <td style="width: 35%; text-align: center;">
+                <td style="width: 30%; text-align: center;">
                     <div style="font-weight: bold; color: #334155;">Fecha y hora de impresión:</div>
                     <div>{{ $fechaEmision }}</div>
                 </td>
                 <td style="width: 25%; text-align: right; font-weight: bold; color: #0f172a;">
-                    Página <span class="pagenum"></span> de <span class="pagecount"></span>
+                    <!-- Se inyecta dinámicamente el texto mediante el script PHP de DomPDF -->
                 </td>
             </tr>
         </table>
     </div>
+
+    <!-- Script PHP de DomPDF para numeración exacta de páginas (Página 1 de 1, Página 1 de 2, etc.) -->
+    <script type="text/php">
+        if (isset($pdf)) {
+            $text = "Página {PAGE_NUM} de {PAGE_COUNT}";
+            $font = $fontMetrics->get_font("DejaVu Sans", "bold");
+            $size = 7;
+            $color = array(0.06, 0.09, 0.16); // #0f172a
+            $pdf->page_text(495, 756, $text, $font, $size, $color);
+        }
+    </script>
 
     <!-- Header Section -->
     <table class="top-header-table">
