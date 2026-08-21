@@ -40,6 +40,11 @@ class GestionEmpresa extends Component
     public $logo_eliminado = false;
     public $showConfirmDeleteLogo = false;
 
+    // Propiedades para la Gestión del Código QR de Pagos
+    public $qr_file;
+    public $qr_eliminado = false;
+    public $showConfirmDeleteQr = false;
+
     public $activeTab = 'general';
 
     protected function rules()
@@ -56,7 +61,8 @@ class GestionEmpresa extends Component
             'direccion_fisica' => 'required|string|max:255',
             'ciudad_pais' => 'nullable|string|max:100',
             'logo_url' => 'nullable|string|max:255',
-            'logo_file' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120', // Máximo 5MB (5120 KB)
+            'logo_file' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'qr_file' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'moneda_nombre' => 'required|string|max:50',
             'moneda_simbolo' => 'required|string|max:10',
             'redes_linktree' => 'nullable|url|max:255',
@@ -76,9 +82,12 @@ class GestionEmpresa extends Component
         'email_contacto.required' => 'El correo de contacto es obligatorio.',
         'email_contacto.email' => 'Ingrese una dirección de correo válida.',
         'redes_linktree.url' => 'El enlace a Linktree/Redes debe ser una URL válida (http:// o https://).',
-        'logo_file.image' => 'El archivo seleccionado no es una imagen válida.',
-        'logo_file.mimes' => 'Solo se permiten imágenes en formato JPG, JPEG, PNG o WEBP.',
-        'logo_file.max' => 'El archivo seleccionado supera el tamaño máximo permitido de 5 MB.',
+        'logo_file.image' => 'El archivo seleccionado para logo no es una imagen válida.',
+        'logo_file.mimes' => 'Solo se permiten imágenes de logo en formato JPG, JPEG, PNG o WEBP.',
+        'logo_file.max' => 'El logo supera el tamaño máximo permitido de 5 MB.',
+        'qr_file.image' => 'El archivo seleccionado para QR no es una imagen válida.',
+        'qr_file.mimes' => 'Solo se permiten imágenes de QR en formato JPG, JPEG, PNG o WEBP.',
+        'qr_file.max' => 'La imagen del QR supera el tamaño máximo permitido de 5 MB.',
     ];
 
     public function mount()
@@ -132,6 +141,33 @@ class GestionEmpresa extends Component
         session()->flash('info_logo', 'Logo marcado para eliminación. Guarde los cambios para confirmar la eliminación definitiva.');
     }
 
+    // Métodos para la Gestión del Código QR
+    public function updatedQrFile()
+    {
+        $this->validateOnly('qr_file');
+        $this->qr_eliminado = false;
+        session()->flash('info_qr', 'Imagen QR seleccionada correctamente. Haga clic en "Guardar Cambios" para actualizar.');
+    }
+
+    public function abrirConfirmacionEliminarQr()
+    {
+        $this->showConfirmDeleteQr = true;
+    }
+
+    public function cancelarEliminarQr()
+    {
+        $this->showConfirmDeleteQr = false;
+    }
+
+    public function eliminarQr()
+    {
+        $this->qr_file = null;
+        $this->banco_qr_url = null;
+        $this->qr_eliminado = true;
+        $this->showConfirmDeleteQr = false;
+        session()->flash('info_qr', 'Imagen QR marcada para eliminación. Guarde los cambios para confirmar.');
+    }
+
     public function setTab($tab)
     {
         $this->activeTab = $tab;
@@ -145,12 +181,9 @@ class GestionEmpresa extends Component
 
         // Procesamiento del Logotipo
         if ($this->logo_file) {
-            // Eliminar logo anterior si existía
             if ($empresa->logo_url) {
                 $optimizer->eliminarArchivo($empresa->logo_url);
             }
-
-            // Optimización automática (máx 2000px, compresión de calidad) y guardado
             $nuevaRuta = $optimizer->optimizarYGuardar($this->logo_file, 'logos');
             $this->logo_url = $nuevaRuta;
             $this->logo_file = null;
@@ -163,6 +196,25 @@ class GestionEmpresa extends Component
             $this->logo_url = null;
             $this->logo_eliminado = false;
             session()->flash('info_logo', 'Logo eliminado correctamente.');
+        }
+
+        // Procesamiento del Código QR
+        if ($this->qr_file) {
+            if ($empresa->banco_qr_url) {
+                $optimizer->eliminarArchivo($empresa->banco_qr_url);
+            }
+            $nuevaRutaQr = $optimizer->optimizarYGuardar($this->qr_file, 'qr_pagos');
+            $this->banco_qr_url = $nuevaRutaQr;
+            $this->qr_file = null;
+            $this->qr_eliminado = false;
+            session()->flash('info_qr', 'La imagen QR para pagos fue optimizada y actualizada correctamente.');
+        } elseif ($this->qr_eliminado) {
+            if ($empresa->banco_qr_url) {
+                $optimizer->eliminarArchivo($empresa->banco_qr_url);
+            }
+            $this->banco_qr_url = null;
+            $this->qr_eliminado = false;
+            session()->flash('info_qr', 'Imagen QR eliminada correctamente.');
         }
 
         $empresa->update([
@@ -199,14 +251,15 @@ class GestionEmpresa extends Component
             'direccion_oficina' => $this->direccion_fisica,
             'terminos_contrato' => $this->terminos_contrato,
             'logo_url' => $this->logo_url,
+            'banco_qr_url' => $this->banco_qr_url,
         ];
 
         foreach ($syncKeys as $clave => $valor) {
             Configuracion::where('clave', $clave)->update(['valor' => $valor]);
         }
 
-        $this->registrarAuditoria('Configuración', 'Actualizar Empresa', 'Se actualizaron los datos e identidad visual de la empresa: ' . $empresa->nombre_comercial);
-        session()->flash('success', 'Datos de la empresa, logotipo e identidad visual guardados correctamente.');
+        $this->registrarAuditoria('Configuración', 'Actualizar Empresa', 'Se actualizaron los datos, logotipo e imagen QR de la empresa: ' . $empresa->nombre_comercial);
+        session()->flash('success', 'Datos de la empresa, logotipo e imagen QR de pagos guardados correctamente.');
     }
 
     public function render()
