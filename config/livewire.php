@@ -67,7 +67,7 @@ return [
         'disk' => 'public',
         'rules' => ['nullable', 'file', 'max:5120'],
         'directory' => 'livewire-tmp',
-        'middleware' => null,  // Example: 'throttle:5,1'             | Default: 'throttle:60,1'
+        'middleware' => ['web'],  // Example: 'throttle:5,1'             | Default: 'throttle:60,1'
         'preview_mimes' => [   // Supported file types for temporary pre-signed file URLs...
             'png', 'gif', 'bmp', 'svg', 'wav', 'mp4',
             'mov', 'avi', 'wmv', 'mp3', 'm4a',
