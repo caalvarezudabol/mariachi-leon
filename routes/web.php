@@ -36,6 +36,7 @@ use App\Livewire\ActivosFijos\GestionBajasActivos;
 use App\Livewire\ActivosFijos\GestionKardexActivos;
 use App\Livewire\ActivosFijos\ComprobanteActivo;
 use App\Http\Controllers\ActivosFijos\KardexPdfController;
+use App\Http\Controllers\ReporteEjecutivoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,6 +69,7 @@ Route::post('/logout', function () {
 */
 Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('admin.dashboard');
+    Route::get('/reporte-ejecutivo/pdf', [ReporteEjecutivoController::class, 'exportarPdf'])->name('admin.reporte-ejecutivo.pdf');
 
     // Módulo 1: Administración
     Route::get('/usuarios', GestionUsuarios::class)->name('admin.usuarios');
