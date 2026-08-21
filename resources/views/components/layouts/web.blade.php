@@ -52,23 +52,28 @@
 <body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-gold-500 selection:text-slate-950" x-data="{ mobileMenuOpen: false }">
 
     <!-- Header Navigation -->
+    @php $empresaWeb = \App\Models\Empresa::obtener(); @endphp
     <header class="fixed top-0 inset-x-0 z-50 bg-slate-950/80 backdrop-blur-lg border-b border-slate-800/80">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <!-- Brand Logo Oficial Mariachi León Guanajuato -->
             <a href="{{ route('web.home') }}" class="flex items-center gap-3 group">
-                <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-gold-500/40 p-1 flex items-center justify-center shadow-lg shadow-gold-500/20 group-hover:scale-105 transition-transform">
-                    <svg viewBox="0 0 100 100" class="w-full h-full text-gold-400 fill-current">
-                        <!-- Emblem Badge with Lions & Trumpets -->
-                        <circle cx="50" cy="50" r="45" fill="#0b1329" stroke="#d97706" stroke-width="3"/>
-                        <path d="M50 15 L53 25 L63 25 L55 31 L58 41 L50 35 L42 41 L45 31 L37 25 L47 25 Z" fill="#fbbf24"/>
-                        <text x="50" y="58" font-family="Cinzel, serif" font-weight="900" font-size="20" fill="#f59e0b" text-anchor="middle">LEÓN</text>
-                        <text x="50" y="72" font-family="Cinzel, serif" font-weight="700" font-size="9" fill="#ffffff" text-anchor="middle" letter-spacing="1">GUANAJUATO</text>
-                        <text x="50" y="82" font-family="sans-serif" font-weight="800" font-size="7" fill="#fbbf24" text-anchor="middle" letter-spacing="2">MARIACHI</text>
-                    </svg>
+                <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-gold-500/40 p-1 flex items-center justify-center shadow-lg shadow-gold-500/20 group-hover:scale-105 transition-transform overflow-hidden">
+                    @if($empresaWeb->logo_url)
+                        <img src="{{ asset($empresaWeb->logo_url) }}" alt="Logo {{ $empresaWeb->nombre_comercial }}" class="w-full h-full object-contain rounded-xl">
+                    @else
+                        <svg viewBox="0 0 100 100" class="w-full h-full text-gold-400 fill-current">
+                            <!-- Emblem Badge with Lions & Trumpets -->
+                            <circle cx="50" cy="50" r="45" fill="#0b1329" stroke="#d97706" stroke-width="3"/>
+                            <path d="M50 15 L53 25 L63 25 L55 31 L58 41 L50 35 L42 41 L45 31 L37 25 L47 25 Z" fill="#fbbf24"/>
+                            <text x="50" y="58" font-family="Cinzel, serif" font-weight="900" font-size="20" fill="#f59e0b" text-anchor="middle">LEÓN</text>
+                            <text x="50" y="72" font-family="Cinzel, serif" font-weight="700" font-size="9" fill="#ffffff" text-anchor="middle" letter-spacing="1">GUANAJUATO</text>
+                            <text x="50" y="82" font-family="sans-serif" font-weight="800" font-size="7" fill="#fbbf24" text-anchor="middle" letter-spacing="2">MARIACHI</text>
+                        </svg>
+                    @endif
                 </div>
                 <div>
-                    <span class="font-serif font-black text-xl text-white tracking-wide block leading-none">MARIACHI LEÓN</span>
-                    <span class="text-[10px] text-gold-400 font-bold tracking-widest uppercase block mt-1">Guanajuato &bull; Bolivia</span>
+                    <span class="font-serif font-black text-xl text-white tracking-wide block leading-none uppercase">{{ $empresaWeb->nombre_comercial ?? 'MARIACHI LEÓN' }}</span>
+                    <span class="text-[10px] text-gold-400 font-bold tracking-widest uppercase block mt-1">{{ $empresaWeb->ciudad_pais ?? 'Guanajuato • Bolivia' }}</span>
                 </div>
             </a>
 
@@ -122,22 +127,26 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
                 <div class="space-y-4 md:col-span-1">
                     <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-gold-500/40 p-1 flex items-center justify-center shadow-lg shadow-gold-500/20">
-                            <svg viewBox="0 0 100 100" class="w-full h-full text-gold-400 fill-current">
-                                <circle cx="50" cy="50" r="45" fill="#0b1329" stroke="#d97706" stroke-width="3"/>
-                                <path d="M50 15 L53 25 L63 25 L55 31 L58 41 L50 35 L42 41 L45 31 L37 25 L47 25 Z" fill="#fbbf24"/>
-                                <text x="50" y="58" font-family="Cinzel, serif" font-weight="900" font-size="20" fill="#f59e0b" text-anchor="middle">LEÓN</text>
-                                <text x="50" y="72" font-family="Cinzel, serif" font-weight="700" font-size="9" fill="#ffffff" text-anchor="middle" letter-spacing="1">GUANAJUATO</text>
-                                <text x="50" y="82" font-family="sans-serif" font-weight="800" font-size="7" fill="#fbbf24" text-anchor="middle" letter-spacing="2">MARIACHI</text>
-                            </svg>
+                        <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-gold-500/40 p-1 flex items-center justify-center shadow-lg shadow-gold-500/20 overflow-hidden">
+                            @if($empresaWeb->logo_url)
+                                <img src="{{ asset($empresaWeb->logo_url) }}" alt="Logo {{ $empresaWeb->nombre_comercial }}" class="w-full h-full object-contain rounded-xl">
+                            @else
+                                <svg viewBox="0 0 100 100" class="w-full h-full text-gold-400 fill-current">
+                                    <circle cx="50" cy="50" r="45" fill="#0b1329" stroke="#d97706" stroke-width="3"/>
+                                    <path d="M50 15 L53 25 L63 25 L55 31 L58 41 L50 35 L42 41 L45 31 L37 25 L47 25 Z" fill="#fbbf24"/>
+                                    <text x="50" y="58" font-family="Cinzel, serif" font-weight="900" font-size="20" fill="#f59e0b" text-anchor="middle">LEÓN</text>
+                                    <text x="50" y="72" font-family="Cinzel, serif" font-weight="700" font-size="9" fill="#ffffff" text-anchor="middle" letter-spacing="1">GUANAJUATO</text>
+                                    <text x="50" y="82" font-family="sans-serif" font-weight="800" font-size="7" fill="#fbbf24" text-anchor="middle" letter-spacing="2">MARIACHI</text>
+                                </svg>
+                            @endif
                         </div>
                         <div>
-                            <span class="font-serif font-bold text-lg text-white block leading-none">MARIACHI LEÓN</span>
-                            <span class="text-[10px] text-gold-400 font-bold tracking-widest uppercase block mt-1">Guanajuato &bull; Bolivia</span>
+                            <span class="font-serif font-bold text-lg text-white block leading-none uppercase">{{ $empresaWeb->nombre_comercial ?? 'MARIACHI LEÓN' }}</span>
+                            <span class="text-[10px] text-gold-400 font-bold tracking-widest uppercase block mt-1">{{ $empresaWeb->ciudad_pais ?? 'Guanajuato • Bolivia' }}</span>
                         </div>
                     </div>
                     <p class="text-sm text-slate-400 leading-relaxed">
-                        Música mexicana tradicional y de gala para todo tipo de evento social, bodas, quinceañeras y corporativos.
+                        {{ $empresaWeb->slogan ?? 'Música mexicana tradicional y de gala para todo tipo de evento social, bodas, quinceañeras y corporativos.' }}
                     </p>
                 </div>
                 <div>
@@ -154,15 +163,15 @@
                     <ul class="space-y-3 text-sm text-slate-400">
                         <li class="flex items-center gap-3">
                             <i class="fa-solid fa-phone text-gold-500"></i>
-                            <span>+52 477 123 4567</span>
+                            <span>{{ $empresaWeb->telefono_principal ?? '+591 70000000' }}</span>
                         </li>
                         <li class="flex items-center gap-3">
                             <i class="fa-solid fa-envelope text-gold-500"></i>
-                            <span>contacto@mariachileonguanajuato.com</span>
+                            <span>{{ $empresaWeb->email_contacto ?? 'contacto@mariachileonguanajuato.com' }}</span>
                         </li>
                         <li class="flex items-start gap-3">
                             <i class="fa-solid fa-location-dot text-gold-500 mt-1"></i>
-                            <span>León, Guanajuato, México</span>
+                            <span>{{ $empresaWeb->direccion_fisica ?? 'Santa Cruz, Bolivia' }}</span>
                         </li>
                     </ul>
                 </div>
@@ -176,7 +185,7 @@
                 </div>
             </div>
             <div class="mt-12 pt-8 border-t border-slate-900 text-center text-xs text-slate-500">
-                <p>&copy; {{ date('Y') }} Mariachi León Guanajuato. Todos los derechos reservados.</p>
+                <p>&copy; {{ date('Y') }} {{ $empresaWeb->nombre_comercial ?? 'Mariachi León Guanajuato' }}. Todos los derechos reservados.</p>
             </div>
         </div>
     </footer>
