@@ -5,10 +5,16 @@
             <h1 class="text-2xl font-bold text-white">Gestión de Artículos & Productos (Activos Fijos)</h1>
             <p class="text-xs text-slate-400">Control de inventario, equipos individuales y artículos por cantidad (PPP).</p>
         </div>
-        <button wire:click="abrirModal" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-lg shadow-gold-500/20 transition-all flex items-center justify-center gap-2">
-            <i class="fa-solid fa-box-open"></i>
-            <span>Nuevo Artículo</span>
-        </button>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('admin.activos-fijos.inventario.pdf') }}" target="_blank" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-600 text-white hover:bg-rose-500 shadow-lg shadow-rose-600/20 transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-file-pdf text-sm"></i>
+                <span>Reporte Inventario PDF</span>
+            </a>
+            <button wire:click="abrirModal" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-lg shadow-gold-500/20 transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-box-open"></i>
+                <span>Nuevo Artículo</span>
+            </button>
+        </div>
     </div>
 
     <!-- Search & Filter Bar -->
