@@ -2,48 +2,80 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Kardex {{ $asset->codigo }} - {{ $asset->nombre }}</title>
+    <title>Kardex Valorizado - {{ $asset->codigo }} - {{ $asset->nombre }}</title>
     <style>
         @page {
             size: letter portrait;
-            margin: 2.0cm;
+            margin: 1.8cm 1.8cm 1.8cm 1.8cm;
         }
 
         body {
-            font-family: 'DejaVu Sans', sans-serif;
-            font-size: 9pt;
-            color: #1e293b;
-            line-height: 1.3;
+            font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
+            font-size: 8.5pt;
+            color: #0f172a;
+            line-height: 1.35;
             margin: 0;
             padding: 0;
         }
 
-        /* Header Table */
+        /* Fixed Footer */
+        .page-footer {
+            position: fixed;
+            bottom: -1.2cm;
+            left: 0;
+            right: 0;
+            height: 0.8cm;
+            font-size: 7.5pt;
+            color: #64748b;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 5px;
+        }
+
+        .footer-left {
+            float: left;
+            font-weight: 500;
+        }
+
+        .footer-right {
+            float: right;
+            font-weight: bold;
+        }
+
+        .pagenum:before {
+            content: counter(page);
+        }
+
+        .pagecount:before {
+            content: counter(pages);
+        }
+
+        /* Header Document Table */
         .header-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
+            margin-bottom: 14px;
             border-bottom: 2px solid #0f172a;
             padding-bottom: 10px;
         }
 
         .header-logo {
-            width: 70px;
+            width: 75px;
             vertical-align: middle;
+            text-align: left;
         }
 
         .header-logo img {
-            max-width: 65px;
-            max-height: 65px;
+            max-width: 70px;
+            max-height: 70px;
         }
 
         .header-company {
             vertical-align: middle;
-            padding-left: 10px;
+            padding-left: 8px;
         }
 
-        .company-name {
-            font-size: 14pt;
+        .company-title {
+            font-size: 13pt;
             font-weight: bold;
             color: #0f172a;
             text-transform: uppercase;
@@ -51,16 +83,17 @@
         }
 
         .company-subtitle {
-            font-size: 7.5pt;
-            color: #475569;
+            font-size: 8pt;
+            color: #d97706;
             text-transform: uppercase;
             font-weight: bold;
+            letter-spacing: 0.8px;
         }
 
         .company-contact {
             font-size: 7.5pt;
-            color: #64748b;
-            margin-top: 3px;
+            color: #475569;
+            margin-top: 2px;
         }
 
         .header-document {
@@ -68,61 +101,68 @@
             vertical-align: middle;
         }
 
-        .doc-title-main {
-            font-size: 11pt;
+        .doc-badge {
+            display: inline-block;
+            background-color: #0f172a;
+            color: #fbbf24;
+            font-size: 8pt;
             font-weight: bold;
-            color: #b45309;
+            padding: 3px 8px;
+            border-radius: 4px;
             text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
         }
 
-        .doc-title-sub {
-            font-size: 13pt;
+        .doc-title-main {
+            font-size: 12pt;
             font-weight: bold;
             color: #0f172a;
             text-transform: uppercase;
-            margin-top: 2px;
         }
 
         .doc-date {
             font-size: 7.5pt;
             color: #64748b;
-            margin-top: 4px;
+            margin-top: 3px;
         }
 
-        /* Section Titles */
-        .section-title {
-            font-size: 9.5pt;
+        /* Section Banners */
+        .section-header {
+            font-size: 9pt;
             font-weight: bold;
-            color: #0f172a;
-            text-transform: uppercase;
-            background-color: #f1f5f9;
+            color: #ffffff;
+            background-color: #0f172a;
             padding: 5px 8px;
-            border-left: 4px solid #d97706;
-            margin-top: 12px;
+            margin-top: 14px;
             margin-bottom: 8px;
+            letter-spacing: 0.5px;
+            border-left: 4px solid #f59e0b;
         }
 
-        /* Product Info Grid Table */
-        .info-table {
+        /* Information Grid */
+        .info-grid {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 12px;
         }
 
-        .info-table td {
+        .info-grid td {
             padding: 4px 6px;
-            font-size: 8.5pt;
+            font-size: 8pt;
             border-bottom: 1px solid #e2e8f0;
         }
 
-        .info-label {
+        .lbl {
             font-weight: bold;
             color: #475569;
             width: 18%;
             background-color: #f8fafc;
+            text-transform: uppercase;
+            font-size: 7.5pt;
         }
 
-        .info-val {
+        .val {
             color: #0f172a;
             width: 32%;
         }
@@ -132,41 +172,46 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 6px;
-            margin-bottom: 12px;
-            font-size: 8pt;
+            margin-bottom: 14px;
+            font-size: 7.5pt;
         }
 
         .kardex-table th {
-            background-color: #0f172a;
+            background-color: #1e293b;
             color: #ffffff;
             font-weight: bold;
             text-transform: uppercase;
-            padding: 5px 4px;
+            padding: 6px 4px;
             font-size: 7pt;
             text-align: center;
             border: 1px solid #0f172a;
         }
 
         .kardex-table td {
-            padding: 4px 4px;
+            padding: 5px 4px;
             border: 1px solid #cbd5e1;
             text-align: center;
+            vertical-align: middle;
         }
 
         .kardex-table tr:nth-child(even) {
             background-color: #f8fafc;
         }
 
-        .col-left {
+        .txt-left {
             text-align: left !important;
         }
 
-        .col-right {
+        .txt-right {
             text-align: right !important;
         }
 
+        .txt-bold {
+            font-weight: bold;
+        }
+
         .tag-entrada {
-            color: #15803d;
+            color: #047857;
             font-weight: bold;
         }
 
@@ -175,35 +220,53 @@
             font-weight: bold;
         }
 
-        /* Summary Table */
+        /* Executive Summary Box */
         .summary-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 14px;
         }
 
         .summary-table th {
-            background-color: #1e293b;
-            color: #f8fafc;
+            background-color: #0f172a;
+            color: #fbbf24;
             font-size: 7.5pt;
             font-weight: bold;
             text-transform: uppercase;
             padding: 5px;
             text-align: center;
-            border: 1px solid #1e293b;
+            border: 1px solid #0f172a;
         }
 
         .summary-table td {
-            padding: 6px;
+            padding: 6px 4px;
             border: 1px solid #cbd5e1;
             text-align: center;
             font-weight: bold;
             font-size: 9pt;
-            background-color: #f1f5f9;
+            background-color: #f8fafc;
         }
 
-        /* Footer & Signatures */
+        .summary-total {
+            background-color: #fef3c7 !important;
+            color: #92400e !important;
+            font-size: 10pt !important;
+            border: 1.5px solid #d97706 !important;
+        }
+
+        /* Notes Box */
+        .notes-box {
+            font-size: 7.5pt;
+            color: #475569;
+            background-color: #f8fafc;
+            padding: 6px 8px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        /* Signatures Area */
         .signatures-table {
             width: 100%;
             margin-top: 35px;
@@ -216,58 +279,30 @@
             vertical-align: top;
         }
 
-        .signature-line {
-            width: 70%;
+        .sig-line {
+            width: 65%;
             border-top: 1px solid #0f172a;
-            margin: 0 auto 5px auto;
+            margin: 0 auto 4px auto;
         }
 
-        .signature-name {
+        .sig-name {
             font-weight: bold;
             font-size: 8.5pt;
             color: #0f172a;
         }
 
-        .signature-title {
+        .sig-title {
             font-size: 7.5pt;
             color: #64748b;
-        }
-
-        .page-footer {
-            position: fixed;
-            bottom: -1cm;
-            left: 0;
-            right: 0;
-            height: 0.8cm;
-            font-size: 7pt;
-            color: #64748b;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 4px;
-        }
-
-        .footer-left {
-            float: left;
-        }
-
-        .footer-right {
-            float: right;
-        }
-
-        .pagenum:before {
-            content: counter(page);
-        }
-
-        .pagecount:before {
-            content: counter(pages);
         }
     </style>
 </head>
 <body>
 
-    <!-- Fixed Footer -->
+    <!-- Fixed Page Footer -->
     <div class="page-footer">
         <div class="footer-left">
-            {{ $empresa->nombre_comercial }} • Sistema de Gestión de Activos Fijos e Inventario • Documento generado automáticamente
+            <strong>{{ $empresa->nombre_comercial }}</strong> • Sistema de Control de Activos Fijos e Inventario
         </div>
         <div class="footer-right">
             Impreso: {{ $fechaEmision }} • Página <span class="pagenum"></span> de <span class="pagecount"></span>
@@ -283,70 +318,72 @@
                 </td>
             @endif
             <td class="header-company">
-                <div class="company-name">{{ $empresa->nombre_comercial }}</div>
+                <div class="company-title">{{ $empresa->nombre_comercial }}</div>
                 <div class="company-subtitle">Control de Activos Fijos & Inventario</div>
                 <div class="company-contact">
-                    {{ $empresa->direccion_fisica }} • Tel: {{ $empresa->telefono_principal }} / {{ $empresa->whatsapp_comercial }}<br>
-                    Email: {{ $empresa->email_contacto }}
+                    {{ $empresa->direccion_fisica }} • Tel: {{ $empresa->telefono_principal }} @if($empresa->whatsapp_comercial)/ Cel: {{ $empresa->whatsapp_comercial }}@endif<br>
+                    Email: {{ $empresa->email_contacto }} @if($empresa->nit_ruc)• NIT/RUC: {{ $empresa->nit_ruc }}@endif
                 </div>
             </td>
             <td class="header-document">
+                <div class="doc-badge">DOCUMENTO OFICIAL</div>
                 <div class="doc-title-main">KARDEX VALORIZADO</div>
-                <div class="doc-title-sub">KARDEX DE PRODUCTO</div>
-                <div class="doc-date">Fecha de Emisión: {{ $fechaEmision }}</div>
+                <div class="doc-date">Emisión: {{ $fechaEmision }}</div>
             </td>
         </tr>
     </table>
 
     <!-- Product Details Section -->
-    <div class="section-title">INFORMACIÓN DEL PRODUCTO</div>
-    <table class="info-table">
+    <div class="section-header">1. IDENTIFICACIÓN Y FICHA TÉCNICA DEL PRODUCTO</div>
+    <table class="info-grid">
         <tr>
-            <td class="info-label">Código:</td>
-            <td class="info-val"><strong>{{ $asset->codigo }}</strong></td>
-            <td class="info-label">Categoría:</td>
-            <td class="info-val">{{ $asset->category->nombre ?? 'N/A' }}</td>
+            <td class="lbl">Código Activo:</td>
+            <td class="val"><strong>{{ $asset->codigo }}</strong></td>
+            <td class="lbl">Categoría:</td>
+            <td class="val">{{ $asset->category->nombre ?? 'N/A' }}</td>
         </tr>
         <tr>
-            <td class="info-label">Producto:</td>
-            <td class="info-val"><strong>{{ $asset->nombre }}</strong></td>
-            <td class="info-label">Tipo de Control:</td>
-            <td class="info-val">{{ $asset->tipo_control === 'cantidad' ? 'Por cantidad' : 'Individual' }}</td>
+            <td class="lbl">Producto / Artículo:</td>
+            <td class="val"><strong>{{ $asset->nombre }}</strong></td>
+            <td class="lbl">Tipo de Control:</td>
+            <td class="val">
+                <span class="txt-bold">{{ $asset->tipo_control === 'cantidad' ? 'Por Cantidad / Lote' : 'Individual / Serie' }}</span>
+            </td>
         </tr>
         <tr>
-            <td class="info-label">Unidad de Medida:</td>
-            <td class="info-val">Unidad</td>
-            <td class="info-label">Método Costeo:</td>
-            <td class="info-val">
-                {{ $asset->tipo_control === 'cantidad' ? 'Precio Promedio Ponderado (PPP)' : 'Costo de Adquisición Individual' }}
+            <td class="lbl">Unidad de Medida:</td>
+            <td class="val">Unidad (Pza.)</td>
+            <td class="lbl">Método Valuación:</td>
+            <td class="val">
+                {{ $asset->tipo_control === 'cantidad' ? 'Precio Promedio Ponderado (PPP)' : 'Costo Directo Individual' }}
             </td>
         </tr>
         @if($asset->marca || $asset->modelo || $asset->numero_serie)
         <tr>
-            <td class="info-label">Marca / Modelo:</td>
-            <td class="info-val">{{ $asset->marca }} {{ $asset->modelo }}</td>
-            <td class="info-label">N° de Serie:</td>
-            <td class="info-val">{{ $asset->numero_serie ?? 'N/A' }}</td>
+            <td class="lbl">Marca / Modelo:</td>
+            <td class="val">{{ $asset->marca }} {{ $asset->modelo }}</td>
+            <td class="lbl">Número de Serie:</td>
+            <td class="val"><code>{{ $asset->numero_serie ?? 'N/A' }}</code></td>
         </tr>
         @endif
     </table>
 
-    <!-- Kardex Table Section -->
-    <div class="section-title">MOVIMIENTOS DEL KARDEX</div>
+    <!-- Kardex Movements Section -->
+    <div class="section-header">2. HISTORIAL COMPLETO DE MOVIMIENTOS REGISTRADOS EN EL KARDEX</div>
     <table class="kardex-table">
         <thead>
             <tr>
-                <th style="width: 10%;">Fecha</th>
-                <th style="width: 7%;">Hora</th>
-                <th style="width: 15%;">Movimiento / Motivo</th>
-                <th style="width: 14%;">Usuario Operador</th>
+                <th style="width: 9%;">Fecha</th>
+                <th style="width: 6%;">Hora</th>
+                <th style="width: 17%;">Movimiento / Motivo</th>
+                <th style="width: 15%;">Usuario Operador</th>
                 <th style="width: 8%;">Entrada</th>
-                <th style="width: 9%;">Costo Unit.</th>
+                <th style="width: 10%;">Costo Unit.</th>
                 <th style="width: 8%;">Salida</th>
-                <th style="width: 9%;">Costo Unit.</th>
+                <th style="width: 10%;">Costo Unit.</th>
                 <th style="width: 7%;">Saldo</th>
-                <th style="width: 8%;">PPP Saldo</th>
-                <th style="width: 9%;">Valor Saldo</th>
+                <th style="width: 10%;">PPP Saldo</th>
+                <th style="width: 10%;">Valor Saldo</th>
             </tr>
         </thead>
         <tbody>
@@ -354,20 +391,20 @@
                 <tr>
                     <td>{{ $mov->fecha_movimiento->format('d/m/Y') }}</td>
                     <td>{{ $mov->fecha_movimiento->format('H:i') }}</td>
-                    <td class="col-left">
+                    <td class="txt-left">
                         @if($mov->tipo_movimiento === 'entrada')
                             <span class="tag-entrada">(+) {{ ucfirst(str_replace('_', ' ', $mov->motivo)) }}</span>
                         @else
                             <span class="tag-salida">(-) {{ ucfirst(str_replace('_', ' ', $mov->motivo)) }}</span>
                         @endif
                     </td>
-                    <td class="col-left">{{ $mov->user->name ?? 'Sistema' }}</td>
+                    <td class="txt-left">{{ $mov->user->name ?? 'Sistema' }}</td>
 
                     <!-- Entrada -->
                     <td class="tag-entrada">
                         {{ $mov->tipo_movimiento === 'entrada' ? number_format($mov->cantidad, 0, ',', '.') : '-' }}
                     </td>
-                    <td class="col-right">
+                    <td class="txt-right">
                         {{ $mov->tipo_movimiento === 'entrada' ? 'Bs ' . number_format($mov->costo_unitario, 2, ',', '.') : '-' }}
                     </td>
 
@@ -375,18 +412,18 @@
                     <td class="tag-salida">
                         {{ $mov->tipo_movimiento === 'salida' ? number_format($mov->cantidad, 0, ',', '.') : '-' }}
                     </td>
-                    <td class="col-right">
+                    <td class="txt-right">
                         {{ $mov->tipo_movimiento === 'salida' ? 'Bs ' . number_format($mov->costo_unitario, 2, ',', '.') : '-' }}
                     </td>
 
                     <!-- Saldo -->
-                    <td style="font-weight: bold;">
+                    <td class="txt-bold">
                         {{ number_format($mov->cantidad_saldo, 0, ',', '.') }}
                     </td>
-                    <td class="col-right">
+                    <td class="txt-right">
                         Bs {{ number_format($mov->costo_ppp_saldo, 2, ',', '.') }}
                     </td>
-                    <td class="col-right" style="font-weight: bold; color: #0f172a;">
+                    <td class="txt-right txt-bold" style="color: #0f172a;">
                         Bs {{ number_format($mov->valor_total_saldo, 2, ',', '.') }}
                     </td>
                 </tr>
@@ -400,50 +437,50 @@
         </tbody>
     </table>
 
-    <!-- Summary Section -->
-    <div class="section-title">RESUMEN EJECUTIVO</div>
+    <!-- Executive Summary Section -->
+    <div class="section-header">3. RESUMEN EJECUTIVO Y CONSOLIDADO DE INVENTARIO</div>
     <table class="summary-table">
         <thead>
             <tr>
                 <th>TOTAL ENTRADAS</th>
                 <th>TOTAL SALIDAS</th>
-                <th>SALDO ACTUAL</th>
-                <th>PPP ACTUAL</th>
-                <th>VALOR ACTUAL INVENTARIO</th>
+                <th>SALDO ACTUAL STOCK</th>
+                <th>COSTO PPP ACTUAL</th>
+                <th>VALOR TOTAL INVENTARIO</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td style="color: #15803d;">{{ number_format($totalEntradas, 0, ',', '.') }}</td>
-                <td style="color: #b91c1c;">{{ number_format($totalSalidas, 0, ',', '.') }}</td>
-                <td style="color: #0f172a;">{{ number_format($saldoActual, 0, ',', '.') }}</td>
-                <td style="color: #b45309;">Bs {{ number_format($pppActual, 2, ',', '.') }}</td>
-                <td style="color: #0f172a; font-size: 10pt; background-color: #e2e8f0;">
+                <td style="color: #047857;">{{ number_format($totalEntradas, 0, ',', '.') }} Unid.</td>
+                <td style="color: #b91c1c;">{{ number_format($totalSalidas, 0, ',', '.') }} Unid.</td>
+                <td style="color: #0f172a;">{{ number_format($saldoActual, 0, ',', '.') }} Unid.</td>
+                <td style="color: #d97706;">Bs {{ number_format($pppActual, 2, ',', '.') }}</td>
+                <td class="summary-total">
                     Bs {{ number_format($valorInventario, 2, ',', '.') }}
                 </td>
             </tr>
         </tbody>
     </table>
 
-    <!-- Observaciones -->
-    <div style="font-size: 8pt; color: #475569; margin-top: 15px; background-color: #f8fafc; padding: 6px 10px; border-radius: 4px; border: 1px solid #e2e8f0;">
-        <strong>Observaciones:</strong> Documento generado desde el Sistema de Gestión de Mariachi León Guanajuato. La información refleja la totalidad del historial transaccional registrado a la fecha.
+    <!-- Observations -->
+    <div class="notes-box">
+        <strong>Nota Institucional:</strong> Documento oficial emitido por el Sistema de Gestión de Mariachi León Guanajuato. La información refleja con fidelidad la totalidad del historial transaccional registrado hasta la fecha de emisión.
     </div>
 
     <!-- Signatures Section -->
     <table class="signatures-table">
         <tr>
             <td>
-                <div class="signature-line"></div>
-                <div class="signature-name">{{ $usuarioEmision }}</div>
-                <div class="signature-title">Responsable de Emisión / Operador</div>
-                <div class="signature-title">{{ $empresa->nombre_comercial }}</div>
+                <div class="sig-line"></div>
+                <div class="sig-name">{{ $usuarioEmision }}</div>
+                <div class="sig-title">Responsable de Emisión / Operador</div>
+                <div class="sig-title">{{ $empresa->nombre_comercial }}</div>
             </td>
             <td>
-                <div class="signature-line"></div>
-                <div class="signature-name">{{ $empresa->representante_legal }}</div>
-                <div class="signature-title">Director / Representante Legal</div>
-                <div class="signature-title">{{ $empresa->nombre_comercial }}</div>
+                <div class="sig-line"></div>
+                <div class="sig-name">{{ $empresa->representante_legal }}</div>
+                <div class="sig-title">Director / Representante Legal</div>
+                <div class="sig-title">{{ $empresa->nombre_comercial }}</div>
             </td>
         </tr>
     </table>
