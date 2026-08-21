@@ -27,14 +27,53 @@
     <!-- Filter Bar -->
     <div class="bg-brand-card p-4 rounded-2xl border border-brand-border space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div>
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Artículo</label>
-                <select wire:model.live="asset_id" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:border-gold-500">
-                    <option value="">Todos los Artículos</option>
-                    @foreach($articulos as $art)
-                        <option value="{{ $art->id }}">[{{ $art->codigo }}] {{ $art->nombre }}</option>
-                    @endforeach
-                </select>
+            
+            <!-- BUSCADOR CON AUTOCOMPLETADO Y SELECCIÓN DE ARTÍCULO -->
+            <div class="relative" x-data="{ dropdownOpen: @entangle('dropdown_open') }">
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Buscar / Seleccionar Artículo</label>
+                <div class="relative">
+                    <input type="text" 
+                           wire:model.live.debounce.250ms="search_articulo"
+                           wire:focus="abrirDropdown"
+                           placeholder="🔍 Código o nombre..." 
+                           class="w-full pl-8 pr-8 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:border-gold-500 font-bold {{ $asset_id ? 'border-gold-500/60 text-gold-400' : '' }}">
+                    
+                    <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-500 text-xs">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+
+                    @if($asset_id || $search_articulo)
+                        <button type="button" wire:click="limpiarArticulo" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-rose-400 transition-colors">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </button>
+                    @endif
+                </div>
+
+                <!-- Dropdown Result List Overlay -->
+                <div x-show="dropdownOpen" 
+                     x-cloak 
+                     @click.away="dropdownOpen = false" 
+                     class="absolute z-50 left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto divide-y divide-slate-800/60 scrollbar-thin min-w-[220px]">
+                    <div wire:click="limpiarArticulo" class="px-3 py-2 text-xs font-semibold text-slate-400 hover:bg-slate-800 hover:text-white cursor-pointer transition-colors flex items-center justify-between">
+                        <span>-- Todos los Artículos --</span>
+                        <i class="fa-solid fa-list-ul text-[10px]"></i>
+                    </div>
+
+                    @forelse($articulos as $art)
+                        <div wire:click="seleccionarArticulo({{ $art->id }})" 
+                             class="px-3 py-2 text-xs hover:bg-gold-500/10 hover:text-gold-300 cursor-pointer transition-colors flex items-center justify-between group {{ $asset_id == $art->id ? 'bg-gold-500/20 text-gold-400 font-bold' : 'text-slate-200' }}">
+                            <div>
+                                <span class="font-mono text-gold-400 font-bold">[{{ $art->codigo }}]</span>
+                                <span>{{ $art->nombre }}</span>
+                            </div>
+                            <span class="text-[10px] text-slate-500 group-hover:text-gold-400">{{ $art->category->nombre ?? '' }}</span>
+                        </div>
+                    @empty
+                        <div class="px-3 py-3 text-xs text-slate-500 text-center">
+                            No se encontraron artículos con "{{ $search_articulo }}"
+                        </div>
+                    @endforelse
+                </div>
             </div>
 
             <div>

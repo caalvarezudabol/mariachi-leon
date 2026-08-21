@@ -13,13 +13,60 @@ class GestionKardexActivos extends Component
     use WithPagination;
 
     public $asset_id = '';
+    public $search_articulo = '';
+    public $dropdown_open = false;
+
     public $user_id = '';
     public $fecha_inicio = '';
     public $fecha_fin = '';
     public $tipo_movimiento = '';
     public $motivo = '';
 
-    public function updatingAssetId() { $this->resetPage(); }
+    public function updatingSearchArticulo()
+    {
+        $this->dropdown_open = true;
+    }
+
+    public function updatedSearchArticulo()
+    {
+        if (trim($this->search_articulo) === '') {
+            $this->asset_id = '';
+            $this->resetPage();
+        }
+    }
+
+    public function abrirDropdown()
+    {
+        $this->dropdown_open = true;
+    }
+
+    public function cerrarDropdown()
+    {
+        $this->dropdown_open = false;
+    }
+
+    public function seleccionarArticulo($id)
+    {
+        $art = Asset::find($id);
+        if ($art) {
+            $this->asset_id = $art->id;
+            $this->search_articulo = '[' . $art->codigo . '] ' . $art->nombre;
+        } else {
+            $this->asset_id = '';
+            $this->search_articulo = '';
+        }
+        $this->dropdown_open = false;
+        $this->resetPage();
+    }
+
+    public function limpiarArticulo()
+    {
+        $this->asset_id = '';
+        $this->search_articulo = '';
+        $this->dropdown_open = false;
+        $this->resetPage();
+    }
+
     public function updatingUserId() { $this->resetPage(); }
     public function updatingFechaInicio() { $this->resetPage(); }
     public function updatingFechaFin() { $this->resetPage(); }
@@ -28,7 +75,7 @@ class GestionKardexActivos extends Component
 
     public function resetFiltros()
     {
-        $this->reset(['asset_id', 'user_id', 'fecha_inicio', 'fecha_fin', 'tipo_movimiento', 'motivo']);
+        $this->reset(['asset_id', 'search_articulo', 'dropdown_open', 'user_id', 'fecha_inicio', 'fecha_fin', 'tipo_movimiento', 'motivo']);
         $this->resetPage();
     }
 
@@ -74,7 +121,19 @@ class GestionKardexActivos extends Component
             ->orderBy('id', 'desc')
             ->paginate(15);
 
-        $articulos = Asset::orderBy('nombre', 'asc')->get();
+        // Búsqueda en tiempo real para el selector desplegable
+        $articulosQuery = Asset::query();
+        if (!empty($this->search_articulo) && !$this->asset_id) {
+            $term = '%' . trim($this->search_articulo) . '%';
+            $articulosQuery->where(function($q) use ($term) {
+                $q->where('nombre', 'like', $term)
+                  ->orWhere('codigo', 'like', $term)
+                  ->orWhere('marca', 'like', $term)
+                  ->orWhere('modelo', 'like', $term);
+            });
+        }
+        $articulos = $articulosQuery->orderBy('nombre', 'asc')->take(20)->get();
+
         $usuarios = User::orderBy('name', 'asc')->get();
 
         return view('livewire.activos-fijos.gestion-kardex-activos', [
