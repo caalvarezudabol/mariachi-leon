@@ -97,6 +97,10 @@
                 </a>
 
                 <div class="px-3 pt-4 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Sprint 1: Base</div>
+                <a href="{{ route('config.empresa') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('config.empresa') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                    <i class="fa-solid fa-building-user w-5 text-center"></i>
+                    <span>Datos de la Empresa</span>
+                </a>
                 <a href="{{ route('admin.usuarios') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.usuarios') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
                     <i class="fa-solid fa-users-gear w-5 text-center"></i>
                     <span>Usuarios</span>
@@ -108,10 +112,6 @@
                 <a href="{{ route('admin.auditoria') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.auditoria') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
                     <i class="fa-solid fa-list-check w-5 text-center"></i>
                     <span>Auditoría de Logs</span>
-                </a>
-                <a href="{{ route('config.empresa') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('config.empresa') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
-                    <i class="fa-solid fa-building-user w-5 text-center"></i>
-                    <span>Datos de la Empresa</span>
                 </a>
                 <a href="{{ route('config.parametros') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('config.parametros') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
                     <i class="fa-solid fa-sliders w-5 text-center"></i>
