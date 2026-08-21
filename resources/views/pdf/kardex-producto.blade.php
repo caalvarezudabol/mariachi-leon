@@ -2,11 +2,11 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Informe Técnico Kardex {{ $asset->codigo }} - {{ $asset->nombre }}</title>
+    <title>Kardex {{ $asset->codigo }} - {{ $asset->nombre }}</title>
     <style>
         @page {
             size: letter portrait;
-            margin: 1.2cm 1.5cm 1.5cm 1.5cm;
+            margin: 1.2cm 1.4cm 1.4cm 1.4cm;
         }
 
         body {
@@ -24,20 +24,21 @@
             bottom: -1.0cm;
             left: 0;
             right: 0;
-            height: 0.7cm;
+            height: 0.8cm;
             font-size: 7pt;
-            color: #64748b;
-            border-top: 1px solid #cbd5e1;
-            padding-top: 4px;
+            color: #475569;
+            border-top: 1.5px solid #d97706;
+            padding-top: 5px;
         }
 
-        .footer-left {
-            float: left;
+        .footer-table {
+            width: 100%;
+            border-collapse: collapse;
         }
 
-        .footer-right {
-            float: right;
-            font-weight: bold;
+        .footer-table td {
+            vertical-align: middle;
+            font-size: 7pt;
         }
 
         .pagenum:before {
@@ -48,360 +49,457 @@
             content: counter(pages);
         }
 
-        /* Top Header Report Card */
-        .report-header {
+        /* Header Document Table */
+        .top-header-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 10px;
-            border-bottom: 2px solid #0f172a;
-            padding-bottom: 8px;
         }
 
-        .logo-cell {
-            width: 70px;
+        .logo-col {
+            width: 25%;
             vertical-align: middle;
+            text-align: left;
         }
 
-        .logo-cell img {
-            max-width: 65px;
-            max-height: 65px;
+        .logo-col img {
+            max-width: 110px;
+            max-height: 85px;
+            object-fit: contain;
         }
 
-        .company-cell {
+        .title-col {
+            width: 75%;
             vertical-align: middle;
-            padding-left: 8px;
+            text-align: center;
+            padding-right: 10%;
         }
 
-        .comp-title {
-            font-size: 13pt;
-            font-weight: bold;
-            color: #0f172a;
+        .main-brand-name {
+            font-size: 15pt;
+            font-weight: 800;
+            color: #0b1329;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        .comp-sub {
-            font-size: 7.5pt;
-            color: #d97706;
-            text-transform: uppercase;
+        .main-sub-title {
+            font-size: 9.5pt;
             font-weight: bold;
-        }
-
-        .comp-meta {
-            font-size: 7pt;
-            color: #475569;
+            color: #1e293b;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
             margin-top: 2px;
         }
 
-        .doc-meta-cell {
-            text-align: right;
+        .doc-type-title {
+            font-size: 13pt;
+            font-weight: 800;
+            color: #0b1329;
+            text-transform: uppercase;
+            margin-top: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Decorative Gold Divider */
+        .gold-line-container {
+            text-align: center;
+            margin: 4px auto 10px auto;
+            width: 80%;
+        }
+
+        .gold-line-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .gold-line-table td {
             vertical-align: middle;
         }
 
-        .report-badge {
-            display: inline-block;
-            background-color: #0f172a;
-            color: #fbbf24;
-            font-size: 7.5pt;
-            font-weight: bold;
-            padding: 2px 6px;
-            border-radius: 3px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 3px;
-        }
-
-        .doc-title {
-            font-size: 11pt;
-            font-weight: bold;
-            color: #0f172a;
-            text-transform: uppercase;
-        }
-
-        .doc-sub {
-            font-size: 7.5pt;
-            color: #64748b;
-            margin-top: 1px;
-        }
-
-        /* Section Banners */
-        .section-banner {
-            font-size: 8.5pt;
-            font-weight: bold;
-            color: #ffffff;
-            background-color: #0f172a;
-            padding: 4px 8px;
-            margin-top: 10px;
-            margin-bottom: 6px;
-            letter-spacing: 0.5px;
-            border-left: 4px solid #d97706;
-            page-break-inside: avoid;
-        }
-
-        /* Product Profile Grid */
-        .grid-info {
+        .gold-line-hr {
+            border-top: 1px solid #d97706;
             width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 8px;
-            page-break-inside: avoid;
         }
 
-        .grid-info td {
-            padding: 3.5px 5px;
-            font-size: 7.5pt;
-            border: 1px solid #e2e8f0;
+        .gold-line-diamond {
+            color: #d97706;
+            font-size: 8pt;
+            padding: 0 6px;
         }
 
-        .g-lbl {
-            font-weight: bold;
-            color: #334155;
-            background-color: #f1f5f9;
-            width: 17%;
-            text-transform: uppercase;
-            font-size: 7pt;
-        }
-
-        .g-val {
-            color: #0f172a;
-            width: 33%;
-        }
-
-        /* Executive Summary Cards Block */
-        .summary-block {
+        /* Product & Info Box (2 Columns) */
+        .info-box {
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 6px;
-            margin-bottom: 10px;
-            page-break-inside: avoid;
-        }
-
-        .summary-block th {
-            background-color: #1e293b;
-            color: #f8fafc;
-            font-size: 7pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            padding: 4px;
-            text-align: center;
-            border: 1px solid #0f172a;
-        }
-
-        .summary-block td {
-            padding: 5px 3px;
             border: 1px solid #cbd5e1;
-            text-align: center;
-            font-weight: bold;
-            font-size: 8.5pt;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border-collapse: collapse;
             background-color: #ffffff;
         }
 
-        .sum-highlight {
-            background-color: #fef3c7 !important;
-            color: #78350f !important;
-            font-size: 9.5pt !important;
-            border: 1.5px solid #d97706 !important;
-        }
-
-        /* Movements Table */
-        .table-data {
+        .info-box-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 4px;
-            margin-bottom: 10px;
-            font-size: 7.5pt;
         }
 
-        .table-data th {
-            background-color: #0f172a;
-            color: #ffffff;
-            font-weight: bold;
-            text-transform: uppercase;
-            padding: 5px 3px;
-            font-size: 6.8pt;
-            text-align: center;
-            border: 1px solid #0f172a;
-        }
-
-        .table-data td {
-            padding: 3.5px 3px;
-            border: 1px solid #cbd5e1;
-            text-align: center;
-            vertical-align: middle;
-        }
-
-        .table-data tr {
-            page-break-inside: avoid;
-        }
-
-        .table-data tr:nth-child(even) {
-            background-color: #f8fafc;
-        }
-
-        .align-l { text-align: left !important; }
-        .align-r { text-align: right !important; }
-        .fw-bold { font-weight: bold; }
-
-        .txt-entrada { color: #047857; font-weight: bold; }
-        .txt-salida { color: #b91c1c; font-weight: bold; }
-
-        /* Notes Box */
-        .declaration-box {
-            font-size: 7pt;
-            color: #475569;
-            background-color: #f8fafc;
-            padding: 5px 8px;
-            border-radius: 4px;
-            border: 1px solid #e2e8f0;
-            margin-top: 8px;
-            margin-bottom: 12px;
-            page-break-inside: avoid;
-        }
-
-        /* Protected Signatures Area */
-        .signatures-wrapper {
-            width: 100%;
-            margin-top: 25px;
-            border-collapse: collapse;
-            page-break-inside: avoid;
-        }
-
-        .signatures-wrapper td {
-            width: 50%;
-            text-align: center;
+        .info-box-table td {
+            padding: 4px 8px;
+            font-size: 8pt;
             vertical-align: top;
         }
 
-        .s-line {
-            width: 60%;
-            border-top: 1px solid #0f172a;
-            margin: 0 auto 3px auto;
+        .info-left-col {
+            width: 50%;
+            border-right: 1px solid #cbd5e1;
         }
 
-        .s-name {
+        .info-right-col {
+            width: 50%;
+        }
+
+        .info-row {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2px;
+        }
+
+        .info-row td {
+            padding: 2.5px 2px;
+        }
+
+        .lbl-title {
             font-weight: bold;
-            font-size: 8pt;
+            color: #0f172a;
+            width: 38%;
+        }
+
+        .lbl-val {
+            color: #1e293b;
+            width: 62%;
+        }
+
+        .icon-meta {
+            color: #0f172a;
+            font-weight: bold;
+            margin-right: 4px;
+        }
+
+        /* Section Banners Dark Navy */
+        .section-navy-banner {
+            background-color: #0b1a30;
+            color: #ffffff;
+            font-size: 8.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            padding: 5px 0;
+            border-radius: 3px;
+            margin-top: 10px;
+            margin-bottom: 6px;
+            letter-spacing: 0.8px;
+            page-break-inside: avoid;
+        }
+
+        /* Movements Table */
+        .kardex-main-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            font-size: 7.5pt;
+        }
+
+        .kardex-main-table th {
+            background-color: #ffffff;
+            color: #0f172a;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 5px 3px;
+            font-size: 7pt;
+            text-align: center;
+            border: 1px solid #cbd5e1;
+        }
+
+        .kardex-main-table td {
+            padding: 4px 3px;
+            border: 1px solid #cbd5e1;
+            text-align: center;
+            vertical-align: middle;
+            background-color: #ffffff;
+        }
+
+        .kardex-main-table tr {
+            page-break-inside: avoid;
+        }
+
+        .align-left { text-align: left !important; padding-left: 4px !important; }
+        .align-right { text-align: right !important; padding-right: 4px !important; }
+        .fw-bld { font-weight: bold; }
+
+        /* Summary KPI 5 Cards Box */
+        .summary-cards-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background-color: #ffffff;
+            page-break-inside: avoid;
+        }
+
+        .summary-cards-table td {
+            width: 20%;
+            text-align: center;
+            vertical-align: middle;
+            padding: 8px 3px;
+            border-right: 1px solid #cbd5e1;
+        }
+
+        .summary-cards-table td:last-child {
+            border-right: none;
+        }
+
+        .kpi-icon-circle {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: inline-block;
+            text-align: center;
+            line-height: 22px;
+            font-weight: bold;
+            font-size: 11pt;
+            margin-bottom: 3px;
+        }
+
+        .icon-blue { background-color: #e0f2fe; color: #0284c7; }
+        .icon-red { background-color: #fee2e2; color: #dc2626; }
+
+        .kpi-label {
+            font-size: 6.8pt;
+            font-weight: bold;
+            color: #0284c7;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            letter-spacing: 0.3px;
+        }
+
+        .kpi-label-red { color: #dc2626; }
+        .kpi-label-dark { color: #0f172a; }
+
+        .kpi-value-num {
+            font-size: 11pt;
+            font-weight: 800;
             color: #0f172a;
         }
 
-        .s-title {
+        .kpi-unit-sub {
+            font-size: 6.5pt;
+            color: #64748b;
+        }
+
+        /* Observations Box */
+        .obs-container {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 7.5pt;
+            color: #334155;
+            margin-bottom: 25px;
+            background-color: #ffffff;
+            page-break-inside: avoid;
+        }
+
+        .obs-title {
+            font-weight: bold;
+            color: #0f172a;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Signatures Area */
+        .signatures-grid {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            page-break-inside: avoid;
+        }
+
+        .signatures-grid td {
+            width: 50%;
+            vertical-align: top;
+            padding: 0 15px;
+        }
+
+        .sig-row-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .sig-label-td {
+            width: 35%;
+            font-weight: bold;
+            font-size: 7.5pt;
+            color: #0f172a;
+            vertical-align: bottom;
+            padding-bottom: 2px;
+        }
+
+        .sig-line-td {
+            width: 65%;
+            border-bottom: 1px solid #0f172a;
+            vertical-align: bottom;
+            height: 25px;
+        }
+
+        .sig-subtext {
+            text-align: center;
             font-size: 7pt;
             color: #64748b;
+            margin-top: 3px;
         }
     </style>
 </head>
 <body>
 
-    <!-- Dynamic Fixed Footer -->
+    <!-- Fixed Footer -->
     <div class="page-footer">
-        <div class="footer-left">
-            <strong>{{ $empresa->nombre_comercial }}</strong> • Informe de Kardex & Valuación de Inventarios
-        </div>
-        <div class="footer-right">
-            Emisión: {{ $fechaEmision }} • Página <span class="pagenum"></span> de <span class="pagecount"></span>
-        </div>
+        <table class="footer-table">
+            <tr>
+                <td style="width: 40%; text-align: left;">
+                    <div style="font-weight: bold; color: #0f172a;">Mariachi León Guanajuato</div>
+                    <div>Sistema de Gestión de Activos Fijos e Inventario</div>
+                    <div style="font-size: 6.5pt; color: #94a3b8;">Documento generado automáticamente</div>
+                </td>
+                <td style="width: 35%; text-align: center;">
+                    <div style="font-weight: bold; color: #334155;">Fecha y hora de impresión:</div>
+                    <div>{{ $fechaEmision }}</div>
+                </td>
+                <td style="width: 25%; text-align: right; font-weight: bold; color: #0f172a;">
+                    Página <span class="pagenum"></span> de <span class="pagecount"></span>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <!-- Executive Header -->
-    <table class="report-header">
+    <!-- Header Section -->
+    <table class="top-header-table">
         <tr>
-            @if($logoBase64)
-                <td class="logo-cell">
+            <td class="logo-col">
+                @if($logoBase64)
                     <img src="{{ $logoBase64 }}" alt="Logo">
+                @endif
+            </td>
+            <td class="title-col">
+                <div class="main-brand-name">{{ $empresa->nombre_comercial }}</div>
+                <div class="main-sub-title">CONTROL DE ACTIVOS FIJOS E INVENTARIO</div>
+                <div class="doc-type-title">KARDEX DE PRODUCTO</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Decorative Gold Divider Line -->
+    <div class="gold-line-container">
+        <table class="gold-line-table">
+            <tr>
+                <td><div class="gold-line-hr"></div></td>
+                <td class="gold-line-diamond">◆</td>
+                <td><div class="gold-line-hr"></div></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Info Box 2 Columns -->
+    <div class="info-box">
+        <table class="info-box-table">
+            <tr>
+                <!-- Left Column -->
+                <td class="info-left-col">
+                    <table class="info-row">
+                        <tr>
+                            <td class="lbl-title">Código:</td>
+                            <td class="lbl-val"><strong>{{ $asset->codigo }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-title">Producto:</td>
+                            <td class="lbl-val"><strong>{{ $asset->nombre }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-title">Categoría:</td>
+                            <td class="lbl-val">{{ $asset->category->nombre ?? 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-title">Tipo de control:</td>
+                            <td class="lbl-val">{{ $asset->tipo_control === 'cantidad' ? 'Por cantidad' : 'Individual' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-title">Unidad:</td>
+                            <td class="lbl-val">Unidad</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-title">Método de costeo:</td>
+                            <td class="lbl-val">
+                                {{ $asset->tipo_control === 'cantidad' ? 'Precio Promedio Ponderado (PPP)' : 'Costo de Adquisición Individual' }}
+                            </td>
+                        </tr>
+                    </table>
                 </td>
-            @endif
-            <td class="company-cell">
-                <div class="comp-title">{{ $empresa->nombre_comercial }}</div>
-                <div class="comp-sub">Sistema de Auditoría & Control de Activos Fijos</div>
-                <div class="comp-meta">
-                    {{ $empresa->direccion_fisica }} • Tel: {{ $empresa->telefono_principal }} @if($empresa->whatsapp_comercial)/ Cel: {{ $empresa->whatsapp_comercial }}@endif<br>
-                    Email: {{ $empresa->email_contacto }} @if($empresa->nit_ruc)• NIT/RUC: {{ $empresa->nit_ruc }}@endif
-                </div>
-            </td>
-            <td class="doc-meta-cell">
-                <div class="report-badge">INFORME DE AUDITORÍA</div>
-                <div class="doc-title">KARDEX DE PRODUCTO</div>
-                <div class="doc-sub">Código Ref: INF-KDX-{{ $asset->codigo }}</div>
-                <div class="doc-sub">Fecha Emisión: {{ $fechaEmision }}</div>
-            </td>
-        </tr>
-    </table>
 
-    <!-- 1. Product Ficha -->
-    <div class="section-banner">1. FICHA TÉCNICA E IDENTIFICACIÓN DEL PRODUCTO</div>
-    <table class="grid-info">
-        <tr>
-            <td class="g-lbl">Código Activo:</td>
-            <td class="g-val"><strong>{{ $asset->codigo }}</strong></td>
-            <td class="g-lbl">Categoría:</td>
-            <td class="g-val">{{ $asset->category->nombre ?? 'N/A' }}</td>
-        </tr>
-        <tr>
-            <td class="g-lbl">Nombre Artículo:</td>
-            <td class="g-val"><strong>{{ $asset->nombre }}</strong></td>
-            <td class="g-lbl">Tipo Control:</td>
-            <td class="g-val">
-                <span class="fw-bold">{{ $asset->tipo_control === 'cantidad' ? 'Por Cantidad / Lote' : 'Individual / N° Serie' }}</span>
-            </td>
-        </tr>
-        <tr>
-            <td class="g-lbl">Unidad Medida:</td>
-            <td class="g-val">Unidad (Pza.)</td>
-            <td class="g-lbl">Método Valuación:</td>
-            <td class="g-val">
-                {{ $asset->tipo_control === 'cantidad' ? 'Precio Promedio Ponderado (PPP)' : 'Costo Directo de Adquisición' }}
-            </td>
-        </tr>
-        @if($asset->marca || $asset->modelo || $asset->numero_serie)
-        <tr>
-            <td class="g-lbl">Marca / Modelo:</td>
-            <td class="g-val">{{ $asset->marca }} {{ $asset->modelo }}</td>
-            <td class="g-lbl">Número Serie:</td>
-            <td class="g-val"><code>{{ $asset->numero_serie ?? 'N/A' }}</code></td>
-        </tr>
-        @endif
-    </table>
+                <!-- Right Column -->
+                <td class="info-right-col">
+                    <table class="info-row">
+                        <tr>
+                            <td class="lbl-title"><span class="icon-meta">📅</span>Fecha de generación:</td>
+                            <td class="lbl-val">{{ now()->format('d/m/Y') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-title"><span class="icon-meta">👤</span>Usuario:</td>
+                            <td class="lbl-val">{{ $usuarioEmision }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-title"><span class="icon-meta">🏢</span>Empresa:</td>
+                            <td class="lbl-val">{{ $empresa->nombre_comercial }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-title"><span class="icon-meta">📞</span>Teléfono:</td>
+                            <td class="lbl-val">{{ $empresa->telefono_principal }} @if($empresa->whatsapp_comercial)/ {{ $empresa->whatsapp_comercial }}@endif</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-title"><span class="icon-meta">📍</span>Dirección:</td>
+                            <td class="lbl-val">{{ $empresa->direccion_fisica }} @if($empresa->ciudad_pais), {{ $empresa->ciudad_pais }}@endif</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl-title"><span class="icon-meta">✉️</span>Correo:</td>
+                            <td class="lbl-val">{{ $empresa->email_contacto }}</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </div>
 
-    <!-- 2. Executive Summary KPIs -->
-    <div class="section-banner">2. RESUMEN EJECUTIVO DE VALUACIÓN E INVENTARIO</div>
-    <table class="summary-block">
+    <!-- Section 1 Banner: Movements -->
+    <div class="section-navy-banner">MOVIMIENTOS DEL KARDEX</div>
+
+    <!-- Movements Main Table -->
+    <table class="kardex-main-table">
         <thead>
             <tr>
-                <th style="width: 18%;">TOTAL ENTRADAS</th>
-                <th style="width: 18%;">TOTAL SALIDAS</th>
-                <th style="width: 18%;">STOCK ACTUAL</th>
-                <th style="width: 20%;">COSTO PPP ACTUAL</th>
-                <th style="width: 26%;">VALOR TOTAL INVENTARIO</th>
+                <th rowspan="2" style="width: 9%;">Fecha</th>
+                <th rowspan="2" style="width: 6%;">Hora</th>
+                <th rowspan="2" style="width: 10%;">Movimiento</th>
+                <th rowspan="2" style="width: 12%;">Motivo</th>
+                <th rowspan="2" style="width: 14%;">Usuario</th>
+                <th colspan="2" style="width: 18%;">Entrada</th>
+                <th colspan="2" style="width: 18%;">Salida</th>
+                <th rowspan="2" style="width: 5%;">Saldo</th>
+                <th rowspan="2" style="width: 8%;">PPP</th>
+                <th rowspan="2" style="width: 10%;">Valor Saldo</th>
             </tr>
-        </thead>
-        <tbody>
             <tr>
-                <td style="color: #047857;">{{ number_format($totalEntradas, 0, ',', '.') }} Unid.</td>
-                <td style="color: #b91c1c;">{{ number_format($totalSalidas, 0, ',', '.') }} Unid.</td>
-                <td style="color: #0f172a;">{{ number_format($saldoActual, 0, ',', '.') }} Unid.</td>
-                <td style="color: #d97706;">Bs {{ number_format($pppActual, 2, ',', '.') }}</td>
-                <td class="sum-highlight">
-                    Bs {{ number_format($valorInventario, 2, ',', '.') }}
-                </td>
-            </tr>
-        </tbody>
-    </table>
-
-    <!-- 3. Transactions Table -->
-    <div class="section-banner">3. DETALLE CRONOLÓGICO DE MOVIMIENTOS REGISTRADOS</div>
-    <table class="table-data">
-        <thead>
-            <tr>
-                <th style="width: 8%;">Fecha</th>
-                <th style="width: 6%;">Hora</th>
-                <th style="width: 18%;">Movimiento / Motivo</th>
-                <th style="width: 14%;">Usuario Operador</th>
-                <th style="width: 7%;">Entrada</th>
-                <th style="width: 9%;">Costo U.</th>
-                <th style="width: 7%;">Salida</th>
-                <th style="width: 9%;">Costo U.</th>
-                <th style="width: 7%;">Saldo</th>
-                <th style="width: 8%;">PPP</th>
-                <th style="width: 9%;">Total (Bs)</th>
+                <th style="width: 8%;">Cantidad</th>
+                <th style="width: 10%;">Costo Unit.</th>
+                <th style="width: 8%;">Cantidad</th>
+                <th style="width: 10%;">Costo Unit.</th>
             </tr>
         </thead>
         <tbody>
@@ -409,71 +507,118 @@
                 <tr>
                     <td>{{ $mov->fecha_movimiento->format('d/m/Y') }}</td>
                     <td>{{ $mov->fecha_movimiento->format('H:i') }}</td>
-                    <td class="align-l">
-                        @if($mov->tipo_movimiento === 'entrada')
-                            <span class="txt-entrada">(+) {{ ucfirst(str_replace('_', ' ', $mov->motivo)) }}</span>
-                        @else
-                            <span class="txt-salida">(-) {{ ucfirst(str_replace('_', ' ', $mov->motivo)) }}</span>
-                        @endif
-                    </td>
-                    <td class="align-l">{{ $mov->user->name ?? 'Sistema' }}</td>
+                    <td>{{ ucfirst($mov->tipo_movimiento) }}</td>
+                    <td>{{ ucfirst(str_replace('_', ' ', $mov->motivo)) }}</td>
+                    <td class="align-left">{{ $mov->user->name ?? 'Sistema' }}</td>
 
                     <!-- Entrada -->
-                    <td class="txt-entrada">
+                    <td>
                         {{ $mov->tipo_movimiento === 'entrada' ? number_format($mov->cantidad, 0, ',', '.') : '-' }}
                     </td>
-                    <td class="align-r">
+                    <td class="align-right">
                         {{ $mov->tipo_movimiento === 'entrada' ? 'Bs ' . number_format($mov->costo_unitario, 2, ',', '.') : '-' }}
                     </td>
 
                     <!-- Salida -->
-                    <td class="txt-salida">
+                    <td>
                         {{ $mov->tipo_movimiento === 'salida' ? number_format($mov->cantidad, 0, ',', '.') : '-' }}
                     </td>
-                    <td class="align-r">
+                    <td class="align-right">
                         {{ $mov->tipo_movimiento === 'salida' ? 'Bs ' . number_format($mov->costo_unitario, 2, ',', '.') : '-' }}
                     </td>
 
-                    <!-- Saldo -->
-                    <td class="fw-bold">
+                    <!-- Saldo & Valuación -->
+                    <td class="fw-bld">
                         {{ number_format($mov->cantidad_saldo, 0, ',', '.') }}
                     </td>
-                    <td class="align-r">
+                    <td class="align-right">
                         Bs {{ number_format($mov->costo_ppp_saldo, 2, ',', '.') }}
                     </td>
-                    <td class="align-r fw-bold" style="color: #0f172a;">
+                    <td class="align-right fw-bld">
                         Bs {{ number_format($mov->valor_total_saldo, 2, ',', '.') }}
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="11" style="text-align: center; color: #64748b; padding: 10px;">
-                        No se registran movimientos en el Kardex para este producto.
+                    <td colspan="12" style="text-align: center; color: #64748b; padding: 10px;">
+                        No existen movimientos registrados para este producto.
                     </td>
                 </tr>
             @endforelse
         </tbody>
     </table>
 
-    <!-- Declaration Box -->
-    <div class="declaration-box">
-        <strong>Declaración de Autenticidad:</strong> El presente informe de Kardex constituye un reporte oficial emitido por el sistema informático de {{ $empresa->nombre_comercial }}. La información contenida refleja de forma fiel y auditable la totalidad de los registros de almacén e inventarios a la fecha de emisión.
+    <!-- Section 2 Banner: Summary -->
+    <div class="section-navy-banner">RESUMEN</div>
+
+    <!-- Summary KPI 5 Cards Box -->
+    <table class="summary-cards-table">
+        <tr>
+            <!-- KPI 1: TOTAL ENTRADAS -->
+            <td>
+                <div class="kpi-icon-circle icon-blue">↓</div>
+                <div class="kpi-label">TOTAL ENTRADAS</div>
+                <div class="kpi-value-num">{{ number_format($totalEntradas, 0, ',', '.') }}</div>
+                <div class="kpi-unit-sub">unidades</div>
+            </td>
+
+            <!-- KPI 2: TOTAL SALIDAS -->
+            <td>
+                <div class="kpi-icon-circle icon-red">↑</div>
+                <div class="kpi-label kpi-label-red">TOTAL SALIDAS</div>
+                <div class="kpi-value-num">{{ number_format($totalSalidas, 0, ',', '.') }}</div>
+                <div class="kpi-unit-sub">unidades</div>
+            </td>
+
+            <!-- KPI 3: SALDO ACTUAL -->
+            <td>
+                <div style="font-size: 14pt; margin-bottom: 2px;">📦</div>
+                <div class="kpi-label">SALDO ACTUAL</div>
+                <div class="kpi-value-num">{{ number_format($saldoActual, 0, ',', '.') }}</div>
+                <div class="kpi-unit-sub">unidades</div>
+            </td>
+
+            <!-- KPI 4: PPP ACTUAL -->
+            <td>
+                <div style="font-size: 14pt; margin-bottom: 2px;">🏷️</div>
+                <div class="kpi-label">PPP ACTUAL</div>
+                <div class="kpi-value-num" style="font-size: 10pt;">Bs {{ number_format($pppActual, 2, ',', '.') }}</div>
+            </td>
+
+            <!-- KPI 5: VALOR ACTUAL DEL INVENTARIO -->
+            <td>
+                <div style="font-size: 14pt; margin-bottom: 2px;">💰</div>
+                <div class="kpi-label kpi-label-dark">VALOR ACTUAL DEL INVENTARIO</div>
+                <div class="kpi-value-num" style="font-size: 10.5pt; color: #0b1a30;">Bs {{ number_format($valorInventario, 2, ',', '.') }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Observations -->
+    <div class="obs-container">
+        <div class="obs-title">OBSERVACIONES:</div>
+        <div>Documento generado desde el Sistema de Gestión de Mariachi León Guanajuato.</div>
     </div>
 
-    <!-- Protected Signatures Area -->
-    <table class="signatures-wrapper">
+    <!-- Signatures Grid -->
+    <table class="signatures-grid">
         <tr>
             <td>
-                <div class="s-line"></div>
-                <div class="s-name">{{ $usuarioEmision }}</div>
-                <div class="s-title">Responsable de Emisión / Operador</div>
-                <div class="s-title">{{ $empresa->nombre_comercial }}</div>
+                <table class="sig-row-table">
+                    <tr>
+                        <td class="sig-label-td">Responsable de emisión:</td>
+                        <td class="sig-line-td"></td>
+                    </tr>
+                </table>
+                <div class="sig-subtext">Nombre y Apellido</div>
             </td>
             <td>
-                <div class="s-line"></div>
-                <div class="s-name">{{ $empresa->representante_legal }}</div>
-                <div class="s-title">Director / Representante Legal</div>
-                <div class="s-title">{{ $empresa->nombre_comercial }}</div>
+                <table class="sig-row-table">
+                    <tr>
+                        <td class="sig-label-td">Firma:</td>
+                        <td class="sig-line-td"></td>
+                    </tr>
+                </table>
             </td>
         </tr>
     </table>
