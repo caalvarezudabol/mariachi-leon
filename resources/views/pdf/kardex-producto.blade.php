@@ -179,12 +179,6 @@
             width: 62%;
         }
 
-        .icon-meta {
-            color: #0f172a;
-            font-weight: bold;
-            margin-right: 4px;
-        }
-
         /* Section Banners Dark Navy */
         .section-navy-banner {
             background-color: #0b1a30;
@@ -259,27 +253,12 @@
             border-right: none;
         }
 
-        .kpi-icon-circle {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            display: inline-block;
-            text-align: center;
-            line-height: 22px;
-            font-weight: bold;
-            font-size: 11pt;
-            margin-bottom: 3px;
-        }
-
-        .icon-blue { background-color: #e0f2fe; color: #0284c7; }
-        .icon-red { background-color: #fee2e2; color: #dc2626; }
-
         .kpi-label {
-            font-size: 6.8pt;
+            font-size: 7pt;
             font-weight: bold;
             color: #0284c7;
             text-transform: uppercase;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
             letter-spacing: 0.3px;
         }
 
@@ -448,27 +427,27 @@
                 <td class="info-right-col">
                     <table class="info-row">
                         <tr>
-                            <td class="lbl-title"><span class="icon-meta">📅</span>Fecha de generación:</td>
+                            <td class="lbl-title">Fecha de generación:</td>
                             <td class="lbl-val">{{ now()->format('d/m/Y') }}</td>
                         </tr>
                         <tr>
-                            <td class="lbl-title"><span class="icon-meta">👤</span>Usuario:</td>
+                            <td class="lbl-title">Usuario:</td>
                             <td class="lbl-val">{{ $usuarioEmision }}</td>
                         </tr>
                         <tr>
-                            <td class="lbl-title"><span class="icon-meta">🏢</span>Empresa:</td>
+                            <td class="lbl-title">Empresa:</td>
                             <td class="lbl-val">{{ $empresa->nombre_comercial }}</td>
                         </tr>
                         <tr>
-                            <td class="lbl-title"><span class="icon-meta">📞</span>Teléfono:</td>
+                            <td class="lbl-title">Teléfono:</td>
                             <td class="lbl-val">{{ $empresa->telefono_principal }} @if($empresa->whatsapp_comercial)/ {{ $empresa->whatsapp_comercial }}@endif</td>
                         </tr>
                         <tr>
-                            <td class="lbl-title"><span class="icon-meta">📍</span>Dirección:</td>
+                            <td class="lbl-title">Dirección:</td>
                             <td class="lbl-val">{{ $empresa->direccion_fisica }} @if($empresa->ciudad_pais), {{ $empresa->ciudad_pais }}@endif</td>
                         </tr>
                         <tr>
-                            <td class="lbl-title"><span class="icon-meta">✉️</span>Correo:</td>
+                            <td class="lbl-title">Correo:</td>
                             <td class="lbl-val">{{ $empresa->email_contacto }}</td>
                         </tr>
                     </table>
@@ -556,7 +535,6 @@
         <tr>
             <!-- KPI 1: TOTAL ENTRADAS -->
             <td>
-                <div class="kpi-icon-circle icon-blue">↓</div>
                 <div class="kpi-label">TOTAL ENTRADAS</div>
                 <div class="kpi-value-num">{{ number_format($totalEntradas, 0, ',', '.') }}</div>
                 <div class="kpi-unit-sub">unidades</div>
@@ -564,7 +542,6 @@
 
             <!-- KPI 2: TOTAL SALIDAS -->
             <td>
-                <div class="kpi-icon-circle icon-red">↑</div>
                 <div class="kpi-label kpi-label-red">TOTAL SALIDAS</div>
                 <div class="kpi-value-num">{{ number_format($totalSalidas, 0, ',', '.') }}</div>
                 <div class="kpi-unit-sub">unidades</div>
@@ -572,7 +549,6 @@
 
             <!-- KPI 3: SALDO ACTUAL -->
             <td>
-                <div style="font-size: 14pt; margin-bottom: 2px;">📦</div>
                 <div class="kpi-label">SALDO ACTUAL</div>
                 <div class="kpi-value-num">{{ number_format($saldoActual, 0, ',', '.') }}</div>
                 <div class="kpi-unit-sub">unidades</div>
@@ -580,14 +556,12 @@
 
             <!-- KPI 4: PPP ACTUAL -->
             <td>
-                <div style="font-size: 14pt; margin-bottom: 2px;">🏷️</div>
                 <div class="kpi-label">PPP ACTUAL</div>
                 <div class="kpi-value-num" style="font-size: 10pt;">Bs {{ number_format($pppActual, 2, ',', '.') }}</div>
             </td>
 
             <!-- KPI 5: VALOR ACTUAL DEL INVENTARIO -->
             <td>
-                <div style="font-size: 14pt; margin-bottom: 2px;">💰</div>
                 <div class="kpi-label kpi-label-dark">VALOR ACTUAL DEL INVENTARIO</div>
                 <div class="kpi-value-num" style="font-size: 10.5pt; color: #0b1a30;">Bs {{ number_format($valorInventario, 2, ',', '.') }}</div>
             </td>
