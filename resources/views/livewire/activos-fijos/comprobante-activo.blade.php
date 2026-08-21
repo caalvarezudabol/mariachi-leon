@@ -18,8 +18,13 @@
         <!-- Header Document -->
         <div class="flex items-center justify-between border-b-2 border-slate-900 pb-6">
             <div class="flex items-center gap-4">
-                <div class="w-16 h-16 rounded-2xl bg-slate-950 text-gold-400 flex items-center justify-center text-3xl font-extrabold shadow-md border border-gold-500">
-                    🎷
+                @php $empresaGlobal = \App\Models\Empresa::obtener(); @endphp
+                <div class="w-16 h-16 rounded-2xl bg-slate-950 text-gold-400 flex items-center justify-center text-3xl font-extrabold shadow-md border border-gold-500 overflow-hidden">
+                    @if($empresaGlobal->logo_url)
+                        <img src="{{ asset($empresaGlobal->logo_url) }}" alt="Logo" class="w-full h-full object-contain p-1">
+                    @else
+                        🎷
+                    @endif
                 </div>
                 <div>
                     <h1 class="text-2xl font-black uppercase tracking-wider text-slate-950">Mariachi León Guanajuato</h1>

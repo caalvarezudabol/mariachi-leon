@@ -62,20 +62,25 @@
         <!-- Sidebar Navigation -->
         <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed md:static inset-y-0 left-0 z-50 w-64 bg-brand-dark border-r border-brand-border flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0">
             <!-- Brand Logo -->
+            @php $empresaGlobal = \App\Models\Empresa::obtener(); @endphp
             <div class="h-20 flex items-center justify-between px-6 border-b border-brand-border bg-slate-950/40">
                 <div class="flex items-center gap-3">
-                    <div class="w-11 h-11 rounded-2xl bg-slate-950 border border-gold-500/40 p-1 flex items-center justify-center shadow-lg shadow-gold-500/20">
-                        <svg viewBox="0 0 100 100" class="w-full h-full text-gold-400 fill-current">
-                            <circle cx="50" cy="50" r="45" fill="#0b1329" stroke="#d97706" stroke-width="3"/>
-                            <path d="M50 15 L53 25 L63 25 L55 31 L58 41 L50 35 L42 41 L45 31 L37 25 L47 25 Z" fill="#fbbf24"/>
-                            <text x="50" y="58" font-family="Cinzel, serif" font-weight="900" font-size="20" fill="#f59e0b" text-anchor="middle">LEÓN</text>
-                            <text x="50" y="72" font-family="Cinzel, serif" font-weight="700" font-size="9" fill="#ffffff" text-anchor="middle" letter-spacing="1">GUANAJUATO</text>
-                            <text x="50" y="82" font-family="sans-serif" font-weight="800" font-size="7" fill="#fbbf24" text-anchor="middle" letter-spacing="2">MARIACHI</text>
-                        </svg>
+                    <div class="w-11 h-11 rounded-2xl bg-slate-950 border border-gold-500/40 p-1 flex items-center justify-center shadow-lg shadow-gold-500/20 overflow-hidden">
+                        @if($empresaGlobal->logo_url)
+                            <img src="{{ asset($empresaGlobal->logo_url) }}" alt="Logo" class="w-full h-full object-contain rounded-xl">
+                        @else
+                            <svg viewBox="0 0 100 100" class="w-full h-full text-gold-400 fill-current">
+                                <circle cx="50" cy="50" r="45" fill="#0b1329" stroke="#d97706" stroke-width="3"/>
+                                <path d="M50 15 L53 25 L63 25 L55 31 L58 41 L50 35 L42 41 L45 31 L37 25 L47 25 Z" fill="#fbbf24"/>
+                                <text x="50" y="58" font-family="Cinzel, serif" font-weight="900" font-size="20" fill="#f59e0b" text-anchor="middle">LEÓN</text>
+                                <text x="50" y="72" font-family="Cinzel, serif" font-weight="700" font-size="9" fill="#ffffff" text-anchor="middle" letter-spacing="1">GUANAJUATO</text>
+                                <text x="50" y="82" font-family="sans-serif" font-weight="800" font-size="7" fill="#fbbf24" text-anchor="middle" letter-spacing="2">MARIACHI</text>
+                            </svg>
+                        @endif
                     </div>
                     <div>
-                        <h1 class="font-extrabold text-base text-white leading-tight">MARIACHI LEÓN</h1>
-                        <p class="text-[10px] text-gold-400 font-bold tracking-wider uppercase">Guanajuato &bull; Bolivia</p>
+                        <h1 class="font-extrabold text-sm text-white leading-tight uppercase">{{ $empresaGlobal->nombre_comercial ?? 'MARIACHI LEÓN' }}</h1>
+                        <p class="text-[10px] text-gold-400 font-bold tracking-wider uppercase">{{ $empresaGlobal->ciudad_pais ?? 'Guanajuato • Bolivia' }}</p>
                     </div>
                 </div>
                 <button @click="sidebarOpen = false" class="md:hidden text-slate-400 hover:text-white">
