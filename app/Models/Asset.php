@@ -70,4 +70,38 @@ class Asset extends Model
     {
         return $this->hasMany(AssetDisposal::class, 'asset_id');
     }
+
+    public function getStockActualAttribute(): float
+    {
+        $lastMov = $this->movements()->orderBy('fecha_movimiento', 'desc')->orderBy('id', 'desc')->first();
+        if ($lastMov && isset($lastMov->cantidad_saldo)) {
+            return (float) $lastMov->cantidad_saldo;
+        }
+
+        return (float) ($this->existencia ?? 0);
+    }
+
+    public function getCostoPppAttribute(): float
+    {
+        $lastMov = $this->movements()->orderBy('fecha_movimiento', 'desc')->orderBy('id', 'desc')->first();
+        if ($lastMov && (float) $lastMov->costo_ppp_saldo > 0) {
+            return (float) $lastMov->costo_ppp_saldo;
+        }
+
+        if ((float) $this->costo_promedio_ppp > 0) {
+            return (float) $this->costo_promedio_ppp;
+        }
+
+        return (float) ($this->costo_adquisicion ?? 0);
+    }
+
+    public function getValorTotalInventarioAttribute(): float
+    {
+        $lastMov = $this->movements()->orderBy('fecha_movimiento', 'desc')->orderBy('id', 'desc')->first();
+        if ($lastMov && isset($lastMov->valor_total_saldo)) {
+            return (float) $lastMov->valor_total_saldo;
+        }
+
+        return (float) ($this->stock_actual * $this->costo_ppp);
+    }
 }

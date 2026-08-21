@@ -26,7 +26,7 @@ class InventarioPdfController extends Controller
             $logoBase64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
         }
 
-        // Carga de Artículos y Categorías
+        // Carga de Artículos con su Categoría
         $articulos = Asset::with('category')->orderBy('nombre', 'asc')->get();
         $categorias = AssetCategory::orderBy('nombre', 'asc')->get();
 
@@ -38,14 +38,14 @@ class InventarioPdfController extends Controller
             $valorTotalGeneral += $art->valor_total_inventario;
         }
 
-        // Resumen por Categoría
+        // Resumen por Categoría usando el campo correcto `asset_category_id`
         $resumenCategorias = [];
         foreach ($categorias as $cat) {
-            $articulosCat = $articulos->where('category_id', $cat->id);
-            $stockCat = $articulosCat->sum('stock_actual');
-            $valorCat = $articulosCat->sum('valor_total_inventario');
-
+            $articulosCat = $articulos->where('asset_category_id', $cat->id);
             if ($articulosCat->count() > 0) {
+                $stockCat = $articulosCat->sum(function($a) { return $a->stock_actual; });
+                $valorCat = $articulosCat->sum(function($a) { return $a->valor_total_inventario; });
+
                 $resumenCategorias[] = [
                     'nombre' => $cat->nombre,
                     'cant_articulos' => $articulosCat->count(),
@@ -55,14 +55,14 @@ class InventarioPdfController extends Controller
             }
         }
 
-        // Artículos sin categoría
-        $articulosSinCat = $articulos->whereNull('category_id');
+        // Artículos sin categoría asociada
+        $articulosSinCat = $articulos->whereNull('asset_category_id');
         if ($articulosSinCat->count() > 0) {
             $resumenCategorias[] = [
                 'nombre' => 'Sin Categoría / Varios',
                 'cant_articulos' => $articulosSinCat->count(),
-                'stock_total' => $articulosSinCat->sum('stock_actual'),
-                'valor_total' => $articulosSinCat->sum('valor_total_inventario'),
+                'stock_total' => $articulosSinCat->sum(function($a) { return $a->stock_actual; }),
+                'valor_total' => $articulosSinCat->sum(function($a) { return $a->valor_total_inventario; }),
             ];
         }
 

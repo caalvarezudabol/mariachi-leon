@@ -415,8 +415,8 @@
                     <td class="align-left fw-bold">{{ $art->nombre }}</td>
                     <td class="align-left">{{ $art->category->nombre ?? 'Sin Categoría' }}</td>
                     <td>{{ $art->tipo_control === 'cantidad' ? 'Por Cantidad' : 'Individual' }}</td>
-                    <td class="fw-bold">{{ number_format($art->stock_actual, 0, ',', '.') }} Unid.</td>
-                    <td class="align-right">Bs {{ number_format($art->costo_promedio_ponderado, 2, ',', '.') }}</td>
+                    <td class="fw-bold">{{ number_format($art->stock_actual, 2, ',', '.') }} Unid.</td>
+                    <td class="align-right">Bs {{ number_format($art->costo_ppp, 2, ',', '.') }}</td>
                     <td class="align-right fw-bold" style="color: #0b1a30;">
                         Bs {{ number_format($art->valor_total_inventario, 2, ',', '.') }}
                     </td>
