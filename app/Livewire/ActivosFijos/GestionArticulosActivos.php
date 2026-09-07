@@ -7,6 +7,7 @@ use Livewire\WithPagination;
 use App\Models\Asset;
 use App\Models\AssetCategory;
 use App\Models\MusicoPersonal;
+use App\Models\InventoryMovement;
 use App\Traits\Auditable;
 use Illuminate\Support\Facades\Auth;
 
@@ -140,8 +141,10 @@ class GestionArticulosActivos extends Component
     {
         $this->validate();
 
-        // Para control por cantidad, el PPP inicial es igual al costo de adquisición
-        $costoPpp = ($this->tipo_control === 'cantidad') ? $this->costo_adquisicion : $this->costo_promedio_ppp;
+        // Si costo_promedio_ppp está en 0, toma automáticamente el costo de adquisición
+        $costoPpp = ((float)$this->costo_promedio_ppp > 0)
+            ? (float)$this->costo_promedio_ppp
+            : (float)$this->costo_adquisicion;
 
         if ($this->isEdit) {
             $asset = Asset::findOrFail($this->asset_id);
@@ -183,8 +186,28 @@ class GestionArticulosActivos extends Component
                 'user_id' => Auth::id(),
                 'observaciones' => $this->observaciones,
             ]);
+
+            // Registrar movimiento inicial de apertura en Kardex si tiene existencias iniciales
+            if ((float)$this->existencia > 0) {
+                InventoryMovement::create([
+                    'asset_id' => $asset->id,
+                    'user_id' => Auth::id(),
+                    'fecha_movimiento' => $this->fecha_adquisicion ?: date('Y-m-d H:i:s'),
+                    'tipo_movimiento' => 'entrada',
+                    'motivo' => 'compra',
+                    'cantidad' => (float)$this->existencia,
+                    'costo_unitario' => (float)$this->costo_adquisicion,
+                    'costo_total' => (float)$this->existencia * (float)$this->costo_adquisicion,
+                    'cantidad_saldo' => (float)$this->existencia,
+                    'costo_ppp_saldo' => $costoPpp,
+                    'valor_total_saldo' => (float)$this->existencia * $costoPpp,
+                    'documento_referencia' => 'Apertura de Inventario',
+                    'observaciones' => 'Registro inicial del artículo en el catálogo.',
+                ]);
+            }
+
             $this->registrarAuditoria('Activos Fijos', 'Crear Artículo', 'Se registró el activo ' . $asset->codigo . ': ' . $asset->nombre);
-            session()->flash('success', 'Artículo / Activo registrado exitosamente.');
+            session()->flash('success', 'Artículo / Activo registrado exitosamente con saldo en Kardex.');
         }
 
         $this->modalOpen = false;
