@@ -165,6 +165,26 @@ class GestionArticulosActivos extends Component
                 'responsable_id' => $this->responsable_id ?: null,
                 'observaciones' => $this->observaciones,
             ]);
+
+            // Al editar un artículo con existencias iniciales (existencia > 0) que no tenga movimientos previos en Kardex, genera su primer movimiento de apertura
+            if ((float)$this->existencia > 0 && $asset->movements()->count() === 0) {
+                InventoryMovement::create([
+                    'asset_id' => $asset->id,
+                    'user_id' => Auth::id(),
+                    'fecha_movimiento' => $this->fecha_adquisicion ?: date('Y-m-d H:i:s'),
+                    'tipo_movimiento' => 'entrada',
+                    'motivo' => 'compra',
+                    'cantidad' => (float)$this->existencia,
+                    'costo_unitario' => (float)$this->costo_adquisicion,
+                    'costo_total' => (float)$this->existencia * (float)$this->costo_adquisicion,
+                    'cantidad_saldo' => (float)$this->existencia,
+                    'costo_ppp_saldo' => $costoPpp,
+                    'valor_total_saldo' => (float)$this->existencia * $costoPpp,
+                    'documento_referencia' => 'Apertura de Inventario',
+                    'observaciones' => 'Registro inicial del artículo generado automáticamente al editar ficha.',
+                ]);
+            }
+
             $this->registrarAuditoria('Activos Fijos', 'Editar Artículo', 'Se actualizó el activo ' . $asset->codigo . ': ' . $asset->nombre);
             session()->flash('success', 'Artículo / Activo actualizado correctamente.');
         } else {
