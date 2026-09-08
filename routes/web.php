@@ -3,14 +3,12 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
-// Livewire Components - Web Público
 use App\Livewire\Web\PaginaInicio;
 use App\Livewire\Web\PaginaNosotros;
 use App\Livewire\Web\PaginaServicios;
 use App\Livewire\Web\PaginaGaleria;
 use App\Livewire\Web\PaginaContacto;
 
-// Livewire Components - Auth & Admin
 use App\Livewire\Auth\Login;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\GestionUsuarios;
@@ -24,7 +22,6 @@ use App\Livewire\Configuracion\GestionTiposEvento;
 use App\Livewire\Configuracion\GestionServicios;
 use App\Livewire\Configuracion\GestionPaquetes;
 
-// Livewire Components - Módulo de Activos Fijos
 use App\Livewire\ActivosFijos\DashboardActivos;
 use App\Livewire\ActivosFijos\GestionCategoriasActivos;
 use App\Livewire\ActivosFijos\GestionArticulosActivos;
@@ -39,22 +36,23 @@ use App\Http\Controllers\ActivosFijos\KardexPdfController;
 use App\Http\Controllers\ActivosFijos\InventarioPdfController;
 use App\Http\Controllers\ReporteEjecutivoController;
 
-/*
-|--------------------------------------------------------------------------
-| Rutas Públicas (Sitio Web Institucional)
-|--------------------------------------------------------------------------
-*/
 Route::get('/', PaginaInicio::class)->name('web.home');
 Route::get('/nosotros', PaginaNosotros::class)->name('web.nosotros');
 Route::get('/servicios', PaginaServicios::class)->name('web.servicios');
 Route::get('/galeria', PaginaGaleria::class)->name('web.galeria');
 Route::get('/contacto', PaginaContacto::class)->name('web.contacto');
 
-/*
-|--------------------------------------------------------------------------
-| Autenticación
-|--------------------------------------------------------------------------
-*/
+// Fallback para servir storage cuando el hosting no sigue el symlink
+Route::get('/storage/{path}', function (string $path) {
+    $fullPath = storage_path('app/public/' . $path);
+
+    if (!is_file($fullPath)) {
+        abort(404);
+    }
+
+    return response()->file($fullPath);
+})->where('path', '.*')->name('storage.local');
+
 Route::get('/login', Login::class)->name('login')->middleware('guest');
 Route::post('/logout', function () {
     Auth::logout();
@@ -63,34 +61,25 @@ Route::post('/logout', function () {
     return redirect()->route('web.home');
 })->name('logout')->middleware('auth');
 
-/*
-|--------------------------------------------------------------------------
-| Panel de Administración (Protegido por Autenticación)
-|--------------------------------------------------------------------------
-*/
 Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('admin.dashboard');
     Route::get('/reporte-ejecutivo/pdf', [ReporteEjecutivoController::class, 'exportarPdf'])->name('admin.reporte-ejecutivo.pdf');
 
-    // Módulo 1: Administración
     Route::get('/usuarios', GestionUsuarios::class)->name('admin.usuarios');
     Route::get('/roles', GestionRoles::class)->name('admin.roles');
     Route::get('/auditoria', GestionAuditoria::class)->name('admin.auditoria');
 
-    // Módulo 2: Configuración
     Route::get('/configuracion/empresa', GestionEmpresa::class)->name('config.empresa');
     Route::get('/configuracion/parametros', GestionParametros::class)->name('config.parametros');
     Route::get('/configuracion/tipos-evento', GestionTiposEvento::class)->name('config.tipos-evento');
     Route::get('/configuracion/servicios', GestionServicios::class)->name('config.servicios');
     Route::get('/configuracion/paquetes', GestionPaquetes::class)->name('config.paquetes');
 
-    // Módulo 3: Sitio Web Institucional (Gestión de Banners & Galería)
     Route::prefix('sitio-web')->group(function () {
         Route::get('/banners', GestionBanners::class)->name('admin.sitio-web.banners');
         Route::get('/galeria', GestionGaleria::class)->name('admin.sitio-web.galeria');
     });
 
-    // Módulo 4: ACTIVOS FIJOS (Gestión de Bienes, Inventario & Kardex)
     Route::prefix('activos-fijos')->group(function () {
         Route::get('/dashboard', DashboardActivos::class)->name('admin.activos-fijos.dashboard');
         Route::get('/categorias', GestionCategoriasActivos::class)->name('admin.activos-fijos.categorias');
