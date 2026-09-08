@@ -1,12 +1,19 @@
-<div class="space-y-8">
+    @php $empresaDash = \App\Models\Empresa::obtener(); @endphp
     <!-- Header Banner -->
     <div class="p-8 rounded-3xl bg-gradient-to-r from-brand-card via-slate-900 to-slate-950 border border-brand-border flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
-        <div class="space-y-2">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-gold-500/10 text-gold-400 border border-gold-500/20">
-                <i class="fa-solid fa-crown text-gold-400"></i> Sprint 1 Inicializado
+        <div class="flex items-center gap-4">
+            @if($empresaDash->logo_url)
+                <div class="w-16 h-16 rounded-2xl bg-slate-950 p-2 border border-gold-500/30 flex items-center justify-center shadow-lg flex-shrink-0">
+                    <img src="{{ asset($empresaDash->logo_url) }}" alt="Logo" class="max-w-full max-h-full object-contain">
+                </div>
+            @endif
+            <div class="space-y-1">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-gold-500/10 text-gold-400 border border-gold-500/20">
+                    <i class="fa-solid fa-crown text-gold-400"></i> Sprint 1 Inicializado
+                </div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-white">¡Bienvenido, {{ Auth::user()->name }}!</h1>
+                <p class="text-sm text-slate-400">Sistema de Administración y Gestión Operativa de {{ $empresaDash->nombre_comercial }}.</p>
             </div>
-            <h1 class="text-2xl md:text-3xl font-extrabold text-white">¡Bienvenido, {{ Auth::user()->name }}!</h1>
-            <p class="text-sm text-slate-400">Sistema de Administración y Gestión Operativa del Mariachi León Guanajuato.</p>
         </div>
         <div class="flex items-center gap-3">
             <a href="{{ route('web.home') }}" target="_blank" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold border border-slate-700 transition-all flex items-center gap-2">

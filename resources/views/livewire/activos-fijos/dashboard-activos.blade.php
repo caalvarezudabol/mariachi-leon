@@ -1,9 +1,16 @@
-<div class="space-y-8">
+    @php $empresaDashActivos = \App\Models\Empresa::obtener(); @endphp
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-white">Dashboard de Activos Fijos & Bienes</h1>
-            <p class="text-xs text-slate-400">Resumen ejecutivo del inventario, valorización total (PPP), asignaciones y estados.</p>
+        <div class="flex items-center gap-4">
+            @if($empresaDashActivos->logo_url)
+                <div class="w-14 h-14 rounded-2xl bg-slate-950 p-2 border border-gold-500/30 flex items-center justify-center shadow-lg flex-shrink-0">
+                    <img src="{{ asset($empresaDashActivos->logo_url) }}" alt="Logo" class="max-w-full max-h-full object-contain">
+                </div>
+            @endif
+            <div>
+                <h1 class="text-2xl font-bold text-white">Dashboard de Activos Fijos & Bienes</h1>
+                <p class="text-xs text-slate-400">Resumen ejecutivo del inventario, valorización total (PPP), asignaciones y estados en {{ $empresaDashActivos->nombre_comercial }}.</p>
+            </div>
         </div>
         <div class="flex items-center gap-3">
             <a href="{{ route('admin.activos-fijos.articulos') }}" class="px-4 py-2 rounded-xl text-xs font-bold bg-gold-500 text-slate-950 hover:bg-gold-400 shadow-lg shadow-gold-500/20 transition-all flex items-center gap-2">
