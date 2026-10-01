@@ -654,6 +654,9 @@
                 let initialLat = (this.lat && !isNaN(parseFloat(this.lat))) ? parseFloat(this.lat) : defaultLat;
                 let initialLng = (this.lng && !isNaN(parseFloat(this.lng))) ? parseFloat(this.lng) : defaultLng;
 
+                if (container._leaflet_id) {
+                    container._leaflet_id = null;
+                }
                 if (this.map) {
                     try { this.map.remove(); } catch(e){}
                     this.map = null;
@@ -665,10 +668,9 @@
                     scrollWheelZoom: true
                 }).setView([initialLat, initialLng], (this.lat && this.lng) ? 16 : 14);
 
-                L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                    maxZoom: 20,
-                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                    attribution: 'Google Maps'
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors'
                 }).addTo(this.map);
 
                 this.marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(this.map);
