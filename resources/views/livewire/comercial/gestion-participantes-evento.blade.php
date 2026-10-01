@@ -143,7 +143,7 @@
                             <option value="{{ $per->id }}">{{ $per->nombre_completo ?? ($per->nombre . ' ' . $per->apellido) }} ({{ $per->tipo }})</option>
                         @endforeach
                     </select>
-                    @error('persona_id') <span class="text-xs text-rose-400">{{ $message }}</span> @errorEnd
+                    @error('persona_id') <span class="text-xs text-rose-400">{{ $message }}</span> @enderror
                 </div>
 
                 <!-- Función/Rol -->
@@ -156,7 +156,7 @@
                         <option value="Personal de apoyo">Personal de apoyo</option>
                         <option value="Coordinador">Coordinador de Evento</option>
                     </select>
-                    @error('funcion') <span class="text-xs text-rose-400">{{ $message }}</span> @errorEnd
+                    @error('funcion') <span class="text-xs text-rose-400">{{ $message }}</span> @enderror
                 </div>
 
                 <!-- Concepto Pago -->
@@ -169,21 +169,21 @@
                         <option value="Bono Especial">Bono Especial</option>
                         <option value="Apoyo Logístico">Apoyo Logístico</option>
                     </select>
-                    @error('concepto_pago') <span class="text-xs text-rose-400">{{ $message }}</span> @errorEnd
+                    @error('concepto_pago') <span class="text-xs text-rose-400">{{ $message }}</span> @enderror
                 </div>
 
                 <!-- Monto Asignado -->
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Monto Asignado (Bs.)</label>
                     <input type="number" step="0.01" wire:model="monto_asignado" placeholder="0.00" class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-brand-border text-white text-sm focus:border-gold-500 focus:outline-none transition-all">
-                    @error('monto_asignado') <span class="text-xs text-rose-400">{{ $message }}</span> @errorEnd
+                    @error('monto_asignado') <span class="text-xs text-rose-400">{{ $message }}</span> @enderror
                 </div>
 
                 <!-- Observaciones -->
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Observaciones (Opcional)</label>
                     <textarea wire:model="observaciones" rows="2" placeholder="Notas sobre instrumentos, transporte, etc..." class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-brand-border text-white text-sm focus:border-gold-500 focus:outline-none transition-all"></textarea>
-                    @error('observaciones') <span class="text-xs text-rose-400">{{ $message }}</span> @errorEnd
+                    @error('observaciones') <span class="text-xs text-rose-400">{{ $message }}</span> @enderror
                 </div>
 
                 <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-bold text-sm shadow-lg hover:shadow-gold-500/20 transition-all flex items-center justify-center gap-2">
@@ -413,13 +413,13 @@
                         <div class="space-y-1">
                             <label class="text-xs font-bold text-slate-300 uppercase">Nombres *</label>
                             <input type="text" wire:model="nuevo_nombre" placeholder="Ej: Carlos" class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-brand-border text-white text-sm">
-                            @error('nuevo_nombre') <span class="text-xs text-rose-400">{{ $message }}</span> @errorEnd
+                            @error('nuevo_nombre') <span class="text-xs text-rose-400">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="space-y-1">
                             <label class="text-xs font-bold text-slate-300 uppercase">Apellidos *</label>
                             <input type="text" wire:model="nuevo_apellido" placeholder="Ej: Mamani" class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-brand-border text-white text-sm">
-                            @error('nuevo_apellido') <span class="text-xs text-rose-400">{{ $message }}</span> @errorEnd
+                            @error('nuevo_apellido') <span class="text-xs text-rose-400">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
