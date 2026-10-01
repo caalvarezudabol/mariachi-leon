@@ -451,7 +451,7 @@
                         @error('direccion_evento') <span class="text-xs text-rose-400 mt-1">{{ $message }}</span> @enderror
                     </div>
 
-                    <!-- Selección de Ubicación en Mapa Interactivo (Google / OpenStreetMap) -->
+                    <!-- Selección de Ubicación en Mapa Interactivo (Google Maps incorporado) -->
                     <div class="lg:col-span-3 sm:col-span-2 bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3"
                         x-data="{
                             map: null,
@@ -462,37 +462,46 @@
                             lng: @entangle('longitud'),
                             initPicker() {
                                 this.$nextTick(() => {
-                                    let initialLat = this.lat ? parseFloat(this.lat) : -17.7833;
-                                    let initialLng = this.lng ? parseFloat(this.lng) : -63.1821;
-
                                     const container = this.$refs.mapContainer;
                                     if (!container) return;
 
-                                    if (this.map) {
-                                        this.map.remove();
-                                        this.map = null;
-                                        this.marker = null;
-                                    }
+                                    let pollCount = 0;
+                                    let checkExist = setInterval(() => {
+                                        pollCount++;
+                                        if (container.offsetHeight > 0 || pollCount > 30) {
+                                            clearInterval(checkExist);
 
-                                    this.map = L.map(container).setView([initialLat, initialLng], 14);
+                                            let initialLat = this.lat ? parseFloat(this.lat) : -17.7833;
+                                            let initialLng = this.lng ? parseFloat(this.lng) : -63.1821;
 
-                                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                        maxZoom: 19,
-                                        attribution: '&copy; OpenStreetMap'
-                                    }).addTo(this.map);
+                                            if (this.map) {
+                                                this.map.remove();
+                                                this.map = null;
+                                                this.marker = null;
+                                            }
 
-                                    if (this.lat && this.lng) {
-                                        this.marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(this.map);
-                                        this.bindMarkerEvents();
-                                    }
+                                            // Inicializar Leaflet con Tiles de Google Maps (Roadmap)
+                                            this.map = L.map(container).setView([initialLat, initialLng], 15);
 
-                                    this.map.on('click', (e) => {
-                                        this.updateCoords(e.latlng.lat, e.latlng.lng);
-                                    });
+                                            L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                                                maxZoom: 20,
+                                                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                                                attribution: 'Google Maps'
+                                            }).addTo(this.map);
 
-                                    setTimeout(() => {
-                                        if (this.map) this.map.invalidateSize();
-                                    }, 300);
+                                            // Marcador rojo arrastrable
+                                            this.marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(this.map);
+                                            this.bindMarkerEvents();
+
+                                            this.map.on('click', (e) => {
+                                                this.updateCoords(e.latlng.lat, e.latlng.lng);
+                                            });
+
+                                            setTimeout(() => {
+                                                if (this.map) this.map.invalidateSize();
+                                            }, 200);
+                                        }
+                                    }, 100);
                                 });
                             },
                             updateCoords(latVal, lngVal) {
@@ -511,6 +520,7 @@
                                     this.bindMarkerEvents();
                                 }
 
+                                // Geocodificación inversa para sugerir dirección
                                 fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latVal}&lon=${lngVal}`)
                                     .then(r => r.json())
                                     .then(d => {
@@ -529,7 +539,7 @@
                             },
                             buscarEnMapa() {
                                 let q = this.queryBusqueda || $wire.get('direccion_evento');
-                                if (!q || q.length < 3) return;
+                                if (!q || q.length < 2) return;
                                 this.buscando = true;
                                 fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q))
                                     .then(r => r.json())
@@ -538,10 +548,12 @@
                                         if (data && data.length > 0) {
                                             let resLat = parseFloat(data[0].lat);
                                             let resLng = parseFloat(data[0].lon);
-                                            this.map.setView([resLat, resLng], 16);
-                                            this.updateCoords(resLat, resLng);
+                                            if (this.map) {
+                                                this.map.setView([resLat, resLng], 16);
+                                                this.updateCoords(resLat, resLng);
+                                            }
                                         } else {
-                                            alert('No se encontraron resultados para la dirección buscada.');
+                                            alert('No se encontraron resultados en el mapa para: ' + q);
                                         }
                                     })
                                     .catch(() => { this.buscando = false; });
@@ -552,7 +564,7 @@
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
                             <div class="flex items-center gap-2">
                                 <i class="fa-solid fa-map-location-dot text-gold-400"></i>
-                                <span class="text-xs font-bold text-white uppercase tracking-wider">Seleccionar Ubicación Exacta en Mapa</span>
+                                <span class="text-xs font-bold text-white uppercase tracking-wider">Seleccionar Ubicación Exacta en Mapa (Google Maps)</span>
                             </div>
                             <div class="text-[11px] text-slate-400">
                                 Haz clic o arrastra el marcador rojo en el mapa
@@ -564,7 +576,7 @@
                             <input type="text" 
                                    x-model="queryBusqueda" 
                                    @keydown.enter.prevent="buscarEnMapa()"
-                                   placeholder="Escribe un lugar o dirección para buscar en el mapa..." 
+                                   placeholder="Escribe un lugar (ej. La Ramada, Banzer 4to anillo) y presiona Buscar..." 
                                    class="flex-1 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:border-gold-500">
                             <button type="button" 
                                     @click="buscarEnMapa()" 
@@ -575,23 +587,17 @@
                             </button>
                         </div>
 
-                        <!-- Map Canvas -->
-                        <div class="relative w-full h-64 rounded-xl overflow-hidden border border-slate-800 z-10">
-                            <div x-ref="mapContainer" class="w-full h-full"></div>
+                        <!-- Map Canvas (Google Maps Layer) -->
+                        <div class="relative w-full h-72 rounded-xl overflow-hidden border border-slate-800 z-10 bg-slate-900">
+                            <div x-ref="mapContainer" class="w-full h-full min-h-[280px]"></div>
                         </div>
 
-                        <!-- Footer Coordenadas & Enlace Directo Google Maps -->
-                        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
-                            <div class="flex items-center gap-2 font-mono">
-                                <span class="text-slate-400">Coordenadas:</span>
-                                <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-gold-400 font-bold" x-text="lat && lng ? lat + ', ' + lng : 'Sin ubicar en mapa'"></span>
+                        <!-- Footer Coordenadas -->
+                        <div class="flex items-center justify-between gap-2 pt-1 text-xs font-mono">
+                            <div class="flex items-center gap-2">
+                                <span class="text-slate-400">Coordenadas Seleccionadas:</span>
+                                <span class="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-gold-400 font-bold" x-text="lat && lng ? lat + ', ' + lng : 'Haz clic en el mapa para ubicar'"></span>
                             </div>
-                            <template x-if="lat && lng">
-                                <a :href="'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lng" target="_blank" class="text-emerald-400 hover:underline flex items-center gap-1 font-semibold">
-                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                    <span>Abrir en Google Maps</span>
-                                </a>
-                            </template>
                         </div>
                     </div>
 
