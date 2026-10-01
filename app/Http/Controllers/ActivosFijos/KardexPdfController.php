@@ -46,66 +46,7 @@ class KardexPdfController extends Controller
         }
 
         // 5. Cargar y optimizar Logo de Empresa para DomPDF (Base64 ultraligero < 20KB)
-        $logoBase64 = null;
-        if ($empresa->logo_url && file_exists(public_path($empresa->logo_url))) {
-            $logoPath = public_path($empresa->logo_url);
-            $ext = strtolower(pathinfo($logoPath, PATHINFO_EXTENSION));
-            if ($ext === 'jpeg') $ext = 'jpg';
-
-            // Optimización GD a miniatura de 200px para acelerar el renderizado de DomPDF
-            $srcImg = match($ext) {
-                'png' => @imagecreatefrompng($logoPath),
-                'webp' => @imagecreatefromwebp($logoPath),
-                'jpg' => @imagecreatefromjpeg($logoPath),
-                default => null,
-            };
-
-            if ($srcImg) {
-                $w = imagesx($srcImg);
-                $h = imagesy($srcImg);
-                $maxD = 200;
-
-                if ($w > $maxD || $h > $maxD) {
-                    if ($w >= $h) {
-                        $nw = $maxD;
-                        $nh = (int)round(($h * $maxD) / $w);
-                    } else {
-                        $nh = $maxD;
-                        $nw = (int)round(($w * $maxD) / $h);
-                    }
-                    $dstImg = imagecreatetruecolor($nw, $nh);
-                    if ($ext === 'png' || $ext === 'webp') {
-                        imagealphablending($dstImg, false);
-                        imagesavealpha($dstImg, true);
-                        $transparent = imagecolorallocatealpha($dstImg, 255, 255, 255, 127);
-                        imagefilledrectangle($dstImg, 0, 0, $nw, $nh, $transparent);
-                    }
-                    imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $nw, $nh, $w, $h);
-                    imagedestroy($srcImg);
-                    $srcImg = $dstImg;
-                }
-
-                ob_start();
-                if ($ext === 'png') {
-                    imagepng($srcImg, null, 8);
-                    $mime = 'image/png';
-                } elseif ($ext === 'webp') {
-                    imagewebp($srcImg, null, 85);
-                    $mime = 'image/webp';
-                } else {
-                    imagejpeg($srcImg, null, 85);
-                    $mime = 'image/jpeg';
-                }
-                $imageData = ob_get_clean();
-                imagedestroy($srcImg);
-
-                $logoBase64 = 'data:' . $mime . ';base64,' . base64_encode($imageData);
-            } else {
-                $data = file_get_contents($logoPath);
-                $mime = 'image/' . ($ext === 'jpg' ? 'jpeg' : $ext);
-                $logoBase64 = 'data:' . $mime . ';base64,' . base64_encode($data);
-            }
-        }
+        $logoBase64 = $empresa->obtenerLogoBase64();
 
         // 6. Preparar Datos para la Vista PDF
         $datos = [

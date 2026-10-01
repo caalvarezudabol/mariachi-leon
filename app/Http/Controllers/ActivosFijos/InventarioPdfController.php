@@ -16,15 +16,7 @@ class InventarioPdfController extends Controller
     public function exportarPdf()
     {
         $empresa = Empresa::obtener();
-
-        // Conversión del logo a Base64
-        $logoBase64 = null;
-        if ($empresa->logo_url && Storage::disk('public')->exists(str_replace('storage/', '', $empresa->logo_url))) {
-            $path = storage_path('app/public/' . str_replace('storage/', '', $empresa->logo_url));
-            $type = pathinfo($path, PATHINFO_EXTENSION);
-            $data = file_get_contents($path);
-            $logoBase64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
-        }
+        $logoBase64 = $empresa->obtenerLogoBase64();
 
         // Carga de Artículos con su Categoría
         $articulos = Asset::with('category')->orderBy('nombre', 'asc')->get();

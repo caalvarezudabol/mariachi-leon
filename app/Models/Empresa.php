@@ -53,4 +53,36 @@ class Empresa extends Model
             'terminos_contrato' => 'El Mariachi León Guanajuato se compromete a brindar puntualidad, profesionalismo y presentación impecable.',
         ]);
     }
+
+    public function obtenerLogoBase64(): ?string
+    {
+        if (!$this->logo_url) {
+            return null;
+        }
+
+        $relativePath = parse_url($this->logo_url, PHP_URL_PATH) ?? $this->logo_url;
+        $relativePath = ltrim(str_replace(['/storage/', 'storage/'], '', $relativePath), '/');
+
+        $fullPath = storage_path('app/public/' . $relativePath);
+
+        if (!file_exists($fullPath)) {
+            $fullPath = public_path('storage/' . $relativePath);
+        }
+
+        if (!file_exists($fullPath)) {
+            $fullPath = public_path(ltrim($this->logo_url, '/'));
+        }
+
+        if (file_exists($fullPath) && is_file($fullPath)) {
+            $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+            if ($ext === 'jpeg') $ext = 'jpg';
+            $mime = 'image/' . ($ext === 'jpg' ? 'jpeg' : $ext);
+            $data = @file_get_contents($fullPath);
+            if ($data) {
+                return 'data:' . $mime . ';base64,' . base64_encode($data);
+            }
+        }
+
+        return null;
+    }
 }

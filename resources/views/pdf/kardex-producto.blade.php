@@ -377,6 +377,10 @@
             <td class="logo-col">
                 @if($logoBase64)
                     <img src="{{ $logoBase64 }}" alt="Logo">
+                @else
+                    <div style="width: 70px; height: 70px; border-radius: 50%; border: 2px solid #d97706; background-color: #0b1329; text-align: center; line-height: 1.2; padding-top: 14px; color: #f59e0b; font-weight: 900; font-size: 9pt;">
+                        LEÓN<br><span style="color: #ffffff; font-size: 4.5pt; letter-spacing: 1px;">GUANAJUATO</span>
+                    </div>
                 @endif
             </td>
             <td class="title-col">
