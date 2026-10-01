@@ -1,5 +1,5 @@
-@php $empresaDash = \App\Models\Empresa::obtener(); @endphp
 <div class="space-y-5">
+    @php $empresaDash = \App\Models\Empresa::obtener(); @endphp
     <!-- Header Banner -->
     <div
         class="p-5 rounded-2xl bg-gradient-to-r from-brand-card via-slate-900 to-slate-950 border border-brand-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
