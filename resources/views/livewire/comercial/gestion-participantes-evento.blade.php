@@ -111,8 +111,8 @@
                 @foreach ($personasSugeridas as $sug)
                     <button type="button" wire:click="seleccionarSugerido({{ $sug->id }})" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-gold-500/20 hover:border-gold-500/50 border border-slate-700 text-xs font-medium text-slate-200 hover:text-gold-300 transition-all flex items-center gap-2">
                         <i class="fa-solid fa-plus-circle text-gold-400"></i>
-                        <span>{{ $sug->nombres }} {{ $sug->apellidos }}</span>
-                        <span class="px-1.5 py-0.5 rounded-md bg-slate-900 text-[10px] text-slate-400">{{ $sug->cargo }}</span>
+                        <span>{{ $sug->nombre_completo ?? ($sug->nombre . ' ' . $sug->apellido) }}</span>
+                        <span class="px-1.5 py-0.5 rounded-md bg-slate-900 text-[10px] text-slate-400">{{ $sug->tipo }}</span>
                     </button>
                 @endforeach
             </div>
@@ -140,7 +140,7 @@
                     <select wire:model.live="persona_id" class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-brand-border text-white text-sm focus:border-gold-500 focus:outline-none transition-all">
                         <option value="">-- Seleccionar Persona --</option>
                         @foreach ($todasPersonas as $per)
-                            <option value="{{ $per->id }}">{{ $per->nombres }} {{ $per->apellidos }} ({{ $per->cargo }})</option>
+                            <option value="{{ $per->id }}">{{ $per->nombre_completo ?? ($per->nombre . ' ' . $per->apellido) }} ({{ $per->tipo }})</option>
                         @endforeach
                     </select>
                     @error('persona_id') <span class="text-xs text-rose-400">{{ $message }}</span> @errorEnd
@@ -219,7 +219,7 @@
                             @forelse ($evento->participantes as $part)
                                 <tr class="hover:bg-slate-900/50 transition-colors">
                                     <td class="p-3">
-                                        <div class="font-bold text-white">{{ $part->persona->nombres ?? 'N/A' }} {{ $part->persona->apellidos ?? '' }}</div>
+                                        <div class="font-bold text-white">{{ $part->persona->nombre_completo ?? ($part->persona->nombre ?? 'N/A') }}</div>
                                         <div class="text-xs text-slate-400"><i class="fa-solid fa-id-card text-gold-400/60 mr-1"></i> CI: {{ $part->persona->ci_nit ?? 'Sin CI' }} | Tel: {{ $part->persona->telefono ?? 'S/N' }}</div>
                                     </td>
                                     <td class="p-3">
@@ -290,7 +290,7 @@
                             @forelse ($evento->distribuciones as $dist)
                                 <tr class="hover:bg-slate-900/50 transition-colors">
                                     <td class="p-3">
-                                        <div class="font-bold text-white">{{ $dist->persona->nombres ?? 'N/A' }} {{ $dist->persona->apellidos ?? '' }}</div>
+                                        <div class="font-bold text-white">{{ $dist->persona->nombre_completo ?? ($dist->persona->nombre ?? 'N/A') }}</div>
                                         <div class="text-xs text-slate-400">{{ $dist->funcion }}</div>
                                     </td>
                                     <td class="p-3 text-xs text-slate-300">

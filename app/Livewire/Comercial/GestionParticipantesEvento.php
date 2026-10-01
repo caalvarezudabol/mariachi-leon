@@ -104,7 +104,7 @@ class GestionParticipantesEvento extends Component
         $this->persona_id = $personaId;
         $persona = MusicoPersonal::find($personaId);
         if ($persona) {
-            $this->funcion = $persona->cargo ?? 'Músico';
+            $this->funcion = $persona->tipo ?? 'Músico';
         }
     }
 
@@ -253,10 +253,13 @@ class GestionParticipantesEvento extends Component
             'nuevo_email' => 'nullable|email|max:100',
         ]);
 
+        $nombreCompleto = trim($this->nuevo_nombre . ' ' . $this->nuevo_apellido);
+
         $persona = MusicoPersonal::create([
-            'nombres' => $this->nuevo_nombre,
-            'apellidos' => $this->nuevo_apellido,
-            'cargo' => $this->nuevo_cargo,
+            'nombre' => $this->nuevo_nombre,
+            'apellido' => $this->nuevo_apellido,
+            'nombre_completo' => $nombreCompleto,
+            'tipo' => $this->nuevo_cargo,
             'telefono' => $this->nuevo_telefono,
             'ci_nit' => $this->nuevo_ci_nit,
             'email' => $this->nuevo_email,
@@ -265,16 +268,17 @@ class GestionParticipantesEvento extends Component
         ]);
 
         $this->persona_id = $persona->id;
-        $this->funcion = $persona->cargo;
+        $this->funcion = $persona->tipo;
         $this->cerrarModalPersona();
 
-        session()->flash('message', "Persona ({$persona->nombres} {$persona->apellidos}) registrada en el catálogo y seleccionada.");
+        session()->flash('message', "Persona ({$persona->nombre_completo}) registrada en el catálogo y seleccionada.");
     }
 
     public function render()
     {
         $todasPersonas = MusicoPersonal::where('estado', 'Activo')
-            ->orderBy('nombres')
+            ->orderBy('nombre')
+            ->orderBy('apellido')
             ->get();
 
         $totalAsignadoParticipantes = $this->evento->participantes->sum('monto_asignado');
