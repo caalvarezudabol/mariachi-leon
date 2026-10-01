@@ -610,6 +610,7 @@
         </div>
     @endif
 
+    @script
     <script>
     function mapPickerComponent(latEntangle, lngEntangle, direccionEntangle) {
         return {
@@ -882,4 +883,5 @@
     };
 }
 </script>
+@endscript
 </div>
