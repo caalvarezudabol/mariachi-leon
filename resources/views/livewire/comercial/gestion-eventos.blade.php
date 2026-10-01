@@ -451,15 +451,20 @@
                         @error('direccion_evento') <span class="text-xs text-rose-400 mt-1">{{ $message }}</span> @enderror
                     </div>
 
-                    <!-- Selección de Ubicación en Mapa Interactivo (Google Maps incorporado) -->
-                    <div class="lg:col-span-3 sm:col-span-2 bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3"
+                    <!-- Selección de Ubicación en Mapa Interactivo (Google Maps incorporado estilo pedido) -->
+                    <div class="lg:col-span-3 sm:col-span-2 bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3 relative"
                         x-data="{
                             map: null,
                             marker: null,
                             queryBusqueda: '',
                             buscando: false,
+                            buscandoGps: false,
+                            resultadosBusqueda: [],
+                            mostrarResultados: false,
                             lat: @entangle('latitud'),
                             lng: @entangle('longitud'),
+                            direccion: @entangle('direccion_evento'),
+
                             initPicker() {
                                 this.$nextTick(() => {
                                     const container = this.$refs.mapContainer;
@@ -470,41 +475,70 @@
                                         pollCount++;
                                         if (container.offsetHeight > 0 || pollCount > 30) {
                                             clearInterval(checkExist);
-
-                                            let initialLat = this.lat ? parseFloat(this.lat) : -17.7833;
-                                            let initialLng = this.lng ? parseFloat(this.lng) : -63.1821;
-
-                                            if (this.map) {
-                                                this.map.remove();
-                                                this.map = null;
-                                                this.marker = null;
-                                            }
-
-                                            // Inicializar Leaflet con Tiles de Google Maps (Roadmap)
-                                            this.map = L.map(container).setView([initialLat, initialLng], 15);
-
-                                            L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                                                maxZoom: 20,
-                                                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                                                attribution: 'Google Maps'
-                                            }).addTo(this.map);
-
-                                            // Marcador rojo arrastrable
-                                            this.marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(this.map);
-                                            this.bindMarkerEvents();
-
-                                            this.map.on('click', (e) => {
-                                                this.updateCoords(e.latlng.lat, e.latlng.lng);
-                                            });
-
-                                            setTimeout(() => {
-                                                if (this.map) this.map.invalidateSize();
-                                            }, 200);
+                                            this.renderMap(container);
                                         }
                                     }, 100);
                                 });
+
+                                this.$watch('direccion', (val) => {
+                                    if (val && (!this.lat || !this.lng)) {
+                                        this.buscarDireccionEnMapa(val, true);
+                                    }
+                                });
                             },
-                            updateCoords(latVal, lngVal) {
+
+                            renderMap(container) {
+                                let defaultLat = -17.7833; // Santa Cruz de la Sierra, Bolivia
+                                let defaultLng = -63.1821;
+                                let initialLat = this.lat ? parseFloat(this.lat) : defaultLat;
+                                let initialLng = this.lng ? parseFloat(this.lng) : defaultLng;
+
+                                if (this.map) {
+                                    this.map.remove();
+                                    this.map = null;
+                                    this.marker = null;
+                                }
+
+                                // Inicializar Leaflet con Tiles de Google Maps (Roadmap)
+                                this.map = L.map(container, {
+                                    zoomControl: true,
+                                    scrollWheelZoom: true
+                                }).setView([initialLat, initialLng], (this.lat && this.lng) ? 16 : 14);
+
+                                L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                                    maxZoom: 20,
+                                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                                    attribution: 'Google Maps'
+                                }).addTo(this.map);
+
+                                // Marcador Estilo Entrega/Pedido
+                                this.marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(this.map);
+                                this.bindMarkerEvents();
+
+                                this.map.on('click', (e) => {
+                                    this.updateCoords(e.latlng.lat, e.latlng.lng, true);
+                                });
+
+                                setTimeout(() => {
+                                    if (this.map) this.map.invalidateSize();
+                                }, 200);
+
+                                // Si hay dirección pero no coordenadas, intentar geocodificar de entrada
+                                if (this.direccion && (!this.lat || !this.lng)) {
+                                    this.buscarDireccionEnMapa(this.direccion, true);
+                                }
+                            },
+
+                            bindMarkerEvents() {
+                                if (this.marker) {
+                                    this.marker.on('dragend', (e) => {
+                                        let pos = e.target.getLatLng();
+                                        this.updateCoords(pos.lat, pos.lng, true);
+                                    });
+                                }
+                            },
+
+                            updateCoords(latVal, lngVal, reverseGeocode = false) {
                                 let formattedLat = parseFloat(latVal).toFixed(6);
                                 let formattedLng = parseFloat(lngVal).toFixed(6);
 
@@ -515,89 +549,227 @@
 
                                 if (this.marker) {
                                     this.marker.setLatLng([latVal, lngVal]);
-                                } else {
+                                } else if (this.map) {
                                     this.marker = L.marker([latVal, lngVal], { draggable: true }).addTo(this.map);
                                     this.bindMarkerEvents();
                                 }
 
-                                // Geocodificación inversa para sugerir dirección
-                                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latVal}&lon=${lngVal}`)
+                                if (reverseGeocode) {
+                                    this.obtenerDireccionDesdeCoords(latVal, lngVal);
+                                }
+                            },
+
+                            obtenerDireccionDesdeCoords(latVal, lngVal) {
+                                fetch(`https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=json&location=${lngVal},${latVal}`)
                                     .then(r => r.json())
                                     .then(d => {
-                                        if (d && d.display_name && !$wire.get('direccion_evento')) {
-                                            $wire.set('direccion_evento', d.display_name);
+                                        if (d && d.address && d.address.Match_addr) {
+                                            let addr = d.address.Match_addr;
+                                            this.direccion = addr;
+                                            $wire.set('direccion_evento', addr);
+                                        } else {
+                                            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latVal}&lon=${lngVal}`)
+                                                .then(r => r.json())
+                                                .then(nomData => {
+                                                    if (nomData && nomData.display_name) {
+                                                        this.direccion = nomData.display_name;
+                                                        $wire.set('direccion_evento', nomData.display_name);
+                                                    }
+                                                }).catch(() => {});
                                         }
                                     }).catch(() => {});
                             },
-                            bindMarkerEvents() {
-                                if (this.marker) {
-                                    this.marker.on('dragend', (e) => {
-                                        let pos = e.target.getLatLng();
-                                        this.updateCoords(pos.lat, pos.lng);
-                                    });
+
+                            usarMiUbicacion() {
+                                if (!navigator.geolocation) {
+                                    alert('La geolocalización no está soportada en su navegador.');
+                                    return;
                                 }
+                                this.buscandoGps = true;
+                                navigator.geolocation.getCurrentPosition(
+                                    (pos) => {
+                                        this.buscandoGps = false;
+                                        let uLat = pos.coords.latitude;
+                                        let uLng = pos.coords.longitude;
+                                        this.updateCoords(uLat, uLng, true);
+                                        if (this.map) {
+                                            this.map.setView([uLat, uLng], 17);
+                                        }
+                                    },
+                                    (err) => {
+                                        this.buscandoGps = false;
+                                        alert('No se pudo obtener su ubicación actual. Verifique que los permisos de GPS estén activos en su navegador.');
+                                    },
+                                    { enableHighAccuracy: true, timeout: 10000 }
+                                );
                             },
-                            buscarEnMapa() {
-                                let q = this.queryBusqueda || $wire.get('direccion_evento');
-                                if (!q || q.length < 2) return;
+
+                            buscarDireccionEnMapa(queryManual = null, autoSelectFirst = false) {
+                                let q = queryManual || this.queryBusqueda || this.direccion;
+                                if (!q || q.trim().length < 2) return;
                                 this.buscando = true;
-                                fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q))
+                                this.mostrarResultados = false;
+                                this.resultadosBusqueda = [];
+
+                                let cleanQuery = q.trim();
+                                let queryWithCity = cleanQuery.toLowerCase().includes('santa cruz') ? cleanQuery : cleanQuery + ', Santa Cruz, Bolivia';
+
+                                // Motor 1: ArcGIS (Preciso en Bolivia)
+                                fetch('https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=' + encodeURIComponent(queryWithCity) + '&location=-63.1821,-17.7833&maxLocations=5')
                                     .then(r => r.json())
                                     .then(data => {
+                                        if (data && data.candidates && data.candidates.length > 0) {
+                                            return data.candidates.map(c => ({
+                                                name: c.address,
+                                                lat: c.location.y,
+                                                lng: c.location.x
+                                            }));
+                                        }
+                                        return null;
+                                    })
+                                    .then(results => {
+                                        if (results && results.length > 0) {
+                                            return results;
+                                        }
+                                        // Motor 2: Photon API
+                                        return fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(cleanQuery) + '&lat=-17.7833&lon=-63.1821&limit=5')
+                                            .then(r => r.json())
+                                            .then(photonData => {
+                                                if (photonData && photonData.features && photonData.features.length > 0) {
+                                                    return photonData.features.map(f => {
+                                                        let p = f.properties;
+                                                        let label = [p.name, p.street, p.district, p.city].filter(Boolean).join(', ');
+                                                        return {
+                                                            name: label || p.name || 'Ubicación encontrada',
+                                                            lat: f.geometry.coordinates[1],
+                                                            lng: f.geometry.coordinates[0]
+                                                        };
+                                                    });
+                                                }
+                                                return null;
+                                            });
+                                    })
+                                    .then(results => {
+                                        if (results && results.length > 0) {
+                                            return results;
+                                        }
+                                        // Motor 3: Nominatim
+                                        return fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(queryWithCity))
+                                            .then(r => r.json())
+                                            .then(nomData => {
+                                                if (nomData && nomData.length > 0) {
+                                                    return nomData.map(n => ({
+                                                        name: n.display_name,
+                                                        lat: parseFloat(n.lat),
+                                                        lng: parseFloat(n.lon)
+                                                    }));
+                                                }
+                                                return [];
+                                            });
+                                    })
+                                    .then(finalResults => {
                                         this.buscando = false;
-                                        if (data && data.length > 0) {
-                                            let resLat = parseFloat(data[0].lat);
-                                            let resLng = parseFloat(data[0].lon);
-                                            if (this.map) {
-                                                this.map.setView([resLat, resLng], 16);
-                                                this.updateCoords(resLat, resLng);
+                                        if (finalResults && finalResults.length > 0) {
+                                            this.resultadosBusqueda = finalResults;
+                                            if (autoSelectFirst) {
+                                                this.seleccionarResultado(finalResults[0]);
+                                            } else {
+                                                this.mostrarResultados = true;
                                             }
-                                        } else {
-                                            alert('No se encontraron resultados en el mapa para: ' + q);
+                                        } else if (!autoSelectFirst) {
+                                            alert('No se encontraron resultados en el mapa para: ' + cleanQuery);
                                         }
                                     })
-                                    .catch(() => { this.buscando = false; });
+                                    .catch(() => {
+                                        this.buscando = false;
+                                    });
+                            },
+
+                            seleccionarResultado(item) {
+                                this.mostrarResultados = false;
+                                this.queryBusqueda = item.name;
+                                this.direccion = item.name;
+                                $wire.set('direccion_evento', item.name);
+                                this.updateCoords(item.lat, item.lng, false);
+                                if (this.map) {
+                                    this.map.setView([item.lat, item.lng], 16);
+                                }
                             }
                         }"
-                        x-init="initPicker()">
+                        x-init="initPicker()"
+                        @click.outside="mostrarResultados = false">
 
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
                             <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-map-location-dot text-gold-400"></i>
-                                <span class="text-xs font-bold text-white uppercase tracking-wider">Seleccionar Ubicación Exacta en Mapa (Google Maps)</span>
+                                <i class="fa-solid fa-location-crosshairs text-gold-400"></i>
+                                <span class="text-xs font-bold text-white uppercase tracking-wider">Seleccionar Ubicación Exacta (Estilo Pedido)</span>
                             </div>
-                            <div class="text-[11px] text-slate-400">
-                                Haz clic o arrastra el marcador rojo en el mapa
-                            </div>
-                        </div>
-
-                        <!-- Buscador en Mapa -->
-                        <div class="flex items-center gap-2">
-                            <input type="text" 
-                                   x-model="queryBusqueda" 
-                                   @keydown.enter.prevent="buscarEnMapa()"
-                                   placeholder="Escribe un lugar (ej. La Ramada, Banzer 4to anillo) y presiona Buscar..." 
-                                   class="flex-1 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:border-gold-500">
                             <button type="button" 
-                                    @click="buscarEnMapa()" 
-                                    class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-gold-400 text-xs font-bold transition-all flex items-center gap-1">
-                                <i class="fa-solid fa-magnifying-glass" x-show="!buscando"></i>
-                                <i class="fa-solid fa-spinner animate-spin" x-show="buscando" x-cloak></i>
-                                <span>Buscar</span>
+                                    @click="usarMiUbicacion()" 
+                                    class="px-3 py-1 rounded-xl bg-gold-500/10 hover:bg-gold-500/20 text-gold-400 border border-gold-500/30 text-xs font-bold transition-all flex items-center gap-1.5 self-start sm:self-auto">
+                                <i class="fa-solid fa-crosshairs" x-show="!buscandoGps"></i>
+                                <i class="fa-solid fa-spinner animate-spin text-gold-400" x-show="buscandoGps" x-cloak></i>
+                                <span>🎯 Usar Mi Ubicación Actual</span>
                             </button>
                         </div>
 
+                        <!-- Buscador Interactivo con Lista de Sugerencias -->
+                        <div class="relative">
+                            <div class="flex items-center gap-2">
+                                <div class="relative flex-1">
+                                    <input type="text" 
+                                           x-model="queryBusqueda" 
+                                           @keydown.enter.prevent="buscarDireccionEnMapa()"
+                                           placeholder="Buscar lugar (ej. La Ramada, Equipetrol, Banzer 4to Anillo, Plan 3000)..." 
+                                           class="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:border-gold-500">
+                                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                                </div>
+                                <button type="button" 
+                                        @click="buscarDireccionEnMapa()" 
+                                        class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-gold-400 text-xs font-bold transition-all flex items-center gap-1.5 shrink-0">
+                                    <i class="fa-solid fa-magnifying-glass" x-show="!buscando"></i>
+                                    <i class="fa-solid fa-spinner animate-spin" x-show="buscando" x-cloak></i>
+                                    <span>Buscar en Mapa</span>
+                                </button>
+                            </div>
+
+                            <!-- Desplegable de Resultados de Búsqueda -->
+                            <div x-show="mostrarResultados" 
+                                 x-cloak 
+                                 x-transition 
+                                 class="absolute left-0 right-0 top-full mt-1 z-50 max-h-48 overflow-y-auto bg-slate-900 border border-gold-500/50 rounded-xl shadow-2xl divide-y divide-slate-800">
+                                <template x-for="(res, idx) in resultadosBusqueda" :key="idx">
+                                    <div @click="seleccionarResultado(res)" 
+                                         class="p-2.5 hover:bg-slate-800 cursor-pointer transition-colors flex items-center gap-2">
+                                        <i class="fa-solid fa-location-dot text-gold-400 text-xs shrink-0"></i>
+                                        <div class="text-xs text-slate-200 font-semibold truncate" x-text="res.name"></div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
                         <!-- Map Canvas (Google Maps Layer) -->
-                        <div class="relative w-full h-72 rounded-xl overflow-hidden border border-slate-800 z-10 bg-slate-900">
-                            <div x-ref="mapContainer" class="w-full h-full min-h-[280px]"></div>
+                        <div class="relative w-full h-80 rounded-xl overflow-hidden border border-slate-800 z-10 bg-slate-900 shadow-inner">
+                            <div x-ref="mapContainer" class="w-full h-full min-h-[300px]"></div>
+                            
+                            <div class="absolute bottom-2 left-2 z-[400] bg-slate-950/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800 text-[11px] text-slate-300 flex items-center gap-2 shadow-lg">
+                                <i class="fa-solid fa-hand-pointer text-gold-400"></i>
+                                <span>Haz clic en el mapa o arrastra el pin marcador</span>
+                            </div>
                         </div>
 
                         <!-- Footer Coordenadas -->
-                        <div class="flex items-center justify-between gap-2 pt-1 text-xs font-mono">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 text-xs font-mono">
                             <div class="flex items-center gap-2">
-                                <span class="text-slate-400">Coordenadas Seleccionadas:</span>
-                                <span class="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-gold-400 font-bold" x-text="lat && lng ? lat + ', ' + lng : 'Haz clic en el mapa para ubicar'"></span>
+                                <span class="text-slate-400">Coordenadas:</span>
+                                <span class="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-gold-400 font-bold" x-text="lat && lng ? lat + ', ' + lng : 'Haz clic en el mapa para fijar la ubicación'"></span>
                             </div>
+                            <template x-if="lat && lng">
+                                <div class="inline-flex items-center gap-1.5 text-emerald-400 text-[11px] font-bold">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    <span>Ubicación Exacta Fijada</span>
+                                </div>
+                            </template>
                         </div>
                     </div>
 
