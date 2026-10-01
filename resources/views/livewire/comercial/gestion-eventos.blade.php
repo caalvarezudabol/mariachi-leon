@@ -112,7 +112,19 @@
                                     {{ $ev->estado }}
                                 </span>
                             </td>
-                            <td class="py-3.5 px-4 text-right space-x-1">
+                            <td class="py-3.5 px-4 text-right space-x-1 whitespace-nowrap">
+                                @php
+                                    $telRow = preg_replace('/[^0-9]/', '', $ev->telefono_contacto ?: ($ev->cliente->telefono ?? ''));
+                                    if ($telRow && strlen($telRow) === 8) { $telRow = '591' . $telRow; }
+                                @endphp
+                                @if($telRow)
+                                    <a href="https://api.whatsapp.com/send?phone={{ $telRow }}&text={{ urlencode('Hola ' . ($ev->cliente->nombre_completo ?? '') . ', le contactamos del Mariachi León Guanajuato sobre su evento ' . $ev->codigo_evento) }}" 
+                                       target="_blank" 
+                                       class="p-2 rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white transition-all inline-block" 
+                                       title="Abrir WhatsApp de {{ $ev->cliente->nombre_completo ?? 'Cliente' }}">
+                                        <i class="fa-brands fa-whatsapp"></i>
+                                    </a>
+                                @endif
                                 <a href="{{ route('admin.eventos.participantes', $ev->id) }}" class="p-2 rounded-lg bg-slate-800 text-gold-400 hover:text-gold-300 hover:bg-slate-700 transition-all inline-block" title="Gestionar Participantes">
                                     <i class="fa-solid fa-people-group"></i>
                                 </a>
@@ -451,86 +463,33 @@
                         @error('direccion_evento') <span class="text-xs text-rose-400 mt-1">{{ $message }}</span> @enderror
                     </div>
 
-                    <!-- Selección de Ubicación en Mapa Interactivo (Google Maps incorporado estilo pedido) -->
-                    <div class="lg:col-span-3 sm:col-span-2 bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3 relative"
-                        x-data="mapPickerComponent(@entangle('latitud'), @entangle('longitud'), @entangle('direccion_evento'))"
-                        x-init="initPicker()"
-                        x-on:cliente-seleccionado.window="if ($event.detail.direccion) { queryBusqueda = $event.detail.direccion; buscarDireccionEnMapa($event.detail.direccion, true); }"
-                        @click.outside="mostrarResultados = false">
-
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
-                            <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-location-crosshairs text-gold-400"></i>
-                                <span class="text-xs font-bold text-white uppercase tracking-wider">Seleccionar Ubicación Exacta (Estilo Pedido)</span>
+                    <!-- Contacto y Enlace Directo a WhatsApp -->
+                    <div class="lg:col-span-3 sm:col-span-2 bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                                <i class="fa-brands fa-whatsapp text-xl"></i>
                             </div>
-                            <button type="button" 
-                                    @click="usarMiUbicacion()" 
-                                    class="px-3 py-1 rounded-xl bg-gold-500/10 hover:bg-gold-500/20 text-gold-400 border border-gold-500/30 text-xs font-bold transition-all flex items-center gap-1.5 self-start sm:self-auto">
-                                <i class="fa-solid fa-crosshairs" x-show="!buscandoGps"></i>
-                                <i class="fa-solid fa-spinner animate-spin text-gold-400" x-show="buscandoGps" x-cloak></i>
-                                <span>🎯 Usar Mi Ubicación Actual</span>
-                            </button>
-                        </div>
-
-                        <!-- Buscador Interactivo con Lista de Sugerencias -->
-                        <div class="relative">
-                            <div class="flex items-center gap-2">
-                                <div class="relative flex-1">
-                                    <input type="text" 
-                                           x-model="queryBusqueda" 
-                                           @keydown.enter.prevent="buscarDireccionEnMapa()"
-                                           placeholder="Buscar lugar (ej. La Ramada, Equipetrol, Banzer 4to Anillo, Plan 3000)..." 
-                                           class="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:border-gold-500">
-                                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
-                                </div>
-                                <button type="button" 
-                                        @click="buscarDireccionEnMapa()" 
-                                        class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-gold-400 text-xs font-bold transition-all flex items-center gap-1.5 shrink-0">
-                                    <i class="fa-solid fa-magnifying-glass" x-show="!buscando"></i>
-                                    <i class="fa-solid fa-spinner animate-spin" x-show="buscando" x-cloak></i>
-                                    <span>Buscar en Mapa</span>
-                                </button>
-                            </div>
-
-                            <!-- Desplegable de Resultados de Búsqueda -->
-                            <div x-show="mostrarResultados" 
-                                 x-cloak 
-                                 x-transition 
-                                 class="absolute left-0 right-0 top-full mt-1 z-50 max-h-48 overflow-y-auto bg-slate-900 border border-gold-500/50 rounded-xl shadow-2xl divide-y divide-slate-800">
-                                <template x-for="(res, idx) in resultadosBusqueda" :key="idx">
-                                    <div @click="seleccionarResultado(res)" 
-                                         class="p-2.5 hover:bg-slate-800 cursor-pointer transition-colors flex items-center gap-2">
-                                        <i class="fa-solid fa-location-dot text-gold-400 text-xs shrink-0"></i>
-                                        <div class="text-xs text-slate-200 font-semibold truncate" x-text="res.name"></div>
-                                    </div>
-                                </template>
+                            <div>
+                                <div class="text-xs font-bold text-white uppercase tracking-wider">Coordinar Ubicación por WhatsApp</div>
+                                <div class="text-xs text-slate-400 mt-0.5">Abre un chat directo con el cliente para recibir o verificar la dirección de su evento.</div>
                             </div>
                         </div>
 
-                        <!-- Map Canvas (Google Maps Layer) -->
-                        <div class="relative w-full h-80 rounded-xl overflow-hidden border border-slate-800 z-10 bg-slate-900 shadow-inner">
-                            <div x-ref="mapContainer" class="w-full h-full min-h-[300px] cursor-crosshair"></div>
-                            
-                            <div class="absolute bottom-2 left-2 z-[400] bg-slate-950/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800 text-[11px] text-slate-300 flex items-center gap-2 shadow-lg">
-                                <i class="fa-solid fa-hand-pointer text-gold-400"></i>
-                                <span x-show="!cursorPos">Haz clic en el mapa o arrastra el pin marcador</span>
-                                <span x-show="cursorPos" x-cloak>Cursor: <strong class="text-gold-400" x-text="cursorPos"></strong> (Clic para fijar pin)</span>
-                            </div>
-                        </div>
+                        @php
+                            $telModal = preg_replace('/[^0-9]/', '', $telefono_contacto ?: '');
+                            if ($telModal && strlen($telModal) === 8) { $telModal = '591' . $telModal; }
+                        @endphp
 
-                        <!-- Footer Coordenadas -->
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 text-xs font-mono">
-                            <div class="flex items-center gap-2">
-                                <span class="text-slate-400">Coordenadas:</span>
-                                <span class="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-gold-400 font-bold" x-text="lat && lng ? lat + ', ' + lng : 'Haz clic en el mapa para fijar la ubicación'"></span>
-                            </div>
-                            <template x-if="lat && lng">
-                                <div class="inline-flex items-center gap-1.5 text-emerald-400 text-[11px] font-bold">
-                                    <i class="fa-solid fa-circle-check"></i>
-                                    <span>Ubicación Exacta Fijada</span>
-                                </div>
-                            </template>
-                        </div>
+                        @if($telModal)
+                            <a href="https://api.whatsapp.com/send?phone={{ $telModal }}&text={{ urlencode('Hola, le escribimos del Mariachi León Guanajuato sobre su evento ' . $codigo_evento . '. Por favor compártenos la ubicación o referencias de la presentación.') }}" 
+                               target="_blank" 
+                               class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-emerald-950/40 shrink-0">
+                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                                <span>Abrir WhatsApp del Cliente</span>
+                            </a>
+                        @else
+                            <span class="text-xs text-slate-500 italic">Seleccione un cliente para activar enlace WhatsApp</span>
+                        @endif
                     </div>
 
                     <div class="lg:col-span-3 sm:col-span-2">

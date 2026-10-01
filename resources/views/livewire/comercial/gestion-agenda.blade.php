@@ -376,13 +376,26 @@
 
                 <!-- Modal Actions Footer -->
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-brand-border pt-4">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        @php
+                            $telDetail = preg_replace('/[^0-9]/', '', $eventoDetalle->telefono_contacto ?: ($eventoDetalle->cliente->telefono ?? $eventoDetalle->cliente->whatsapp ?? ''));
+                            if ($telDetail && strlen($telDetail) === 8) { $telDetail = '591' . $telDetail; }
+                        @endphp
+                        @if($telDetail)
+                            <a href="https://api.whatsapp.com/send?phone={{ $telDetail }}&text={{ urlencode('Hola ' . ($eventoDetalle->cliente->nombre_completo ?? '') . ', le escribimos del Mariachi León Guanajuato sobre el evento ' . $eventoDetalle->codigo_evento) }}" 
+                               target="_blank" 
+                               class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md">
+                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                                <span>WhatsApp Cliente</span>
+                            </a>
+                        @endif
+
                         @if($eventoDetalle->latitud && $eventoDetalle->longitud)
                             <a href="https://www.google.com/maps/search/?api=1&query={{ $eventoDetalle->latitud }},{{ $eventoDetalle->longitud }}" 
                                target="_blank" 
-                               class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md">
+                               class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-gold-400 text-xs font-bold flex items-center gap-1.5 border border-slate-700">
                                 <i class="fa-solid fa-route"></i>
-                                <span>Ver en Mapa</span>
+                                <span>Mapa</span>
                             </a>
                         @endif
 
