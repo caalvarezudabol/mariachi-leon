@@ -637,6 +637,11 @@
                         if (container.offsetHeight > 0 || pollCount > 30) {
                             clearInterval(checkExist);
                             this.renderMap(container);
+
+                            // Si no hay coordenadas previas (Creación de Nuevo Evento), intentar geolocalización GPS automática
+                            if ((!this.lat || !this.lng) && navigator.geolocation) {
+                                this.usarMiUbicacion(true);
+                            }
                         }
                     }, 100);
                 });
@@ -774,9 +779,9 @@
                     }).catch(() => {});
             },
 
-            usarMiUbicacion() {
+            usarMiUbicacion(silent = false) {
                 if (!navigator.geolocation) {
-                    alert('La geolocalización no está soportada en su navegador.');
+                    if (!silent) alert('La geolocalización no está soportada en su navegador.');
                     return;
                 }
                 this.buscandoGps = true;
@@ -792,7 +797,9 @@
                     },
                     (err) => {
                         this.buscandoGps = false;
-                        alert('No se pudo obtener su ubicación actual. Verifique que los permisos de GPS estén activos en su navegador.');
+                        if (!silent) {
+                            alert('No se pudo obtener su ubicación actual. Verifique que los permisos de GPS estén activos en su navegador.');
+                        }
                     },
                     { enableHighAccuracy: true, timeout: 10000 }
                 );
