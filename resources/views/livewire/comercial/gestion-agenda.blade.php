@@ -390,15 +390,6 @@
                             </a>
                         @endif
 
-                        @if($eventoDetalle->latitud && $eventoDetalle->longitud)
-                            <a href="https://www.google.com/maps/search/?api=1&query={{ $eventoDetalle->latitud }},{{ $eventoDetalle->longitud }}" 
-                               target="_blank" 
-                               class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-gold-400 text-xs font-bold flex items-center gap-1.5 border border-slate-700">
-                                <i class="fa-solid fa-route"></i>
-                                <span>Mapa</span>
-                            </a>
-                        @endif
-
                         <a href="{{ route('admin.eventos.participantes', $eventoDetalle->id) }}" 
                            class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700">
                             <i class="fa-solid fa-people-group text-gold-400"></i>

@@ -96,12 +96,6 @@
                                     <i class="fa-solid fa-location-dot text-rose-400"></i>
                                     <span>{{ $ev->direccion_evento }}</span>
                                 </div>
-                                @if($ev->latitud && $ev->longitud)
-                                    <button wire:click="verMapa({{ $ev->id }})" class="inline-flex items-center gap-1 text-[11px] font-bold text-gold-400 hover:underline mt-1">
-                                        <i class="fa-solid fa-map-location-dot"></i>
-                                        <span>Ver Ubicación (Mapa)</span>
-                                    </button>
-                                @endif
                             </td>
                             <td class="py-3.5 px-4 text-center">
                                 <span class="px-3 py-1 rounded-full text-xs font-bold 
