@@ -453,276 +453,7 @@
 
                     <!-- Selección de Ubicación en Mapa Interactivo (Google Maps incorporado estilo pedido) -->
                     <div class="lg:col-span-3 sm:col-span-2 bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3 relative"
-                        x-data="{
-                            map: null,
-                            marker: null,
-                            queryBusqueda: '',
-                            buscando: false,
-                            buscandoGps: false,
-                            resultadosBusqueda: [],
-                            mostrarResultados: false,
-                            cursorPos: '',
-                            lat: @entangle('latitud'),
-                            lng: @entangle('longitud'),
-                            direccion: @entangle('direccion_evento'),
-
-                            initPicker() {
-                                this.$nextTick(() => {
-                                    const container = this.$refs.mapContainer;
-                                    if (!container) return;
-
-                                    let pollCount = 0;
-                                    let checkExist = setInterval(() => {
-                                        pollCount++;
-                                        if (container.offsetHeight > 0 || pollCount > 30) {
-                                            clearInterval(checkExist);
-                                            this.renderMap(container);
-                                        }
-                                    }, 100);
-                                });
-
-                                this.$watch('direccion', (val) => {
-                                    if (val && (!this.lat || !this.lng)) {
-                                        this.buscarDireccionEnMapa(val, true);
-                                    }
-                                });
-                            },
-
-                            renderMap(container) {
-                                let defaultLat = -17.7833; // Santa Cruz de la Sierra, Bolivia
-                                let defaultLng = -63.1821;
-                                let initialLat = this.lat ? parseFloat(this.lat) : defaultLat;
-                                let initialLng = this.lng ? parseFloat(this.lng) : defaultLng;
-
-                                if (this.map) {
-                                    this.map.remove();
-                                    this.map = null;
-                                    this.marker = null;
-                                }
-
-                                // Inicializar Leaflet con Tiles de Google Maps (Roadmap)
-                                this.map = L.map(container, {
-                                    zoomControl: true,
-                                    scrollWheelZoom: true
-                                }).setView([initialLat, initialLng], (this.lat && this.lng) ? 16 : 14);
-
-                                L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                                    maxZoom: 20,
-                                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                                    attribution: 'Google Maps'
-                                }).addTo(this.map);
-
-                                // Marcador Estilo Entrega/Pedido
-                                this.marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(this.map);
-                                this.bindMarkerEvents();
-
-                                this.map.on('click', (e) => {
-                                    this.updateCoords(e.latlng.lat, e.latlng.lng, true);
-                                });
-
-                                this.map.on('mousemove', (e) => {
-                                    this.cursorPos = e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
-                                });
-
-                                setTimeout(() => {
-                                    if (this.map) this.map.invalidateSize();
-                                }, 200);
-
-                                if (this.lat && this.lng) {
-                                    this.actualizarPopupMarcador(this.direccion);
-                                } else if (this.direccion) {
-                                    this.buscarDireccionEnMapa(this.direccion, true);
-                                }
-                            },
-
-                            bindMarkerEvents() {
-                                if (this.marker) {
-                                    this.marker.on('dragend', (e) => {
-                                        let pos = e.target.getLatLng();
-                                        this.updateCoords(pos.lat, pos.lng, true);
-                                    });
-                                }
-                            },
-
-                            updateCoords(latVal, lngVal, reverseGeocode = false) {
-                                let formattedLat = parseFloat(latVal).toFixed(6);
-                                let formattedLng = parseFloat(lngVal).toFixed(6);
-
-                                this.lat = formattedLat;
-                                this.lng = formattedLng;
-                                $wire.set('latitud', formattedLat);
-                                $wire.set('longitud', formattedLng);
-
-                                if (this.marker) {
-                                    this.marker.setLatLng([latVal, lngVal]);
-                                } else if (this.map) {
-                                    this.marker = L.marker([latVal, lngVal], { draggable: true }).addTo(this.map);
-                                    this.bindMarkerEvents();
-                                }
-
-                                this.actualizarPopupMarcador(this.direccion || 'Ubicación Fijada');
-
-                                if (reverseGeocode) {
-                                    this.obtenerDireccionDesdeCoords(latVal, lngVal);
-                                }
-                            },
-
-                            actualizarPopupMarcador(addrText) {
-                                if (this.marker) {
-                                    let content = `
-                                        <div style="font-family: system-ui, sans-serif; text-align: center; max-width: 220px; padding: 2px;">
-                                            <div style="font-weight: 800; color: #b45309; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                                📍 Ubicación Seleccionada
-                                            </div>
-                                            <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-top: 2px; line-height: 1.2;">
-                                                ${addrText || 'Ubicación en este punto'}
-                                            </div>
-                                            <div style="font-size: 10px; color: #64748b; margin-top: 4px; font-family: monospace;">
-                                                ${this.lat || ''}, ${this.lng || ''}
-                                            </div>
-                                        </div>
-                                    `;
-                                    this.marker.bindPopup(content, { closeButton: false, autoClose: false, closeOnClick: false }).openPopup();
-                                }
-                            },
-
-                            obtenerDireccionDesdeCoords(latVal, lngVal) {
-                                fetch(`https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=json&location=${lngVal},${latVal}`)
-                                    .then(r => r.json())
-                                    .then(d => {
-                                        if (d && d.address && d.address.Match_addr) {
-                                            let addr = d.address.Match_addr;
-                                            this.direccion = addr;
-                                            $wire.set('direccion_evento', addr);
-                                            this.actualizarPopupMarcador(addr);
-                                        } else {
-                                            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latVal}&lon=${lngVal}`)
-                                                .then(r => r.json())
-                                                .then(nomData => {
-                                                    if (nomData && nomData.display_name) {
-                                                        this.direccion = nomData.display_name;
-                                                        $wire.set('direccion_evento', nomData.display_name);
-                                                        this.actualizarPopupMarcador(nomData.display_name);
-                                                    }
-                                                }).catch(() => {});
-                                        }
-                                    }).catch(() => {});
-                            },
-
-                            usarMiUbicacion() {
-                                if (!navigator.geolocation) {
-                                    alert('La geolocalización no está soportada en su navegador.');
-                                    return;
-                                }
-                                this.buscandoGps = true;
-                                navigator.geolocation.getCurrentPosition(
-                                    (pos) => {
-                                        this.buscandoGps = false;
-                                        let uLat = pos.coords.latitude;
-                                        let uLng = pos.coords.longitude;
-                                        this.updateCoords(uLat, uLng, true);
-                                        if (this.map) {
-                                            this.map.setView([uLat, uLng], 17);
-                                        }
-                                    },
-                                    (err) => {
-                                        this.buscandoGps = false;
-                                        alert('No se pudo obtener su ubicación actual. Verifique que los permisos de GPS estén activos en su navegador.');
-                                    },
-                                    { enableHighAccuracy: true, timeout: 10000 }
-                                );
-                            },
-
-                            buscarDireccionEnMapa(queryManual = null, autoSelectFirst = false) {
-                                let q = queryManual || this.queryBusqueda || this.direccion;
-                                if (!q || q.trim().length < 2) return;
-                                this.buscando = true;
-                                this.mostrarResultados = false;
-                                this.resultadosBusqueda = [];
-
-                                let cleanQuery = q.trim();
-                                let queryWithCity = cleanQuery.toLowerCase().includes('santa cruz') ? cleanQuery : cleanQuery + ', Santa Cruz, Bolivia';
-
-                                fetch('https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=' + encodeURIComponent(queryWithCity) + '&location=-63.1821,-17.7833&maxLocations=5')
-                                    .then(r => r.json())
-                                    .then(data => {
-                                        if (data && data.candidates && data.candidates.length > 0) {
-                                            return data.candidates.map(c => ({
-                                                name: c.address,
-                                                lat: c.location.y,
-                                                lng: c.location.x
-                                            }));
-                                        }
-                                        return null;
-                                    })
-                                    .then(results => {
-                                        if (results && results.length > 0) {
-                                            return results;
-                                        }
-                                        return fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(cleanQuery) + '&lat=-17.7833&lon=-63.1821&limit=5')
-                                            .then(r => r.json())
-                                            .then(photonData => {
-                                                if (photonData && photonData.features && photonData.features.length > 0) {
-                                                    return photonData.features.map(f => {
-                                                        let p = f.properties;
-                                                        let label = [p.name, p.street, p.district, p.city].filter(Boolean).join(', ');
-                                                        return {
-                                                            name: label || p.name || 'Ubicación encontrada',
-                                                            lat: f.geometry.coordinates[1],
-                                                            lng: f.geometry.coordinates[0]
-                                                        };
-                                                    });
-                                                }
-                                                return null;
-                                            });
-                                    })
-                                    .then(results => {
-                                        if (results && results.length > 0) {
-                                            return results;
-                                        }
-                                        return fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(queryWithCity))
-                                            .then(r => r.json())
-                                            .then(nomData => {
-                                                if (nomData && nomData.length > 0) {
-                                                    return nomData.map(n => ({
-                                                        name: n.display_name,
-                                                        lat: parseFloat(n.lat),
-                                                        lng: parseFloat(n.lon)
-                                                    }));
-                                                }
-                                                return [];
-                                            });
-                                    })
-                                    .then(finalResults => {
-                                        this.buscando = false;
-                                        if (finalResults && finalResults.length > 0) {
-                                            this.resultadosBusqueda = finalResults;
-                                            if (autoSelectFirst) {
-                                                this.seleccionarResultado(finalResults[0]);
-                                            } else {
-                                                this.mostrarResultados = true;
-                                            }
-                                        } else if (!autoSelectFirst) {
-                                            alert('No se encontraron resultados en el mapa para: ' + cleanQuery);
-                                        }
-                                    })
-                                    .catch(() => {
-                                        this.buscando = false;
-                                    });
-                            },
-
-                            seleccionarResultado(item) {
-                                this.mostrarResultados = false;
-                                this.queryBusqueda = item.name;
-                                this.direccion = item.name;
-                                $wire.set('direccion_evento', item.name);
-                                this.updateCoords(item.lat, item.lng, false);
-                                this.actualizarPopupMarcador(item.name);
-                                if (this.map) {
-                                    this.map.setView([item.lat, item.lng], 16);
-                                }
-                            }
-                        }"
+                        x-data="mapPickerComponent(@entangle('latitud'), @entangle('longitud'), @entangle('direccion_evento'))"
                         x-init="initPicker()"
                         x-on:cliente-seleccionado.window="if ($event.detail.direccion) { queryBusqueda = $event.detail.direccion; buscarDireccionEnMapa($event.detail.direccion, true); }"
                         @click.outside="mostrarResultados = false">
@@ -878,4 +609,277 @@
             </div>
         </div>
     @endif
+
+    <script>
+    function mapPickerComponent(latEntangle, lngEntangle, direccionEntangle) {
+        return {
+            map: null,
+            marker: null,
+            queryBusqueda: '',
+            buscando: false,
+            buscandoGps: false,
+            resultadosBusqueda: [],
+            mostrarResultados: false,
+            cursorPos: '',
+            lat: latEntangle,
+            lng: lngEntangle,
+            direccion: direccionEntangle,
+
+            initPicker() {
+                this.$nextTick(() => {
+                    const container = this.$refs.mapContainer;
+                    if (!container) return;
+
+                    let pollCount = 0;
+                    let checkExist = setInterval(() => {
+                        pollCount++;
+                        if (container.offsetHeight > 0 || pollCount > 30) {
+                            clearInterval(checkExist);
+                            this.renderMap(container);
+                        }
+                    }, 100);
+                });
+
+                this.$watch('direccion', (val) => {
+                    if (val && (!this.lat || !this.lng)) {
+                        this.buscarDireccionEnMapa(val, true);
+                    }
+                });
+            },
+
+            renderMap(container) {
+                let defaultLat = -17.7833;
+                let defaultLng = -63.1821;
+                let initialLat = this.lat ? parseFloat(this.lat) : defaultLat;
+                let initialLng = this.lng ? parseFloat(this.lng) : defaultLng;
+
+                if (this.map) {
+                    this.map.remove();
+                    this.map = null;
+                    this.marker = null;
+                }
+
+                this.map = L.map(container, {
+                    zoomControl: true,
+                    scrollWheelZoom: true
+                }).setView([initialLat, initialLng], (this.lat && this.lng) ? 16 : 14);
+
+                L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                    maxZoom: 20,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                    attribution: 'Google Maps'
+                }).addTo(this.map);
+
+                this.marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(this.map);
+                this.bindMarkerEvents();
+
+                this.map.on('click', (e) => {
+                    this.updateCoords(e.latlng.lat, e.latlng.lng, true);
+                });
+
+                this.map.on('mousemove', (e) => {
+                    this.cursorPos = e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
+                });
+
+                setTimeout(() => {
+                    if (this.map) this.map.invalidateSize();
+                }, 200);
+
+                if (this.lat && this.lng) {
+                    this.actualizarPopupMarcador(this.direccion);
+                } else if (this.direccion) {
+                    this.buscarDireccionEnMapa(this.direccion, true);
+                }
+            },
+
+            bindMarkerEvents() {
+                if (this.marker) {
+                    this.marker.on('dragend', (e) => {
+                        let pos = e.target.getLatLng();
+                        this.updateCoords(pos.lat, pos.lng, true);
+                    });
+                }
+            },
+
+            updateCoords(latVal, lngVal, reverseGeocode = false) {
+                let formattedLat = parseFloat(latVal).toFixed(6);
+                let formattedLng = parseFloat(lngVal).toFixed(6);
+
+                this.lat = formattedLat;
+                this.lng = formattedLng;
+                this.$wire.set('latitud', formattedLat);
+                this.$wire.set('longitud', formattedLng);
+
+                if (this.marker) {
+                    this.marker.setLatLng([latVal, lngVal]);
+                } else if (this.map) {
+                    this.marker = L.marker([latVal, lngVal], { draggable: true }).addTo(this.map);
+                    this.bindMarkerEvents();
+                }
+
+                this.actualizarPopupMarcador(this.direccion || 'Ubicación Fijada');
+
+                if (reverseGeocode) {
+                    this.obtenerDireccionDesdeCoords(latVal, lngVal);
+                }
+            },
+
+            actualizarPopupMarcador(addrText) {
+                if (this.marker) {
+                    let content = `
+                        <div style="font-family: system-ui, sans-serif; text-align: center; max-width: 220px; padding: 2px;">
+                            <div style="font-weight: 800; color: #b45309; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                📍 Ubicación Seleccionada
+                            </div>
+                            <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-top: 2px; line-height: 1.2;">
+                                ${addrText || 'Ubicación en este punto'}
+                            </div>
+                            <div style="font-size: 10px; color: #64748b; margin-top: 4px; font-family: monospace;">
+                                ${this.lat || ''}, ${this.lng || ''}
+                            </div>
+                        </div>
+                    `;
+                    this.marker.bindPopup(content, { closeButton: false, autoClose: false, closeOnClick: false }).openPopup();
+                }
+            },
+
+            obtenerDireccionDesdeCoords(latVal, lngVal) {
+                fetch(`https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=json&location=${lngVal},${latVal}`)
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d && d.address && d.address.Match_addr) {
+                            let addr = d.address.Match_addr;
+                            this.direccion = addr;
+                            this.$wire.set('direccion_evento', addr);
+                            this.actualizarPopupMarcador(addr);
+                        } else {
+                            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latVal}&lon=${lngVal}`)
+                                .then(r => r.json())
+                                .then(nomData => {
+                                    if (nomData && nomData.display_name) {
+                                        this.direccion = nomData.display_name;
+                                        this.$wire.set('direccion_evento', nomData.display_name);
+                                        this.actualizarPopupMarcador(nomData.display_name);
+                                    }
+                                }).catch(() => {});
+                        }
+                    }).catch(() => {});
+            },
+
+            usarMiUbicacion() {
+                if (!navigator.geolocation) {
+                    alert('La geolocalización no está soportada en su navegador.');
+                    return;
+                }
+                this.buscandoGps = true;
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        this.buscandoGps = false;
+                        let uLat = pos.coords.latitude;
+                        let uLng = pos.coords.longitude;
+                        this.updateCoords(uLat, uLng, true);
+                        if (this.map) {
+                            this.map.setView([uLat, uLng], 17);
+                        }
+                    },
+                    (err) => {
+                        this.buscandoGps = false;
+                        alert('No se pudo obtener su ubicación actual. Verifique que los permisos de GPS estén activos en su navegador.');
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            },
+
+            buscarDireccionEnMapa(queryManual = null, autoSelectFirst = false) {
+                let q = queryManual || this.queryBusqueda || this.direccion;
+                if (!q || q.trim().length < 2) return;
+                this.buscando = true;
+                this.mostrarResultados = false;
+                this.resultadosBusqueda = [];
+
+                let cleanQuery = q.trim();
+                let queryWithCity = cleanQuery.toLowerCase().includes('santa cruz') ? cleanQuery : cleanQuery + ', Santa Cruz, Bolivia';
+
+                fetch('https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=' + encodeURIComponent(queryWithCity) + '&location=-63.1821,-17.7833&maxLocations=5')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data && data.candidates && data.candidates.length > 0) {
+                            return data.candidates.map(c => ({
+                                name: c.address,
+                                lat: c.location.y,
+                                lng: c.location.x
+                            }));
+                        }
+                        return null;
+                    })
+                    .then(results => {
+                        if (results && results.length > 0) {
+                            return results;
+                        }
+                        return fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(cleanQuery) + '&lat=-17.7833&lon=-63.1821&limit=5')
+                            .then(r => r.json())
+                            .then(photonData => {
+                                if (photonData && photonData.features && photonData.features.length > 0) {
+                                    return photonData.features.map(f => {
+                                        let p = f.properties;
+                                        let label = [p.name, p.street, p.district, p.city].filter(Boolean).join(', ');
+                                        return {
+                                            name: label || p.name || 'Ubicación encontrada',
+                                            lat: f.geometry.coordinates[1],
+                                            lng: f.geometry.coordinates[0]
+                                        };
+                                    });
+                                }
+                                return null;
+                            });
+                })
+                .then(results => {
+                    if (results && results.length > 0) {
+                        return results;
+                    }
+                    return fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(queryWithCity))
+                        .then(r => r.json())
+                        .then(nomData => {
+                            if (nomData && nomData.length > 0) {
+                                return nomData.map(n => ({
+                                    name: n.display_name,
+                                    lat: parseFloat(n.lat),
+                                    lng: parseFloat(n.lon)
+                                }));
+                            }
+                            return [];
+                        });
+                })
+                .then(finalResults => {
+                    this.buscando = false;
+                    if (finalResults && finalResults.length > 0) {
+                        this.resultadosBusqueda = finalResults;
+                        if (autoSelectFirst) {
+                            this.seleccionarResultado(finalResults[0]);
+                        } else {
+                            this.mostrarResultados = true;
+                        }
+                    } else if (!autoSelectFirst) {
+                        alert('No se encontraron resultados en el mapa para: ' + cleanQuery);
+                    }
+                })
+                .catch(() => {
+                    this.buscando = false;
+                });
+        },
+
+        seleccionarResultado(item) {
+            this.mostrarResultados = false;
+            this.queryBusqueda = item.name;
+            this.direccion = item.name;
+            this.$wire.set('direccion_evento', item.name);
+            this.updateCoords(item.lat, item.lng, false);
+            this.actualizarPopupMarcador(item.name);
+            if (this.map) {
+                this.map.setView([item.lat, item.lng], 16);
+            }
+        }
+    };
+}
+</script>
 </div>
