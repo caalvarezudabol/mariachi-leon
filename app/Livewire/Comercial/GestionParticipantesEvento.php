@@ -59,7 +59,7 @@ class GestionParticipantesEvento extends Component
 
     public function cargarEvento()
     {
-        $this->evento = Evento::with(['cliente', 'servicio', 'tipoEvento', 'participantes.persona', 'distribuciones.persona'])
+        $this->evento = Evento::with(['cliente', 'servicio', 'participantes.persona', 'distribuciones.persona'])
             ->findOrFail($this->eventoId);
     }
 
