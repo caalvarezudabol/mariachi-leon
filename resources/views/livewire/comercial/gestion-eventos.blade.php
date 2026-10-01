@@ -649,13 +649,13 @@
             },
 
             renderMap(container) {
-                let defaultLat = -17.7833;
+                let defaultLat = -17.7833; // Santa Cruz de la Sierra
                 let defaultLng = -63.1821;
-                let initialLat = this.lat ? parseFloat(this.lat) : defaultLat;
-                let initialLng = this.lng ? parseFloat(this.lng) : defaultLng;
+                let initialLat = (this.lat && !isNaN(parseFloat(this.lat))) ? parseFloat(this.lat) : defaultLat;
+                let initialLng = (this.lng && !isNaN(parseFloat(this.lng))) ? parseFloat(this.lng) : defaultLng;
 
                 if (this.map) {
-                    this.map.remove();
+                    try { this.map.remove(); } catch(e){}
                     this.map = null;
                     this.marker = null;
                 }
@@ -682,14 +682,19 @@
                     this.cursorPos = e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
                 });
 
-                setTimeout(() => {
-                    if (this.map) this.map.invalidateSize();
-                }, 200);
+                // Redimensionar el canvas en múltiples intervalos para forzar la carga de los tiles de Google Maps dentro del modal
+                [50, 150, 300, 600, 1000].forEach(delay => {
+                    setTimeout(() => {
+                        if (this.map) this.map.invalidateSize();
+                    }, delay);
+                });
 
                 if (this.lat && this.lng) {
                     this.actualizarPopupMarcador(this.direccion);
                 } else if (this.direccion) {
                     this.buscarDireccionEnMapa(this.direccion, true);
+                } else {
+                    this.actualizarPopupMarcador('Haz clic en el mapa para ubicar');
                 }
             },
 
@@ -791,6 +796,18 @@
                 );
             },
 
+            limpiarTextoBusqueda(text) {
+                if (!text) return '';
+                return text.replace(/A \d+ CUADRAS DE LA/gi, '')
+                           .replace(/A \d+ CUADRAS DE/gi, '')
+                           .replace(/FRENTE A/gi, '')
+                           .replace(/ESQUINA/gi, '')
+                           .replace(/DIAGONAL A/gi, '')
+                           .replace(/AL LADO DE/gi, '')
+                           .replace(/EDIFICIO/gi, '')
+                           .trim();
+            },
+
             buscarDireccionEnMapa(queryManual = null, autoSelectFirst = false) {
                 let q = queryManual || this.queryBusqueda || this.direccion;
                 if (!q || q.trim().length < 2) return;
@@ -798,7 +815,7 @@
                 this.mostrarResultados = false;
                 this.resultadosBusqueda = [];
 
-                let cleanQuery = q.trim();
+                let cleanQuery = this.limpiarTextoBusqueda(q.trim());
                 let queryWithCity = cleanQuery.toLowerCase().includes('santa cruz') ? cleanQuery : cleanQuery + ', Santa Cruz, Bolivia';
 
                 fetch('https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=' + encodeURIComponent(queryWithCity) + '&location=-63.1821,-17.7833&maxLocations=5')
@@ -860,12 +877,19 @@
                         } else {
                             this.mostrarResultados = true;
                         }
-                    } else if (!autoSelectFirst) {
-                        alert('No se encontraron resultados en el mapa para: ' + cleanQuery);
+                    } else {
+                        if (autoSelectFirst && this.map) {
+                            this.actualizarPopupMarcador('Haz clic o arrastra el pin para fijar la ubicación exacta');
+                        } else if (!autoSelectFirst) {
+                            alert('No se encontraron resultados en el mapa para: ' + cleanQuery);
+                        }
                     }
                 })
                 .catch(() => {
                     this.buscando = false;
+                    if (autoSelectFirst && this.map) {
+                        this.actualizarPopupMarcador('Haz clic o arrastra el pin para fijar la ubicación');
+                    }
                 });
         },
 
@@ -884,4 +908,5 @@
 }
 </script>
 @endscript
+</div>
 </div>
