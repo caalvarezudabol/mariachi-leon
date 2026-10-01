@@ -114,8 +114,9 @@ class GestionEventos extends Component
             if ($cliente) {
                 $this->contacto_evento = $cliente->nombre_completo;
                 $this->telefono_contacto = $cliente->telefono ?: $cliente->whatsapp;
-                if (!$this->direccion_evento) {
+                if ($cliente->direccion) {
                     $this->direccion_evento = $cliente->direccion;
+                    $this->dispatch('cliente-seleccionado', direccion: $cliente->direccion);
                 }
             }
         }

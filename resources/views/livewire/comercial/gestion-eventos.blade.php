@@ -461,6 +461,7 @@
                             buscandoGps: false,
                             resultadosBusqueda: [],
                             mostrarResultados: false,
+                            cursorPos: '',
                             lat: @entangle('latitud'),
                             lng: @entangle('longitud'),
                             direccion: @entangle('direccion_evento'),
@@ -519,12 +520,17 @@
                                     this.updateCoords(e.latlng.lat, e.latlng.lng, true);
                                 });
 
+                                this.map.on('mousemove', (e) => {
+                                    this.cursorPos = e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
+                                });
+
                                 setTimeout(() => {
                                     if (this.map) this.map.invalidateSize();
                                 }, 200);
 
-                                // Si hay dirección pero no coordenadas, intentar geocodificar de entrada
-                                if (this.direccion && (!this.lat || !this.lng)) {
+                                if (this.lat && this.lng) {
+                                    this.actualizarPopupMarcador(this.direccion);
+                                } else if (this.direccion) {
                                     this.buscarDireccionEnMapa(this.direccion, true);
                                 }
                             },
@@ -554,8 +560,29 @@
                                     this.bindMarkerEvents();
                                 }
 
+                                this.actualizarPopupMarcador(this.direccion || 'Ubicación Fijada');
+
                                 if (reverseGeocode) {
                                     this.obtenerDireccionDesdeCoords(latVal, lngVal);
+                                }
+                            },
+
+                            actualizarPopupMarcador(addrText) {
+                                if (this.marker) {
+                                    let content = `
+                                        <div style="font-family: system-ui, sans-serif; text-align: center; max-width: 220px; padding: 2px;">
+                                            <div style="font-weight: 800; color: #b45309; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                                📍 Ubicación Seleccionada
+                                            </div>
+                                            <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-top: 2px; line-height: 1.2;">
+                                                ${addrText || 'Ubicación en este punto'}
+                                            </div>
+                                            <div style="font-size: 10px; color: #64748b; margin-top: 4px; font-family: monospace;">
+                                                ${this.lat || ''}, ${this.lng || ''}
+                                            </div>
+                                        </div>
+                                    `;
+                                    this.marker.bindPopup(content, { closeButton: false, autoClose: false, closeOnClick: false }).openPopup();
                                 }
                             },
 
@@ -567,6 +594,7 @@
                                             let addr = d.address.Match_addr;
                                             this.direccion = addr;
                                             $wire.set('direccion_evento', addr);
+                                            this.actualizarPopupMarcador(addr);
                                         } else {
                                             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latVal}&lon=${lngVal}`)
                                                 .then(r => r.json())
@@ -574,6 +602,7 @@
                                                     if (nomData && nomData.display_name) {
                                                         this.direccion = nomData.display_name;
                                                         $wire.set('direccion_evento', nomData.display_name);
+                                                        this.actualizarPopupMarcador(nomData.display_name);
                                                     }
                                                 }).catch(() => {});
                                         }
@@ -614,7 +643,6 @@
                                 let cleanQuery = q.trim();
                                 let queryWithCity = cleanQuery.toLowerCase().includes('santa cruz') ? cleanQuery : cleanQuery + ', Santa Cruz, Bolivia';
 
-                                // Motor 1: ArcGIS (Preciso en Bolivia)
                                 fetch('https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&singleLine=' + encodeURIComponent(queryWithCity) + '&location=-63.1821,-17.7833&maxLocations=5')
                                     .then(r => r.json())
                                     .then(data => {
@@ -631,7 +659,6 @@
                                         if (results && results.length > 0) {
                                             return results;
                                         }
-                                        // Motor 2: Photon API
                                         return fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(cleanQuery) + '&lat=-17.7833&lon=-63.1821&limit=5')
                                             .then(r => r.json())
                                             .then(photonData => {
@@ -653,7 +680,6 @@
                                         if (results && results.length > 0) {
                                             return results;
                                         }
-                                        // Motor 3: Nominatim
                                         return fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(queryWithCity))
                                             .then(r => r.json())
                                             .then(nomData => {
@@ -691,12 +717,14 @@
                                 this.direccion = item.name;
                                 $wire.set('direccion_evento', item.name);
                                 this.updateCoords(item.lat, item.lng, false);
+                                this.actualizarPopupMarcador(item.name);
                                 if (this.map) {
                                     this.map.setView([item.lat, item.lng], 16);
                                 }
                             }
                         }"
                         x-init="initPicker()"
+                        x-on:cliente-seleccionado.window="if ($event.detail.direccion) { queryBusqueda = $event.detail.direccion; buscarDireccionEnMapa($event.detail.direccion, true); }"
                         @click.outside="mostrarResultados = false">
 
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
@@ -750,11 +778,12 @@
 
                         <!-- Map Canvas (Google Maps Layer) -->
                         <div class="relative w-full h-80 rounded-xl overflow-hidden border border-slate-800 z-10 bg-slate-900 shadow-inner">
-                            <div x-ref="mapContainer" class="w-full h-full min-h-[300px]"></div>
+                            <div x-ref="mapContainer" class="w-full h-full min-h-[300px] cursor-crosshair"></div>
                             
                             <div class="absolute bottom-2 left-2 z-[400] bg-slate-950/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800 text-[11px] text-slate-300 flex items-center gap-2 shadow-lg">
                                 <i class="fa-solid fa-hand-pointer text-gold-400"></i>
-                                <span>Haz clic en el mapa o arrastra el pin marcador</span>
+                                <span x-show="!cursorPos">Haz clic en el mapa o arrastra el pin marcador</span>
+                                <span x-show="cursorPos" x-cloak>Cursor: <strong class="text-gold-400" x-text="cursorPos"></strong> (Clic para fijar pin)</span>
                             </div>
                         </div>
 
