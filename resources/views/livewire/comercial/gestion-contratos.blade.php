@@ -134,9 +134,156 @@
                         <input type="text" wire:model="numero_contrato" readonly class="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-gold-400 font-mono font-bold text-sm">
                     </div>
 
-                    <div>
+                    <div x-data="{
+                        open: false,
+                        selectedDate: @entangle('fecha_contrato').live,
+                        currentYear: new Date().getFullYear(),
+                        currentMonth: new Date().getMonth(),
+                        months: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+                        weekdays: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+                        init() {
+                            if (this.selectedDate) {
+                                const parts = this.selectedDate.split('-');
+                                if (parts.length === 3) {
+                                    this.currentYear = parseInt(parts[0]);
+                                    this.currentMonth = parseInt(parts[1]) - 1;
+                                }
+                            }
+                            this.$watch('selectedDate', (val) => {
+                                if (val) {
+                                    const parts = val.split('-');
+                                    if (parts.length === 3) {
+                                        this.currentYear = parseInt(parts[0]);
+                                        this.currentMonth = parseInt(parts[1]) - 1;
+                                    }
+                                }
+                            });
+                        },
+                        get daysInMonth() {
+                            return new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+                        },
+                        get firstDayOfWeek() {
+                            return new Date(this.currentYear, this.currentMonth, 1).getDay();
+                        },
+                        get formattedDisplay() {
+                            if (!this.selectedDate) return 'Seleccionar Fecha';
+                            const parts = this.selectedDate.split('-');
+                            if (parts.length !== 3) return this.selectedDate;
+                            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                        },
+                        selectDay(day) {
+                            const m = String(this.currentMonth + 1).padStart(2, '0');
+                            const d = String(day).padStart(2, '0');
+                            this.selectedDate = `${this.currentYear}-${m}-${d}`;
+                            $wire.set('fecha_contrato', this.selectedDate);
+                            this.open = false;
+                        },
+                        prevMonth() {
+                            if (this.currentMonth === 0) {
+                                this.currentMonth = 11;
+                                this.currentYear--;
+                            } else {
+                                this.currentMonth--;
+                            }
+                        },
+                        nextMonth() {
+                            if (this.currentMonth === 11) {
+                                this.currentMonth = 0;
+                                this.currentYear++;
+                            } else {
+                                this.currentMonth++;
+                            }
+                        },
+                        selectToday() {
+                            const today = new Date();
+                            this.currentYear = today.getFullYear();
+                            this.currentMonth = today.getMonth();
+                            this.selectDay(today.getDate());
+                        },
+                        isToday(day) {
+                            const today = new Date();
+                            return today.getFullYear() === this.currentYear && 
+                                   today.getMonth() === this.currentMonth && 
+                                   today.getDate() === day;
+                        },
+                        isSelected(day) {
+                            if (!this.selectedDate) return false;
+                            const m = String(this.currentMonth + 1).padStart(2, '0');
+                            const d = String(day).padStart(2, '0');
+                            return this.selectedDate === `${this.currentYear}-${m}-${d}`;
+                        }
+                    }" @click.outside="open = false">
                         <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Fecha del Contrato *</label>
-                        <input type="date" wire:model="fecha_contrato" class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
+
+                        <div class="relative">
+                            <button type="button" 
+                                    @click="open = !open" 
+                                    class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm text-left flex items-center justify-between hover:border-gold-500/60 transition-all cursor-pointer">
+                                <span class="font-mono font-bold" :class="selectedDate ? 'text-gold-400' : 'text-slate-400'" x-text="formattedDisplay"></span>
+                                <i class="fa-solid fa-calendar-days text-gold-400 text-sm"></i>
+                            </button>
+
+                            <!-- Desplegable de Calendario Visual -->
+                            <div x-show="open" 
+                                 x-cloak 
+                                 x-transition 
+                                 class="absolute left-0 top-full mt-1 z-50 w-72 p-3 bg-slate-900 border border-gold-500/50 rounded-2xl shadow-2xl space-y-3">
+                                
+                                <!-- Navegación de Mes y Año -->
+                                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                                    <button type="button" @click="prevMonth()" class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800">
+                                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                                    </button>
+                                    <div class="text-xs font-bold text-white flex items-center gap-1">
+                                        <span x-text="months[currentMonth]"></span>
+                                        <span class="text-gold-400" x-text="currentYear"></span>
+                                    </div>
+                                    <button type="button" @click="nextMonth()" class="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800">
+                                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Encabezado Días de la Semana -->
+                                <div class="grid grid-cols-7 text-center text-[10px] font-bold text-slate-400 uppercase">
+                                    <template x-for="w in weekdays" :key="w">
+                                        <div x-text="w"></div>
+                                    </template>
+                                </div>
+
+                                <!-- Cuadrícula de Días -->
+                                <div class="grid grid-cols-7 gap-1 text-center text-xs">
+                                    <!-- Espacios vacíos al inicio del mes -->
+                                    <template x-for="blank in firstDayOfWeek" :key="'b' + blank">
+                                        <div></div>
+                                    </template>
+
+                                    <!-- Días del mes -->
+                                    <template x-for="d in daysInMonth" :key="d">
+                                        <button type="button" 
+                                                @click="selectDay(d)" 
+                                                :class="{
+                                                    'bg-gold-500 text-slate-950 font-extrabold shadow-md': isSelected(d),
+                                                    'border border-gold-500/40 text-gold-300 font-bold': isToday(d) && !isSelected(d),
+                                                    'text-slate-200 hover:bg-slate-800 hover:text-white': !isSelected(d) && !isToday(d)
+                                                }" 
+                                                class="h-7 w-7 mx-auto rounded-lg flex items-center justify-center transition-all">
+                                            <span x-text="d"></span>
+                                        </button>
+                                    </template>
+                                </div>
+
+                                <!-- Acciones Rápidas -->
+                                <div class="flex items-center justify-between border-t border-slate-800 pt-2 text-[11px]">
+                                    <button type="button" @click="selectToday()" class="text-gold-400 hover:underline font-bold flex items-center gap-1">
+                                        <i class="fa-solid fa-calendar-day"></i> Hoy
+                                    </button>
+                                    <button type="button" @click="open = false" class="text-slate-400 hover:text-white">
+                                        Cerrar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        @error('fecha_contrato') <span class="text-xs text-rose-400 mt-1">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="sm:col-span-2">

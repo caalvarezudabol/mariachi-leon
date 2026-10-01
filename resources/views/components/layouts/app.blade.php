@@ -58,6 +58,23 @@
             display: none !important;
         }
 
+        :root {
+            color-scheme: dark;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.9);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator:hover,
+        input[type="time"]::-webkit-calendar-picker-indicator:hover {
+            background-color: rgba(251, 191, 36, 0.2);
+        }
+
         .glass-panel {
             background: rgba(22, 34, 56, 0.85);
             backdrop-filter: blur(12px);
