@@ -101,6 +101,12 @@ class GestionEventos extends Component
         $this->modalOpen = true;
     }
 
+    public function seleccionarCliente($id)
+    {
+        $this->cliente_id = $id;
+        $this->updatedClienteId($id);
+    }
+
     public function updatedClienteId($value)
     {
         if ($value) {

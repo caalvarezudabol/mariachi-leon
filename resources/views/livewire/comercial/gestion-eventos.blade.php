@@ -186,7 +186,7 @@
                                 this.updateSelectedName();
                                 this.open = false;
                                 this.search = '';
-                                $wire.updatedClienteId(id);
+                                $wire.seleccionarCliente(id);
                             },
                             clear() {
                                 this.selectedId = '';
