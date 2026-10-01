@@ -10,6 +10,8 @@ class GestionAgenda extends Component
 {
     public $vistaModo = 'mes'; // 'dia', 'semana', 'mes'
     public $fechaSeleccionada = '';
+    public $eventoIdDetalle = null;
+    public $modalDetalleOpen = false;
 
     public function mount()
     {
@@ -19,6 +21,24 @@ class GestionAgenda extends Component
     public function cambiarVista($modo)
     {
         $this->vistaModo = $modo;
+    }
+
+    public function verDetalleEvento($id)
+    {
+        $this->eventoIdDetalle = $id;
+        $this->modalDetalleOpen = true;
+    }
+
+    public function cerrarModalDetalle()
+    {
+        $this->modalDetalleOpen = false;
+        $this->eventoIdDetalle = null;
+    }
+
+    public function irADia($fechaStr)
+    {
+        $this->fechaSeleccionada = $fechaStr;
+        $this->vistaModo = 'dia';
     }
 
     public function fechaAnterior()
@@ -52,17 +72,19 @@ class GestionAgenda extends Component
 
     public function render()
     {
-        $dt = Carbon::parse($this->fechaSeleccionada);
+        Carbon::setLocale('es');
+        $dt = Carbon::parse($this->fechaSeleccionada)->locale('es');
 
         if ($this->vistaModo === 'dia') {
             $inicio = $dt->copy()->startOfDay();
             $fin = $dt->copy()->endOfDay();
         } elseif ($this->vistaModo === 'semana') {
-            $inicio = $dt->copy()->startOfWeek();
-            $fin = $dt->copy()->endOfWeek();
+            $inicio = $dt->copy()->startOfWeek(Carbon::MONDAY);
+            $fin = $dt->copy()->endOfWeek(Carbon::SUNDAY);
         } else {
-            $inicio = $dt->copy()->startOfMonth()->startOfWeek();
-            $fin = $dt->copy()->endOfMonth()->endOfWeek();
+            // Mes completo + compensación de días de la semana anterior y posterior
+            $inicio = $dt->copy()->startOfMonth()->startOfWeek(Carbon::MONDAY);
+            $fin = $dt->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
         }
 
         $eventos = Evento::with(['cliente', 'servicio', 'contrato'])
@@ -73,7 +95,9 @@ class GestionAgenda extends Component
 
         // Detección de Conflictos de Horario
         $conflictos = [];
-        $gruposFecha = $eventos->groupBy('fecha_evento');
+        $gruposFecha = $eventos->groupBy(function($item) {
+            return is_object($item->fecha_evento) ? $item->fecha_evento->format('Y-m-d') : substr((string)$item->fecha_evento, 0, 10);
+        });
 
         foreach ($gruposFecha as $fechaStr => $evsEnFecha) {
             foreach ($evsEnFecha as $ev1) {
@@ -94,12 +118,37 @@ class GestionAgenda extends Component
             }
         }
 
+        // Construcción de la matriz de días para el Calendario Mensual y Semanal
+        $diasCalendario = [];
+        $curr = $inicio->copy();
+        while ($curr <= $fin) {
+            $dateKey = $curr->format('Y-m-d');
+            $evsDia = $gruposFecha->get($dateKey, collect());
+
+            $diasCalendario[] = [
+                'fecha' => $curr->copy(),
+                'dateKey' => $dateKey,
+                'diaNumero' => $curr->day,
+                'esMesActual' => $curr->month === $dt->month,
+                'esHoy' => $curr->isToday(),
+                'eventos' => $evsDia
+            ];
+            $curr->addDay();
+        }
+
+        $eventoDetalle = null;
+        if ($this->eventoIdDetalle) {
+            $eventoDetalle = Evento::with(['cliente', 'servicio', 'contrato', 'participantes.integrante'])->find($this->eventoIdDetalle);
+        }
+
         return view('livewire.comercial.gestion-agenda', [
             'eventos' => $eventos,
             'conflictos' => $conflictos,
+            'diasCalendario' => $diasCalendario,
             'inicioPeriodo' => $inicio,
             'finPeriodo' => $fin,
             'fechaActual' => $dt,
+            'eventoDetalle' => $eventoDetalle,
         ])->layout('components.layouts.app', ['title' => 'Gestionar Agenda - Mariachi León Guanajuato']);
     }
 }
