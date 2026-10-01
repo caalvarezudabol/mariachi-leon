@@ -36,6 +36,15 @@ use App\Http\Controllers\ActivosFijos\KardexPdfController;
 use App\Http\Controllers\ActivosFijos\InventarioPdfController;
 use App\Http\Controllers\ReporteEjecutivoController;
 
+use App\Livewire\Comercial\GestionClientes;
+use App\Livewire\Comercial\GestionEventos;
+use App\Livewire\Comercial\GestionAgenda;
+use App\Livewire\Comercial\GestionCotizaciones;
+use App\Livewire\Comercial\GestionContratos;
+use App\Livewire\Comercial\GestionPagos;
+use App\Livewire\Comercial\GestionParticipantesEvento;
+use App\Http\Controllers\Comercial\ContratoPdfController;
+
 Route::get('/', PaginaInicio::class)->name('web.home');
 Route::get('/nosotros', PaginaNosotros::class)->name('web.nosotros');
 Route::get('/servicios', PaginaServicios::class)->name('web.servicios');
@@ -93,5 +102,17 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
         Route::get('/kardex/pdf/{asset_id}', [KardexPdfController::class, 'exportarPdf'])->name('admin.activos-fijos.kardex.pdf');
         Route::get('/inventario/pdf', [InventarioPdfController::class, 'exportarPdf'])->name('admin.activos-fijos.inventario.pdf');
         Route::get('/comprobante/{tipo}/{id}', ComprobanteActivo::class)->name('admin.activos-fijos.comprobante');
+    });
+
+    // SPRINT 2: Módulo Comercial
+    Route::prefix('comercial')->group(function () {
+        Route::get('/clientes', GestionClientes::class)->name('admin.clientes');
+        Route::get('/eventos', GestionEventos::class)->name('admin.eventos');
+        Route::get('/eventos/{evento}/participantes', GestionParticipantesEvento::class)->name('admin.eventos.participantes');
+        Route::get('/agenda', GestionAgenda::class)->name('admin.agenda');
+        Route::get('/cotizaciones', GestionCotizaciones::class)->name('admin.cotizaciones');
+        Route::get('/contratos', GestionContratos::class)->name('admin.contratos');
+        Route::get('/contratos/pdf/{id}', [ContratoPdfController::class, 'descargarPdf'])->name('admin.contratos.pdf');
+        Route::get('/pagos', GestionPagos::class)->name('admin.pagos');
     });
 });

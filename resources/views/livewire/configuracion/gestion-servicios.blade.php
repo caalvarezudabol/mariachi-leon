@@ -3,7 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold text-white">Catálogo de Servicios</h1>
-            <p class="text-xs text-slate-400">Administra los servicios individuales de mariachi, duración y tarifa base.</p>
+            <p class="text-xs text-slate-400">Servicios musicales (Serenatas, Bodas, Cumpleaños) y complementarios (Alquiler de sonido, Técnico, Transporte).</p>
         </div>
         <button wire:click="abrirModal" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-lg shadow-gold-500/20 transition-all flex items-center justify-center gap-2">
             <i class="fa-solid fa-plus"></i>
@@ -11,54 +11,88 @@
         </button>
     </div>
 
+    <!-- Mensajes de Notificación -->
+    @if (session()->has('success'))
+        <div class="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm flex items-center gap-3">
+            <i class="fa-solid fa-circle-check text-lg"></i>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+
+    <!-- Search & Filter Bar -->
+    <div class="bg-brand-card p-4 rounded-2xl border border-brand-border space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="relative lg:col-span-2">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar por nombre, tipo de servicio o descripción..." class="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
+            </div>
+
+            <div>
+                <select wire:model.live="tipo_filtro" class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
+                    <option value="">Todos los Tipos</option>
+                    <option value="Musical">Musical (Mariachi / Serenatas)</option>
+                    <option value="Alquiler Sonido">Alquiler de Sonido</option>
+                    <option value="Técnico">Servicio Técnico</option>
+                    <option value="Transporte">Transporte</option>
+                    <option value="Otro">Otros Servicios</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
     <!-- Table -->
-    <div class="rounded-2xl bg-brand-card border border-brand-border overflow-hidden">
+    <div class="bg-brand-card rounded-2xl border border-brand-border overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-slate-300">
-                <thead class="bg-slate-950/80 border-b border-brand-border text-xs uppercase font-bold text-slate-400">
-                    <tr>
-                        <th class="px-6 py-4">Servicio</th>
-                        <th class="px-6 py-4">Duración</th>
-                        <th class="px-6 py-4">Precio Base</th>
-                        <th class="px-6 py-4">Estado</th>
-                        <th class="px-6 py-4 text-right">Acciones</th>
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-950/80 border-b border-brand-border text-slate-400 text-xs uppercase tracking-wider">
+                        <th class="py-3.5 px-4 font-bold">Servicio / Descripción</th>
+                        <th class="py-3.5 px-4 font-bold">Tipo</th>
+                        <th class="py-3.5 px-4 font-bold text-right">Precio Base (Bs)</th>
+                        <th class="py-3.5 px-4 font-bold text-center">Duración Est.</th>
+                        <th class="py-3.5 px-4 font-bold text-center">Estado</th>
+                        <th class="py-3.5 px-4 font-bold text-right">Acciones</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-brand-border/60">
+                <tbody class="divide-y divide-brand-border/50 text-slate-300">
                     @forelse($servicios as $s)
-                        <tr class="hover:bg-brand-hover/50 transition-colors">
-                            <td class="px-6 py-4 font-semibold text-white">
-                                {{ $s->nombre }}
-                            </td>
-                            <td class="px-6 py-4 text-slate-300">
-                                <i class="fa-regular fa-clock text-gold-400 mr-1"></i> {{ $s->duracion_minutos }} minutos
-                            </td>
-                            <td class="px-6 py-4 font-bold text-gold-400">
-                                Bs. {{ number_format($s->precio_base, 2) }}
-                            </td>
-                            <td class="px-6 py-4">
-                                @if($s->activo)
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                        Activo
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                                        Inactivo
-                                    </span>
+                        <tr class="hover:bg-slate-800/30 transition-all">
+                            <td class="py-3.5 px-4">
+                                <div class="font-bold text-white">{{ $s->nombre }}</div>
+                                @if($s->descripcion)
+                                    <div class="text-xs text-slate-400 line-clamp-1">{{ $s->descripcion }}</div>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 text-right space-x-2">
-                                <button wire:click="editar({{ $s->id }})" class="p-2 text-slate-400 hover:text-gold-400 hover:bg-gold-500/10 rounded-lg transition-colors">
+                            <td class="py-3.5 px-4">
+                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 text-gold-400 border border-slate-700">
+                                    {{ $s->tipo_servicio ?: 'Musical' }}
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4 text-right font-mono font-bold text-emerald-400">
+                                Bs {{ number_format($s->precio_base, 2) }}
+                            </td>
+                            <td class="py-3.5 px-4 text-center font-mono text-xs text-slate-300">
+                                {{ $s->duracion_minutos }} min
+                            </td>
+                            <td class="py-3.5 px-4 text-center">
+                                <button wire:click="cambiarEstado({{ $s->id }})" class="px-3 py-1 rounded-full text-xs font-bold transition-all {{ $s->activo ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20' }}">
+                                    {{ $s->activo ? 'Activo' : 'Inactivo' }}
+                                </button>
+                            </td>
+                            <td class="py-3.5 px-4 text-right space-x-2">
+                                <button wire:click="editar({{ $s->id }})" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-all" title="Editar">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
-                                <button wire:click="eliminar({{ $s->id }})" onclick="return confirm('¿Eliminar este servicio?')" class="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors">
-                                    <i class="fa-solid fa-trash"></i>
+                                <button wire:click="eliminar({{ $s->id }})" wire:confirm="¿Está seguro de eliminar este servicio?" class="p-2 rounded-lg bg-slate-800 text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 transition-all" title="Eliminar">
+                                    <i class="fa-solid fa-trash-can"></i>
                                 </button>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-8 text-center text-slate-500">No hay servicios registrados.</td>
+                            <td colspan="6" class="text-center py-8 text-slate-500 text-sm">
+                                No se encontraron servicios registrados.
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -69,53 +103,77 @@
         </div>
     </div>
 
-    <!-- Modal Form -->
+    <!-- Modal Crear/Editar Servicio -->
     @if($modalOpen)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-            <div class="w-full max-w-lg bg-slate-900 border border-brand-border rounded-3xl p-6 space-y-6 shadow-2xl">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+            <div class="bg-brand-card border border-brand-border rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl space-y-6 p-6">
                 <div class="flex items-center justify-between border-b border-brand-border pb-4">
-                    <h3 class="font-bold text-lg text-white">{{ $isEdit ? 'Editar Servicio' : 'Nuevo Servicio' }}</h3>
-                    <button wire:click="$set('modalOpen', false)" class="text-slate-400 hover:text-white">
-                        <i class="fa-solid fa-xmark text-xl"></i>
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-music text-gold-400"></i>
+                        <span>{{ $isEdit ? 'Editar Servicio' : 'Nuevo Servicio' }}</span>
+                    </h3>
+                    <button wire:click="$set('modalOpen', false)" class="text-slate-400 hover:text-white text-lg">
+                        <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
 
-                <form wire:submit.prevent="guardar" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Nombre del Servicio</label>
-                        <input type="text" wire:model.defer="nombre" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500" placeholder="Ej. Show 1 Hora, Misa Mariachi">
-                        @error('nombre') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Nombre del Servicio *</label>
+                        <input type="text" wire:model="nombre" placeholder="ej. Serenata Completa 1 Hora" class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
+                        @error('nombre') <span class="text-xs text-rose-400 mt-1">{{ $message }}</span> @enderror
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Descripción</label>
-                        <textarea wire:model.defer="descripcion" rows="3" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500"></textarea>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Tipo de Servicio *</label>
+                        <select wire:model="tipo_servicio" class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
+                            <option value="Musical">Musical (Mariachi / Serenatas)</option>
+                            <option value="Alquiler Sonido">Alquiler de Sonido</option>
+                            <option value="Técnico">Servicio Técnico</option>
+                            <option value="Transporte">Transporte</option>
+                            <option value="Otro">Otros Servicios</option>
+                        </select>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Precio Base (Bs.)</label>
-                            <input type="number" step="0.01" wire:model.defer="precio_base" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
-                            @error('precio_base') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Duración (Minutos)</label>
-                            <input type="number" wire:model.defer="duracion_minutos" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
-                            @error('duracion_minutos') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                        </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Precio Base (Bs) *</label>
+                        <input type="number" step="0.50" wire:model="precio_base" class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 font-mono">
+                        @error('precio_base') <span class="text-xs text-rose-400 mt-1">{{ $message }}</span> @enderror
                     </div>
 
-                    <div class="flex items-center gap-2 pt-2">
-                        <input type="checkbox" wire:model="activo" id="servicio_activo" class="w-4 h-4 rounded bg-slate-950 text-gold-500">
-                        <label for="servicio_activo" class="text-sm font-semibold text-slate-300">Servicio Activo</label>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Duración Estimada (Minutos) *</label>
+                        <input type="number" wire:model="duracion_minutos" placeholder="60" class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 font-mono">
+                        @error('duracion_minutos') <span class="text-xs text-rose-400 mt-1">{{ $message }}</span> @enderror
                     </div>
 
-                    <div class="flex items-center justify-end gap-3 pt-4 border-t border-brand-border">
-                        <button type="button" wire:click="$set('modalOpen', false)" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-400 hover:text-white">Cancelar</button>
-                        <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gold-500 text-slate-950 hover:bg-gold-400 shadow-lg shadow-gold-500/20">Guardar</button>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Estado</label>
+                        <select wire:model="activo" class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
+                            <option value="1">Activo</option>
+                            <option value="0">Inactivo</option>
+                        </select>
                     </div>
-                </form>
+
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Descripción del Servicio</label>
+                        <textarea wire:model="descripcion" rows="2" placeholder="Detalles de repertorio, número de canciones o equipamiento incluido..." class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500"></textarea>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Observaciones</label>
+                        <textarea wire:model="observaciones" rows="2" class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500"></textarea>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 border-t border-brand-border pt-4">
+                    <button wire:click="$set('modalOpen', false)" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">
+                        Cancelar
+                    </button>
+                    <button wire:click="guardar" class="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500">
+                        {{ $isEdit ? 'Actualizar Servicio' : 'Guardar Servicio' }}
+                    </button>
+                </div>
             </div>
         </div>
     @endif

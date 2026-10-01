@@ -13,8 +13,11 @@ class MusicoPersonal extends Model
         'nombre',
         'apellido',
         'nombre_completo',
+        'ci_nit',
         'tipo',
         'telefono',
+        'email',
+        'direccion',
         'estado',
         'observaciones',
     ];
@@ -37,5 +40,15 @@ class MusicoPersonal extends Model
     public function disposals(): HasMany
     {
         return $this->hasMany(AssetDisposal::class, 'responsable_id');
+    }
+
+    public function participaciones(): HasMany
+    {
+        return $this->hasMany(EventoParticipante::class, 'persona_id');
+    }
+
+    public function distribuciones(): HasMany
+    {
+        return $this->hasMany(DistribucionEconomica::class, 'persona_id');
     }
 }
