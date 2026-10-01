@@ -158,12 +158,93 @@
 
                     <div>
                         <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Cliente *</label>
-                        <select wire:model.live="cliente_id" class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
-                            <option value="">Seleccione Cliente</option>
-                            @foreach($clientes as $cli)
-                                <option value="{{ $cli->id }}">{{ $cli->nombre_completo }}</option>
-                            @endforeach
-                        </select>
+                        <div class="relative" x-data="{
+                            open: false,
+                            search: '',
+                            selectedId: @entangle('cliente_id').live,
+                            selectedName: '',
+                            clients: @js($clientes->map(fn($c) => ['id' => $c->id, 'nombre_completo' => $c->nombre_completo, 'ci_nit' => $c->ci_nit, 'telefono' => $c->telefono])),
+                            init() {
+                                this.updateSelectedName();
+                                this.$watch('selectedId', () => this.updateSelectedName());
+                            },
+                            updateSelectedName() {
+                                const item = this.clients.find(c => c.id == this.selectedId);
+                                this.selectedName = item ? item.nombre_completo : '';
+                            },
+                            get filteredClients() {
+                                if (!this.search) return this.clients;
+                                const s = this.search.toLowerCase();
+                                return this.clients.filter(c => 
+                                    c.nombre_completo.toLowerCase().includes(s) || 
+                                    (c.ci_nit && c.ci_nit.toLowerCase().includes(s)) ||
+                                    (c.telefono && c.telefono.includes(s))
+                                );
+                            },
+                            select(id) {
+                                this.selectedId = id;
+                                this.updateSelectedName();
+                                this.open = false;
+                                this.search = '';
+                                $wire.updatedClienteId(id);
+                            },
+                            clear() {
+                                this.selectedId = '';
+                                this.selectedName = '';
+                                this.search = '';
+                                $wire.set('cliente_id', '');
+                            }
+                        }" @click.outside="open = false">
+                            <template x-if="!selectedId || open">
+                                <div class="relative">
+                                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                                    <input type="text" 
+                                           x-model="search" 
+                                           @focus="open = true" 
+                                           placeholder="🔍 Buscar cliente en la lista..." 
+                                           class="w-full pl-9 pr-8 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 focus:outline-none">
+                                </div>
+                            </template>
+
+                            <template x-if="selectedId && !open">
+                                <button type="button" 
+                                        @click="open = true; search = ''" 
+                                        class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm text-left flex items-center justify-between hover:border-gold-500/60 transition-all">
+                                    <span class="font-bold text-gold-400 truncate" x-text="selectedName"></span>
+                                    <div class="flex items-center gap-2">
+                                        <span @click.stop="clear()" class="text-slate-400 hover:text-rose-400 p-1 text-xs" title="Cambiar Cliente">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </span>
+                                        <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
+                                    </div>
+                                </button>
+                            </template>
+
+                            <!-- Dropdown Lista de Clientes -->
+                            <div x-show="open" 
+                                 x-cloak 
+                                 x-transition 
+                                 class="absolute left-0 right-0 top-full mt-1 z-50 max-h-56 overflow-y-auto bg-slate-900 border border-gold-500/40 rounded-xl shadow-2xl divide-y divide-slate-800">
+                                <template x-for="c in filteredClients" :key="c.id">
+                                    <div @click="select(c.id)" 
+                                         class="p-2.5 hover:bg-slate-800 cursor-pointer transition-colors flex items-center justify-between">
+                                        <div>
+                                            <div class="text-sm font-bold text-white" x-text="c.nombre_completo"></div>
+                                            <div class="text-xs text-slate-400">
+                                                <span x-text="c.ci_nit ? 'CI: ' + c.ci_nit : ''"></span>
+                                                <span x-text="c.telefono ? ' | Tel: ' + c.telefono : ''"></span>
+                                            </div>
+                                        </div>
+                                        <i class="fa-solid fa-check text-gold-400 text-xs" x-show="c.id == selectedId"></i>
+                                    </div>
+                                </template>
+                                <template x-if="filteredClients.length === 0">
+                                    <div class="p-3 text-xs text-slate-500 text-center">
+                                        No se encontraron clientes en la lista.
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
                         @error('cliente_id') <span class="text-xs text-rose-400 mt-1">{{ $message }}</span> @enderror
                     </div>
 
@@ -203,7 +284,32 @@
 
                     <div>
                         <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Fecha del Evento *</label>
-                        <input type="date" wire:model="fecha_evento" class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
+                        <div x-data="{
+                            fp: null,
+                            dateVal: @entangle('fecha_evento'),
+                            initDate() {
+                                this.$nextTick(() => {
+                                    if (this.fp) this.fp.destroy();
+                                    this.fp = flatpickr(this.$refs.dateInput, {
+                                        locale: 'es',
+                                        dateFormat: 'Y-m-d',
+                                        altInput: true,
+                                        altFormat: 'd/m/Y',
+                                        defaultDate: this.dateVal || 'today',
+                                        onChange: (selectedDates, dateStr) => {
+                                            this.dateVal = dateStr;
+                                            $wire.set('fecha_evento', dateStr);
+                                        }
+                                    });
+                                });
+                            }
+                        }" x-init="initDate()" class="relative">
+                            <input x-ref="dateInput" 
+                                   type="text" 
+                                   placeholder="Seleccionar Fecha..." 
+                                   class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 cursor-pointer">
+                            <i class="fa-solid fa-calendar-days absolute right-3.5 top-1/2 -translate-y-1/2 text-gold-400 pointer-events-none text-sm"></i>
+                        </div>
                         @error('fecha_evento') <span class="text-xs text-rose-400 mt-1">{{ $message }}</span> @enderror
                     </div>
 
