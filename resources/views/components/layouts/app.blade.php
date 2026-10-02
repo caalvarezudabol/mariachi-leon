@@ -5,6 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'Mariachi León Guanajuato - Sistema de Gestión' }}</title>
+    <!-- Favicon -->
+    @php $empresaFavicon = \App\Models\Empresa::obtener(); @endphp
+    @if ($empresaFavicon->logo_url)
+        <link rel="icon" href="{{ asset($empresaFavicon->logo_url) }}" type="image/png">
+        <link rel="apple-touch-icon" href="{{ asset($empresaFavicon->logo_url) }}">
+    @else
+        <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+        <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png">
+    @endif
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -95,7 +104,7 @@
         <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
             class="fixed md:static inset-y-0 left-0 z-50 w-64 bg-brand-dark border-r border-brand-border flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0">
             <!-- Brand Logo -->
-            @php $empresaGlobal = \App\Models\Empresa::obtener(); @endphp
+            @php $empresaGlobal = $empresaFavicon; @endphp
             <div class="h-20 flex items-center justify-between px-6 border-b border-brand-border bg-slate-950/40">
                 <div class="flex items-center gap-3">
                     <div
@@ -423,17 +432,26 @@
         @csrf
     </form>
 
-    <!-- Modal de Advertencia de Inactividad (Aparece a los 4 minutos) -->
+    <!-- Modal de Advertencia de Inactividad (sincronizado con SESSION_LIFETIME del .env) -->
+    @php
+        // Tiempo total de sesión en segundos (config/session.php -> SESSION_LIFETIME en minutos)
+        $sessionLifetimeSeconds = (int) config('session.lifetime') * 60;
+        // El aviso aparece 60s antes de que la sesión expire (mínimo 10s si la sesión es muy corta)
+        $warningLeadSeconds = min(60, max(10, (int) ($sessionLifetimeSeconds * 0.2)));
+        $warningAtSeconds = max(0, $sessionLifetimeSeconds - $warningLeadSeconds);
+    @endphp
     <div x-data="{
         idleSeconds: 0,
         warningOpen: false,
-        countdown: 60,
+        countdown: {{ $warningLeadSeconds }},
         timer: null,
+        sessionLifetime: {{ $sessionLifetimeSeconds }},
+        warningAt: {{ $warningAtSeconds }},
         resetIdleTimer() {
             this.idleSeconds = 0;
             if (this.warningOpen) {
                 this.warningOpen = false;
-                this.countdown = 60;
+                this.countdown = {{ $warningLeadSeconds }};
             }
         },
         initTimer() {
@@ -442,13 +460,13 @@
     
             this.timer = setInterval(() => {
                 this.idleSeconds++;
-                // A los 240s (4 min), mostrar modal de advertencia
-                if (this.idleSeconds >= 240 && this.idleSeconds < 300) {
+                // Muestra el modal de advertencia poco antes de que expire la sesión
+                if (this.idleSeconds >= this.warningAt && this.idleSeconds < this.sessionLifetime) {
                     this.warningOpen = true;
-                    this.countdown = 300 - this.idleSeconds;
+                    this.countdown = this.sessionLifetime - this.idleSeconds;
                 }
-                // A los 300s (5 min), cerrar sesión automáticamente
-                else if (this.idleSeconds >= 300) {
+                // Al llegar al tiempo de vida de la sesión, cierra sesión automáticamente
+                else if (this.idleSeconds >= this.sessionLifetime) {
                     clearInterval(this.timer);
                     document.getElementById('logout-form').submit();
                 }
