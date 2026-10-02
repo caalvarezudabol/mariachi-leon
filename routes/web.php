@@ -112,7 +112,7 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
         Route::get('/agenda', GestionAgenda::class)->name('admin.agenda');
         Route::get('/cotizaciones', GestionCotizaciones::class)->name('admin.cotizaciones');
         Route::get('/contratos', GestionContratos::class)->name('admin.contratos');
-        Route::get('/contratos/pdf/{id}', [ContratoPdfController::class, 'descargarPdf'])->name('admin.contratos.pdf');
+        Route::get('/contratos/pdf/{id}', [ContratoPdfController::class, 'exportarPdf'])->name('admin.contratos.pdf');
         Route::get('/pagos', GestionPagos::class)->name('admin.pagos');
     });
 });

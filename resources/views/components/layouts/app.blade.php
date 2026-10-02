@@ -210,7 +210,7 @@
                         </a>
                         <a href="{{ route('admin.eventos') }}"
                             class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.eventos') || request()->routeIs('admin.eventos.*') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
-                            <i class="fa-solid fa-calendar-star w-5 text-center"></i>
+                            <i class="fa-solid fa-calendar-check w-5 text-center"></i>
                             <span>Gestión de Eventos</span>
                         </a>
                         <a href="{{ route('admin.agenda') }}"

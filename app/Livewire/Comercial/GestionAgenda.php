@@ -95,7 +95,7 @@ class GestionAgenda extends Component
 
         // Detección de Conflictos de Horario
         $conflictos = [];
-        $gruposFecha = $eventos->groupBy(function($item) {
+        $gruposFecha = $eventos->groupBy(function ($item) {
             return is_object($item->fecha_evento) ? $item->fecha_evento->format('Y-m-d') : substr((string)$item->fecha_evento, 0, 10);
         });
 
@@ -138,7 +138,8 @@ class GestionAgenda extends Component
 
         $eventoDetalle = null;
         if ($this->eventoIdDetalle) {
-            $eventoDetalle = Evento::with(['cliente', 'servicio', 'contrato', 'participantes.integrante'])->find($this->eventoIdDetalle);
+            /* $eventoDetalle = Evento::with(['cliente', 'servicio', 'contrato', 'participantes.integrante'])->find($this->eventoIdDetalle); */
+            $eventoDetalle = Evento::with(['cliente', 'servicio', 'contrato', 'participantes.persona'])->find($this->eventoIdDetalle);
         }
 
         return view('livewire.comercial.gestion-agenda', [
