@@ -288,7 +288,10 @@ class GestionCotizaciones extends Component
 
             $nuevoTotalPagado = (float)$this->pagoContrato->total_pagado + (float)$this->pagoMonto;
             $nuevoSaldo = max(0, (float)$this->pagoContrato->monto_total - $nuevoTotalPagado);
-            $nuevoEstado = $nuevoSaldo <= 0 ? 'Pagado Total' : ($nuevoTotalPagado > 0 ? 'Con Pago Parcial' : $this->pagoContrato->estado);
+            $nuevoEstado = $this->pagoContrato->estado;
+            if (in_array($this->pagoContrato->estado, ['Borrador', 'Pendiente de Confirmacion'])) {
+                $nuevoEstado = 'Confirmado';
+            }
 
             $this->pagoContrato->update([
                 'total_pagado' => $nuevoTotalPagado,

@@ -113,11 +113,15 @@ class GestionPagos extends Component
             // Actualizar saldos del contrato
             $nuevoTotalPagado = (float)$contrato->total_pagado + $montoPago;
             $nuevoSaldo = max(0, (float)$contrato->monto_total - $nuevoTotalPagado);
+            $nuevoEstado = $contrato->estado;
+            if (in_array($contrato->estado, ['Borrador', 'Pendiente de Confirmacion'])) {
+                $nuevoEstado = 'Confirmado';
+            }
 
             $contrato->update([
                 'total_pagado' => $nuevoTotalPagado,
                 'saldo_pendiente' => $nuevoSaldo,
-                'estado' => ($nuevoSaldo <= 0) ? 'Pagado Total' : 'Con Pago Parcial',
+                'estado' => $nuevoEstado,
             ]);
 
             if ($contrato->evento && $contrato->evento->estado === 'Reservado' && $nuevoTotalPagado > 0) {
@@ -202,7 +206,10 @@ class GestionPagos extends Component
             if ($contrato) {
                 $nuevoTotalPagado = max(0, (float)$contrato->total_pagado - (float)$pago->monto);
                 $nuevoSaldo = min((float)$contrato->monto_total, (float)$contrato->saldo_pendiente + (float)$pago->monto);
-                $nuevoEstado = ($nuevoSaldo >= (float)$contrato->monto_total) ? 'Pendiente de Confirmacion' : 'Con Pago Parcial';
+                $nuevoEstado = $contrato->estado;
+                if ($nuevoTotalPagado <= 0 && $contrato->estado === 'Confirmado') {
+                    $nuevoEstado = 'Pendiente de Confirmacion';
+                }
 
                 $contrato->update([
                     'total_pagado' => $nuevoTotalPagado,
