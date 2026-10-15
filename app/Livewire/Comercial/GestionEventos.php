@@ -51,7 +51,9 @@ class GestionEventos extends Component
     public function mount()
     {
         if (request()->has('cliente_id')) {
-            $this->cliente_filtro = request()->get('cliente_id');
+            $param = request()->get('cliente_id');
+            $decoded = \App\Services\Security\DocumentToken::decodeId($param, 'cliente');
+            $this->cliente_filtro = $decoded ?: $param;
         }
     }
 
@@ -272,7 +274,7 @@ class GestionEventos extends Component
 
     public function render()
     {
-        $query = Evento::with(['cliente', 'servicio', 'user', 'contrato']);
+        $query = Evento::with(['cliente', 'servicio', 'user', 'contrato.pagos', 'pagos']);
 
         if ($this->search) {
             $query->where(function ($q) {

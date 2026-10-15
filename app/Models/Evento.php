@@ -77,4 +77,31 @@ class Evento extends Model
     {
         return $this->hasMany(DistribucionEconomica::class, 'evento_id');
     }
+
+    public function getMontoContratadoAttribute(): float
+    {
+        if ($this->contrato) {
+            return (float)$this->contrato->monto_total;
+        }
+        return 0.0;
+    }
+
+    public function getTotalAbonadoAttribute(): float
+    {
+        if ($this->relationLoaded('contrato') && $this->contrato && $this->contrato->relationLoaded('pagos')) {
+            return (float)$this->contrato->pagos->where('estado', 'Valido')->sum('monto');
+        }
+        if ($this->contrato) {
+            return (float)$this->contrato->pagos()->where('estado', 'Valido')->sum('monto');
+        }
+        if ($this->relationLoaded('pagos')) {
+            return (float)$this->pagos->where('estado', 'Valido')->sum('monto');
+        }
+        return (float)$this->pagos()->where('estado', 'Valido')->sum('monto');
+    }
+
+    public function getSaldoPendienteAttribute(): float
+    {
+        return max(0.0, $this->monto_contratado - $this->total_abonado);
+    }
 }

@@ -6,11 +6,24 @@
             <p class="text-xs text-slate-400">Programación de presentaciones musicales, alquileres y servicios técnicos.
             </p>
         </div>
-        <button wire:click="abrirModal"
-            class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-lg shadow-gold-500/20 transition-all flex items-center justify-center gap-2">
-            <i class="fa-solid fa-calendar-plus"></i>
-            <span>Nuevo Evento</span>
-        </button>
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <a href="{{ route('admin.eventos.pdf', [
+                'search' => $search,
+                'cliente_id' => $cliente_filtro,
+                'estado' => $estado_filtro
+            ]) }}" target="_blank"
+                class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-950/20"
+                title="Exportar Programación de Eventos y Estado Financiero a PDF">
+                <i class="fa-solid fa-file-pdf"></i>
+                <span>Exportar PDF</span>
+            </a>
+
+            <button wire:click="abrirModal"
+                class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-lg shadow-gold-500/20 transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-calendar-plus"></i>
+                <span>Nuevo Evento</span>
+            </button>
+        </div>
     </div>
 
     <!-- Mensajes de Notificación -->
@@ -97,6 +110,9 @@
                         <th class="py-3.5 px-4 font-bold">Fecha & Hora</th>
                         <th class="py-3.5 px-4 font-bold">Servicio</th>
                         <th class="py-3.5 px-4 font-bold">Ubicación</th>
+                        <th class="py-3.5 px-3 font-bold text-right whitespace-nowrap">Monto Contratado</th>
+                        <th class="py-3.5 px-3 font-bold text-right whitespace-nowrap">A Cuenta</th>
+                        <th class="py-3.5 px-3 font-bold text-right whitespace-nowrap">Saldo</th>
                         <th class="py-3.5 px-4 font-bold text-center">Estado</th>
                         <th class="py-3.5 px-4 font-bold text-right">Acciones</th>
                     </tr>
@@ -133,6 +149,19 @@
                                     <i class="fa-solid fa-location-dot text-rose-400"></i>
                                     <span>{{ $ev->direccion_evento }}</span>
                                 </div>
+                            </td>
+                            <td class="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
+                                @if($ev->contrato)
+                                    <span class="text-white">Bs {{ number_format($ev->monto_contratado, 2) }}</span>
+                                @else
+                                    <span class="text-xs text-slate-500 italic">Sin contrato</span>
+                                @endif
+                            </td>
+                            <td class="py-3.5 px-3 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">
+                                Bs {{ number_format($ev->total_abonado, 2) }}
+                            </td>
+                            <td class="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap {{ $ev->saldo_pendiente > 0 ? 'text-rose-400' : 'text-emerald-400' }}">
+                                Bs {{ number_format($ev->saldo_pendiente, 2) }}
                             </td>
                             <td class="py-3.5 px-4 text-center">
                                 <span
@@ -182,7 +211,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-8 text-slate-500 text-sm">
+                            <td colspan="10" class="text-center py-8 text-slate-500 text-sm">
                                 No se encontraron eventos registrados.
                             </td>
                         </tr>
