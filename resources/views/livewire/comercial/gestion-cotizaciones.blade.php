@@ -304,7 +304,7 @@
                     <button wire:click="$set('modalPagoRapidoOpen', false)" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">
                         Cancelar
                     </button>
-                    <button wire:click="guardarPagoRapido" class="px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2">
+                    <button wire:click="guardarPagoRapido" wire:confirm="¿Está seguro de realizar el pago?" class="px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2">
                         <i class="fa-solid fa-receipt text-slate-950"></i>
                         <span>Confirmar Pago y Emitir Recibo</span>
                     </button>

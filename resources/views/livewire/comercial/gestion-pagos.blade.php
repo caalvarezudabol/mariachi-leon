@@ -286,7 +286,7 @@
                         class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">
                         Cancelar
                     </button>
-                    <button wire:click="guardar"
+                    <button wire:click="guardar" wire:confirm="¿Está seguro de realizar el pago?"
                         class="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500">
                         Guardar Pago
                     </button>

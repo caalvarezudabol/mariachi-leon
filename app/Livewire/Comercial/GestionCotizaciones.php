@@ -320,6 +320,8 @@ class GestionCotizaciones extends Component
 
         session()->flash('success_pago', 'Pago ' . $this->ultimoRecibo['numero'] . ' registrado con éxito por Bs ' . number_format($this->ultimoRecibo['monto'], 2) . '.');
         $this->modalPagoRapidoOpen = false;
+
+        return redirect()->route('comercial.pagos.recibo', $this->ultimoRecibo['codigo_verificacion']);
     }
 
     public function render()

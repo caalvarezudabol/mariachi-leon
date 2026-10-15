@@ -139,6 +139,8 @@ class GestionPagos extends Component
 
             session()->flash('success_pago', 'Pago ' . $pago->numero_recibo . ' registrado exitosamente por Bs ' . number_format($montoPago, 2) . '.');
             $this->modalOpen = false;
+
+            return redirect()->route('comercial.pagos.recibo', $this->ultimoRecibo['codigo_verificacion']);
         });
     }
 

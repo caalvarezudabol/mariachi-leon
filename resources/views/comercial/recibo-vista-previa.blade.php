@@ -81,6 +81,17 @@
 </head>
 <body class="min-h-screen py-6 px-2 sm:px-4">
 
+    <!-- Mensaje Flash de Éxito al Registrar Pago -->
+    @if(session('success_pago'))
+        <div class="no-print max-w-[216mm] mx-auto mb-3 bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 px-4 py-2.5 rounded-xl flex items-center justify-between shadow-xl text-xs backdrop-blur-md">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+                <span class="font-bold">{{ session('success_pago') }}</span>
+            </div>
+            <span class="text-[11px] text-emerald-400 font-medium">Comprobante y QR generados correctamente</span>
+        </div>
+    @endif
+
     <!-- Barra Superior de Acciones (No se imprime) -->
     <div class="no-print max-w-[216mm] mx-auto mb-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-xl backdrop-blur-md">
         <div class="flex items-center space-x-3">
@@ -106,15 +117,17 @@
                 <span>Descargar PDF</span>
             </a>
 
-            @if(Route::has('admin.pagos'))
-                <a href="{{ route('admin.pagos') }}" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition-all">
-                    <i class="fa-solid fa-arrow-left mr-1"></i> Pagos
+            @if(Route::has('admin.cotizaciones'))
+                <a href="{{ route('admin.cotizaciones') }}" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Volver a Cotizaciones</span>
                 </a>
             @endif
 
-            @if(Route::has('admin.cotizaciones'))
-                <a href="{{ route('admin.cotizaciones') }}" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition-all">
-                    Cotizaciones
+            @if(Route::has('admin.pagos'))
+                <a href="{{ route('admin.pagos') }}" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Volver a Pagos</span>
                 </a>
             @endif
         </div>
