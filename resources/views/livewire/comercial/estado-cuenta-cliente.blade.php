@@ -16,11 +16,27 @@
         .print-only { display: none; }
     </style>
 
+@php
+    $tokenSeguro = $token ?: \App\Services\Security\DocumentToken::encodeId($cliente->id, 'cliente');
+    $contratoToken = $contrato_id ? \App\Services\Security\DocumentToken::encodeId($contrato_id, 'contrato') : null;
+    $exportPdfUrl = route('admin.clientes.estado-cuenta.pdf', array_filter([
+        'token' => $tokenSeguro,
+        'tipo' => $tipo_reporte,
+        'contrato' => $contratoToken,
+        'fecha_inicio' => $fecha_inicio ?: null,
+        'fecha_fin' => $fecha_fin ?: null,
+        'metodo_pago' => $metodo_pago ?: null,
+        'usuario_id' => $usuario_id ?: null,
+        'estado_pago' => $estado_pago ?: null,
+        'search_recibo' => $search_recibo ?: null,
+    ], fn($v) => !is_null($v)));
+@endphp
+
     <!-- Barra de Navegación y Acciones Superiores (No se imprime) -->
-    <div class="no-print flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-brand-border">
+    <div class="no-print flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-brand-border">
         <div>
             <div class="flex items-center gap-2 mb-1">
-                <a href="{{ route('admin.clientes') }}" class="text-xs text-slate-400 hover:text-gold-400 transition-colors flex items-center gap-1">
+                <a href="{{ route('admin.clientes') }}" class="text-xs text-slate-400 hover:text-gold-400 transition-colors flex items-center gap-1 font-medium">
                     <i class="fa-solid fa-arrow-left text-[10px]"></i>
                     <span>Volver a Gestión de Clientes</span>
                 </a>
@@ -39,26 +55,18 @@
         </div>
 
         <!-- Botones de Acción Global -->
-        <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex items-center gap-2.5 flex-wrap">
             <!-- Imprimir Vista -->
-            <button onclick="window.print()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs flex items-center gap-2 border border-slate-700 transition-all shadow cursor-pointer" title="Imprimir estado de cuenta">
+            <button onclick="window.print()" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs flex items-center gap-2 border border-slate-700 transition-all shadow cursor-pointer" title="Imprimir estado de cuenta">
                 <i class="fa-solid fa-print text-amber-400"></i>
                 <span>Imprimir</span>
             </button>
 
-            <!-- Exportar a PDF -->
-            <a href="{{ route('admin.clientes.estado-cuenta.pdf', [
-                    'token' => \App\Services\Security\DocumentToken::encodeId($cliente->id, 'cliente'),
-                    'tipo' => $tipo_reporte,
-                    'contrato' => $contrato_id ? \App\Services\Security\DocumentToken::encodeId($contrato_id, 'contrato') : null,
-                    'fecha_inicio' => $fecha_inicio,
-                    'fecha_fin' => $fecha_fin,
-                    'metodo_pago' => $metodo_pago,
-                    'usuario_id' => $usuario_id,
-                    'estado_pago' => $estado_pago,
-                    'search_recibo' => $search_recibo
-                ]) }}" target="_blank" class="px-3.5 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-bold text-xs flex items-center gap-2 border border-rose-500/30 transition-all shadow" title="Generar PDF Oficial">
-                <i class="fa-solid fa-file-pdf"></i>
+            <!-- Exportar a PDF Principal -->
+            <a href="{{ $exportPdfUrl }}" target="_blank" 
+               class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black text-xs flex items-center gap-2 border border-rose-400/40 transition-all shadow-lg shadow-rose-900/40 hover:scale-[1.02] active:scale-[0.98] cursor-pointer" 
+               title="Generar y Exportar PDF Oficial del Estado de Cuenta Actual">
+                <i class="fa-solid fa-file-pdf text-sm text-white"></i>
                 <span>Exportar a PDF</span>
             </a>
         </div>
@@ -135,34 +143,52 @@
             </button>
         </div>
 
-        @if($tipo_reporte === 'contrato')
-            <!-- Selector de Contrato Específico -->
-            <div class="flex items-center gap-2">
-                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Contrato:</label>
-                <select wire:model.live="contrato_id" class="px-3 py-1.5 bg-slate-950 border border-gold-500/40 rounded-xl text-gold-400 font-mono font-bold text-xs focus:border-gold-500 outline-none shadow-sm">
-                    @forelse($contratosCliente as $c)
-                        <option value="{{ $c->id }}">
-                            {{ $c->numero_contrato }} &bull; {{ $c->fecha_contrato ? $c->fecha_contrato->format('d/m/Y') : '' }} ({{ $c->servicio->nombre ?? 'Musical' }})
-                        </option>
-                    @empty
-                        <option value="">Sin contratos registrados</option>
-                    @endforelse
-                </select>
-            </div>
-        @endif
+        <div class="flex items-center gap-3 flex-wrap">
+            @if($tipo_reporte === 'contrato')
+                <!-- Selector de Contrato Específico -->
+                <div class="flex items-center gap-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Contrato:</label>
+                    <select wire:model.live="contrato_id" class="px-3 py-1.5 bg-slate-950 border border-gold-500/40 rounded-xl text-gold-400 font-mono font-bold text-xs focus:border-gold-500 outline-none shadow-sm">
+                        @forelse($contratosCliente as $c)
+                            <option value="{{ $c->id }}">
+                                {{ $c->numero_contrato }} &bull; {{ $c->fecha_contrato ? $c->fecha_contrato->format('d/m/Y') : '' }} ({{ $c->servicio->nombre ?? 'Musical' }})
+                            </option>
+                        @empty
+                            <option value="">Sin contratos registrados</option>
+                        @endforelse
+                    </select>
+                </div>
+            @endif
+
+            <!-- Botón Exportar PDF en la barra de selección -->
+            <a href="{{ $exportPdfUrl }}" target="_blank" 
+               class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-bold text-xs flex items-center gap-1.5 border border-rose-500/40 shadow-md shadow-rose-900/30 transition-all hover:scale-[1.02] cursor-pointer" 
+               title="Exportar a PDF este estado de cuenta">
+                <i class="fa-solid fa-file-pdf"></i>
+                <span>Exportar PDF</span>
+            </a>
+        </div>
     </div>
 
     <!-- Barra de Filtros Dinámicos (No se imprime) -->
     <div class="no-print bg-brand-card border border-brand-border rounded-2xl p-4 shadow-lg space-y-3">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
             <span class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                 <i class="fa-solid fa-filter text-gold-400"></i>
                 <span>Filtros de Búsqueda</span>
             </span>
-            <button wire:click="limpiarFiltros" class="text-xs text-slate-400 hover:text-gold-400 font-medium transition-colors flex items-center gap-1">
-                <i class="fa-solid fa-rotate-left text-[11px]"></i>
-                <span>Limpiar Filtros</span>
-            </button>
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <button wire:click="limpiarFiltros" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 border border-slate-700 cursor-pointer">
+                    <i class="fa-solid fa-rotate-left text-[11px] text-amber-400"></i>
+                    <span>Limpiar Filtros</span>
+                </button>
+                <a href="{{ $exportPdfUrl }}" target="_blank" 
+                   class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white font-bold text-xs flex items-center gap-2 border border-rose-500/40 shadow-md shadow-rose-900/30 transition-all hover:scale-[1.02] cursor-pointer"
+                   title="Exportar a PDF con los filtros seleccionados">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>Exportar a PDF</span>
+                </a>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -287,12 +313,20 @@
 
             <!-- Tabla de Historial de Pagos del Contrato -->
             <div class="report-card bg-brand-card border border-brand-border rounded-2xl overflow-hidden shadow-xl">
-                <div class="p-4 border-b border-brand-border flex items-center justify-between">
+                <div class="p-4 border-b border-brand-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                         <i class="fa-solid fa-list-ol text-gold-400"></i>
                         <span>Historial de Pagos y Movimientos del Contrato</span>
                     </h4>
-                    <span class="text-xs text-slate-400">Mostrando {{ $pagos->total() }} movimientos</span>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-slate-400">Mostrando {{ $pagos->total() }} movimientos</span>
+                        <a href="{{ $exportPdfUrl }}" target="_blank" 
+                           class="px-3 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer" 
+                           title="Descargar este reporte de contrato en PDF">
+                            <i class="fa-solid fa-file-pdf"></i>
+                            <span>Exportar PDF</span>
+                        </a>
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -446,12 +480,20 @@
 
         <!-- TABLA 1: Resumen de Contratos del Cliente -->
         <div class="report-card bg-brand-card border border-brand-border rounded-2xl overflow-hidden shadow-xl">
-            <div class="p-4 border-b border-brand-border flex items-center justify-between">
+            <div class="p-4 border-b border-brand-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                     <i class="fa-solid fa-list-check text-gold-400"></i>
                     <span>1. Resumen de Contratos Registrados del Cliente</span>
                 </h4>
-                <span class="text-xs text-slate-400">{{ $contratosCliente->count() }} contratos en total</span>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-slate-400">{{ $contratosCliente->count() }} contratos en total</span>
+                    <a href="{{ $exportPdfUrl }}" target="_blank" 
+                       class="px-3 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer" 
+                       title="Exportar PDF de Estado de Cuenta General">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>Exportar PDF</span>
+                    </a>
+                </div>
             </div>
 
             <div class="overflow-x-auto">
@@ -545,12 +587,20 @@
 
         <!-- TABLA 2: Historial Consolidado de Pagos -->
         <div class="report-card bg-brand-card border border-brand-border rounded-2xl overflow-hidden shadow-xl">
-            <div class="p-4 border-b border-brand-border flex items-center justify-between">
+            <div class="p-4 border-b border-brand-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                     <i class="fa-solid fa-receipt text-gold-400"></i>
                     <span>2. Historial Consolidado de Pagos y Abonos</span>
                 </h4>
-                <span class="text-xs text-slate-400">{{ $pagos->total() }} pagos registrados</span>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-slate-400">{{ $pagos->total() }} pagos registrados</span>
+                    <a href="{{ $exportPdfUrl }}" target="_blank" 
+                       class="px-3 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer" 
+                       title="Exportar PDF de Estado de Cuenta General">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>Exportar PDF</span>
+                    </a>
+                </div>
             </div>
 
             <div class="overflow-x-auto">
