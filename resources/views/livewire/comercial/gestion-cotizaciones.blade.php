@@ -96,8 +96,19 @@
                                     </div>
                                 @endif
                             </td>
+                            @php
+                                $contratoAceptado = $c->contrato && in_array($c->contrato->estado, ['Confirmado', 'Aceptado', 'En Ejecucion', 'Realizado', 'Finalizado', 'Vigente', 'Concluido']);
+                            @endphp
                             <td class="py-3.5 px-4">
-                                <div class="font-bold text-white">{{ $c->cliente->nombre_completo ?? 'N/A' }}</div>
+                                @if($contratoAceptado)
+                                    <a href="{{ route('admin.eventos', ['cliente_id' => $c->cliente_id]) }}" 
+                                       class="font-bold text-white hover:text-gold-400 transition-colors inline-block" 
+                                       title="Ir a Gestión de Eventos filtrando por este cliente">
+                                        {{ $c->cliente->nombre_completo ?? 'N/A' }}
+                                    </a>
+                                @else
+                                    <div class="font-bold text-white">{{ $c->cliente->nombre_completo ?? 'N/A' }}</div>
+                                @endif
                                 <div class="text-xs text-slate-400 font-mono">{{ $c->evento->codigo_evento ?? '' }} &bull; {{ $c->servicio->nombre ?? '' }}</div>
                             </td>
                             <td class="py-3.5 px-4 font-mono text-xs text-slate-300">
@@ -130,40 +141,19 @@
                                 </span>
                             </td>
                             <td class="py-3.5 px-4 text-right">
-                                <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                                    @if($c->contrato)
-                                        <!-- Descargar Contrato PDF con QR -->
-                                        <a href="{{ route('comercial.contratos.pdf', $c->contrato->codigo_verificacion) }}" target="_blank" 
-                                           class="p-2 rounded-lg bg-slate-800 text-rose-400 hover:text-white hover:bg-rose-600 transition-all shadow" 
-                                           title="Descargar Contrato Oficial PDF con QR">
-                                            <i class="fa-solid fa-file-pdf"></i>
+                                @if($contratoAceptado)
+                                    <div class="flex items-center justify-end gap-1.5 flex-wrap">
+                                        <a href="{{ route('admin.eventos', ['cliente_id' => $c->cliente_id]) }}" 
+                                           class="px-3 py-1.5 rounded-xl bg-gold-500/15 hover:bg-gold-500 text-gold-400 hover:text-slate-950 font-bold text-xs border border-gold-500/30 transition-all inline-flex items-center gap-1.5 shadow-sm group" 
+                                           title="Dirigirse a Gestión de Eventos del cliente {{ $c->cliente->nombre_completo ?? '' }}">
+                                            <i class="fa-solid fa-calendar-days text-[11px] group-hover:scale-110 transition-transform"></i>
+                                            <span>Gestión de Eventos</span>
+                                            <i class="fa-solid fa-arrow-right text-[9px] opacity-70 group-hover:translate-x-0.5 transition-transform"></i>
                                         </a>
-
-                                        @if($c->contrato->saldo_pendiente > 0)
-                                            <!-- Botón Modal Pago Rápido -->
-                                            <button wire:click="abrirModalPagoRapido({{ $c->contrato->id }})" 
-                                                    class="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs transition-all shadow flex items-center gap-1" 
-                                                    title="Registrar Pago A Cuenta / Saldo">
-                                                <i class="fa-solid fa-money-bill-wave"></i>
-                                                <span>Pagar</span>
-                                            </button>
-                                        @else
-                                            <span class="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold inline-flex items-center gap-1" title="Contrato completamente pagado">
-                                                <i class="fa-solid fa-check-double text-[10px]"></i>
-                                                <span>Saldado</span>
-                                            </span>
-                                        @endif
-                                    @else
-                                        <button wire:click="convertirEnContrato({{ $c->id }})" wire:confirm="¿Desea generar el contrato formal para esta cotización?" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all" title="Convertir en Contrato">
-                                            <i class="fa-solid fa-file-contract"></i>
-                                            <span>Generar Contrato</span>
-                                        </button>
-                                    @endif
-
-                                    <button wire:click="editar({{ $c->id }})" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-all" title="Editar">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </button>
-                                </div>
+                                    </div>
+                                @else
+                                    <span class="text-xs text-slate-600 font-mono px-2 py-1 select-none" title="Sin opciones disponibles">-</span>
+                                @endif
                             </td>
                         </tr>
                     @empty
