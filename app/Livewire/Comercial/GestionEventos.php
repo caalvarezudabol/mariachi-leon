@@ -8,6 +8,7 @@ use Livewire\Attributes\Url;
 use App\Models\Evento;
 use App\Models\Cliente;
 use App\Models\Servicio;
+use App\Models\Pago;
 use App\Traits\Auditable;
 use Illuminate\Support\Facades\Auth;
 
@@ -40,6 +41,12 @@ class GestionEventos extends Component
     public $modalMapOpen = false;
     public $eventoMapa = null;
     public $isEdit = false;
+
+    // Propiedades para modal de Historial de Pagos
+    public $modalHistorialPagosOpen = false;
+    public $eventoHistorial = null;
+    public $pagosHistorial = [];
+    public $resumenFinanciero = [];
 
     public function mount()
     {
@@ -213,6 +220,54 @@ class GestionEventos extends Component
         $e->update(['estado' => $nuevoEstado]);
         $this->registrarAuditoria('Gestión Comercial', 'Cambiar Estado Evento', 'Se cambió estado de evento ' . $e->codigo_evento . ' a ' . $nuevoEstado);
         session()->flash('success', 'Estado del evento ' . $e->codigo_evento . ' actualizado a ' . $nuevoEstado . '.');
+    }
+
+    public function abrirHistorialPagos($id)
+    {
+        $this->eventoHistorial = Evento::with(['cliente', 'servicio', 'contrato'])->findOrFail($id);
+
+        $contrato = $this->eventoHistorial->contrato;
+        $montoTotal = $contrato ? (float)$contrato->monto_total : 0;
+
+        $pagos = Pago::where(function ($q) use ($id, $contrato) {
+            $q->where('evento_id', $id);
+            if ($contrato) {
+                $q->orWhere('contrato_id', $contrato->id);
+            }
+        })
+        ->with('user')
+        ->orderBy('fecha_pago', 'asc')
+        ->get();
+
+        $totalAbonado = (float)$pagos->where('estado', 'Valido')->sum('monto');
+        $saldoPendiente = max(0, $montoTotal - $totalAbonado);
+
+        $this->pagosHistorial = $pagos;
+        $this->resumenFinanciero = [
+            'monto_total' => $montoTotal,
+            'total_abonado' => $totalAbonado,
+            'saldo_pendiente' => $saldoPendiente,
+            'tiene_contrato' => !empty($contrato),
+            'numero_contrato' => $contrato?->numero_contrato,
+            'estado_contrato' => $contrato?->estado,
+            'contrato_id' => $contrato?->id,
+        ];
+
+        $this->registrarAuditoria(
+            'Gestión Comercial',
+            'Consultar Historial de Pagos Evento',
+            "Se consultó el historial de pagos del evento {$this->eventoHistorial->codigo_evento} (Cliente: " . ($this->eventoHistorial->cliente->nombre_completo ?? 'N/A') . ")"
+        );
+
+        $this->modalHistorialPagosOpen = true;
+    }
+
+    public function cerrarHistorialPagos()
+    {
+        $this->modalHistorialPagosOpen = false;
+        $this->eventoHistorial = null;
+        $this->pagosHistorial = [];
+        $this->resumenFinanciero = [];
     }
 
     public function render()

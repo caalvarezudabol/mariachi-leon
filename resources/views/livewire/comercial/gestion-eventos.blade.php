@@ -163,6 +163,11 @@
                                         <i class="fa-brands fa-whatsapp"></i>
                                     </a>
                                 @endif
+                                <button wire:click="abrirHistorialPagos({{ $ev->id }})"
+                                    class="p-2 rounded-lg bg-gold-500/10 text-gold-400 hover:text-slate-950 hover:bg-gold-500 border border-gold-500/20 transition-all inline-block shadow-sm"
+                                    title="Historial de Pagos y Estado Financiero">
+                                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                                </button>
                                 <a href="{{ route('admin.eventos.participantes', $ev->id) }}"
                                     class="p-2 rounded-lg bg-slate-800 text-gold-400 hover:text-gold-300 hover:bg-slate-700 transition-all inline-block"
                                     title="Gestionar Participantes">
@@ -606,6 +611,190 @@
                         class="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500">
                         {{ $isEdit ? 'Actualizar Evento' : 'Guardar Evento' }}
                     </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal Historial de Pagos y Estado Financiero -->
+    @if ($modalHistorialPagosOpen && $eventoHistorial)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+            <div class="bg-brand-card border border-brand-border rounded-3xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+                <!-- Header -->
+                <div class="flex items-center justify-between border-b border-brand-border px-6 py-4 shrink-0 bg-slate-950/60">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-400 text-lg shadow-sm">
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-lg font-bold text-white">Historial de Pagos</h3>
+                                <span class="font-mono font-extrabold text-gold-400 bg-gold-500/10 border border-gold-500/20 px-2 py-0.5 rounded-md text-xs">
+                                    {{ $eventoHistorial->codigo_evento }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
+                                <span><i class="fa-solid fa-user text-slate-500 mr-1"></i>{{ $eventoHistorial->cliente->nombre_completo ?? 'Cliente N/A' }}</span>
+                                <span class="text-slate-600">•</span>
+                                <span>
+                                    <i class="fa-solid fa-file-contract text-slate-500 mr-1"></i>
+                                    @if($resumenFinanciero['tiene_contrato'])
+                                        Contrato: <strong class="text-slate-200">{{ $resumenFinanciero['numero_contrato'] }}</strong>
+                                    @else
+                                        <span class="text-amber-400 italic">Sin contrato formal</span>
+                                    @endif
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    <button wire:click="cerrarHistorialPagos" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors text-lg" title="Cerrar">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Body (Scrollable) -->
+                <div class="overflow-y-auto p-6 space-y-6">
+                    <!-- Tarjetas de Resumen Financiero -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <!-- Total Contratado -->
+                        <div class="bg-slate-900/90 border border-brand-border rounded-2xl p-4 flex items-center gap-3.5">
+                            <div class="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-lg shrink-0">
+                                <i class="fa-solid fa-handshake"></i>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Monto Contratado</span>
+                                <span class="text-lg font-extrabold font-mono text-white">
+                                    Bs {{ number_format($resumenFinanciero['monto_total'], 2) }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Total Abonado -->
+                        <div class="bg-slate-900/90 border border-brand-border rounded-2xl p-4 flex items-center gap-3.5">
+                            <div class="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg shrink-0">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Total Abonado</span>
+                                <span class="text-lg font-extrabold font-mono text-emerald-400">
+                                    Bs {{ number_format($resumenFinanciero['total_abonado'], 2) }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Saldo Pendiente -->
+                        <div class="bg-slate-900/90 border border-brand-border rounded-2xl p-4 flex items-center gap-3.5">
+                            <div class="w-11 h-11 rounded-xl {{ $resumenFinanciero['saldo_pendiente'] > 0 ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' }} border flex items-center justify-center text-lg shrink-0">
+                                <i class="fa-solid {{ $resumenFinanciero['saldo_pendiente'] > 0 ? 'fa-hourglass-half' : 'fa-check-double' }}"></i>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Saldo Pendiente</span>
+                                <span class="text-lg font-extrabold font-mono {{ $resumenFinanciero['saldo_pendiente'] > 0 ? 'text-rose-400' : 'text-emerald-400' }}">
+                                    Bs {{ number_format($resumenFinanciero['saldo_pendiente'], 2) }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Historial de Pagos -->
+                    <div class="bg-slate-950/60 rounded-2xl border border-brand-border overflow-hidden">
+                        <div class="px-4 py-3 bg-slate-900/70 border-b border-brand-border flex items-center justify-between">
+                            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-list-check text-gold-400"></i>
+                                <span>Movimientos y Cobranzas Registradas ({{ count($pagosHistorial) }})</span>
+                            </h4>
+                            <span class="text-[11px] text-slate-400">
+                                Pagos anulados no suman al saldo
+                            </span>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-950/90 border-b border-brand-border text-slate-400 uppercase tracking-wider text-[11px]">
+                                        <th class="py-2.5 px-3 font-bold">N° Recibo</th>
+                                        <th class="py-2.5 px-3 font-bold">Fecha / Hora</th>
+                                        <th class="py-2.5 px-3 font-bold">Detalle / Concepto</th>
+                                        <th class="py-2.5 px-3 font-bold text-right">Importe (Bs)</th>
+                                        <th class="py-2.5 px-3 font-bold text-center">Método</th>
+                                        <th class="py-2.5 px-3 font-bold">Cobró</th>
+                                        <th class="py-2.5 px-3 font-bold text-center">Estado</th>
+                                        <th class="py-2.5 px-3 font-bold text-right">Recibo</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-brand-border/40 text-slate-300">
+                                    @forelse($pagosHistorial as $pago)
+                                        <tr class="hover:bg-slate-800/25 transition-all {{ $pago->estado === 'Anulado' ? 'opacity-60 bg-rose-950/10' : '' }}">
+                                            <td class="py-2.5 px-3 font-mono font-bold text-gold-400">
+                                                {{ $pago->numero_recibo }}
+                                            </td>
+                                            <td class="py-2.5 px-3 font-mono">
+                                                <div>{{ $pago->fecha_pago ? $pago->fecha_pago->format('d/m/Y') : '-' }}</div>
+                                                <div class="text-[10px] text-slate-400">{{ $pago->fecha_pago ? $pago->fecha_pago->format('H:i') : '' }}</div>
+                                            </td>
+                                            <td class="py-2.5 px-3 max-w-xs truncate" title="{{ $pago->observaciones }}">
+                                                {{ $pago->observaciones ?: 'Cobranza / Abono del servicio' }}
+                                            </td>
+                                            <td class="py-2.5 px-3 text-right font-mono font-bold {{ $pago->estado === 'Anulado' ? 'text-slate-400 line-through' : 'text-emerald-400' }}">
+                                                Bs {{ number_format($pago->monto, 2) }}
+                                            </td>
+                                            <td class="py-2.5 px-3 text-center">
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-200">
+                                                    {{ $pago->metodo_pago }}
+                                                </span>
+                                            </td>
+                                            <td class="py-2.5 px-3 text-slate-300">
+                                                {{ $pago->user->name ?? 'Sistema' }}
+                                            </td>
+                                            <td class="py-2.5 px-3 text-center">
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ $pago->estado === 'Valido' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20' }}">
+                                                    {{ $pago->estado }}
+                                                </span>
+                                            </td>
+                                            <td class="py-2.5 px-3 text-right whitespace-nowrap">
+                                                <a href="{{ route('comercial.pagos.recibo', $pago->codigo_verificacion) }}" target="_blank"
+                                                    class="p-1.5 rounded-lg bg-gold-500/10 text-gold-400 hover:text-slate-950 hover:bg-gold-500 border border-gold-500/20 transition-all inline-block"
+                                                    title="Ver / Imprimir Recibo">
+                                                    <i class="fa-solid fa-print"></i>
+                                                </a>
+                                                <a href="{{ route('comercial.pagos.pdf', $pago->codigo_verificacion) }}" target="_blank"
+                                                    class="p-1.5 rounded-lg bg-rose-600/10 text-rose-400 hover:text-white hover:bg-rose-600 border border-rose-500/20 transition-all inline-block"
+                                                    title="Descargar PDF">
+                                                    <i class="fa-solid fa-file-pdf"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center py-8 text-slate-500">
+                                                <i class="fa-solid fa-receipt text-2xl text-slate-600 mb-2 block"></i>
+                                                No se registran pagos asociados a este evento.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-brand-border px-6 py-4 shrink-0 bg-slate-950/60">
+                    <div>
+                        @if($eventoHistorial->cliente_id)
+                            <a href="{{ route('admin.clientes.estado-cuenta', ['cliente' => $eventoHistorial->cliente_id, 'contrato_id' => $resumenFinanciero['contrato_id'] ?? null]) }}" 
+                               class="text-xs font-bold text-gold-400 hover:text-gold-300 flex items-center gap-1.5 underline decoration-gold-500/40 hover:decoration-gold-400">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                <span>Ver Estado de Cuenta Completo y Exportar a PDF/Excel</span>
+                            </a>
+                        @endif
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button wire:click="cerrarHistorialPagos"
+                            class="px-5 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-all">
+                            Cerrar
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
