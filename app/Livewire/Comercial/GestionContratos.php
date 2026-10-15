@@ -37,6 +37,12 @@ class GestionContratos extends Component
     public $modalOpen = false;
     public $isEdit = false;
 
+    // Modal de Pagos del Cliente por Evento
+    public $modalHistorialPagosOpen = false;
+    public $contratoHistorial = null;
+    public $pagosHistorial = [];
+    public $resumenFinanciero = [];
+
     protected function rules()
     {
         return [
@@ -214,6 +220,54 @@ class GestionContratos extends Component
         }
 
         $this->modalOpen = false;
+    }
+
+    public function abrirHistorialPagos($id)
+    {
+        $this->contratoHistorial = Contrato::with(['cliente', 'servicio', 'evento', 'pagos.user'])->findOrFail($id);
+
+        $montoTotal = (float)$this->contratoHistorial->monto_total;
+        
+        $pagos = Pago::where(function ($q) {
+            $q->where('contrato_id', $this->contratoHistorial->id);
+            if ($this->contratoHistorial->evento_id) {
+                $q->orWhere('evento_id', $this->contratoHistorial->evento_id);
+            }
+        })
+        ->with('user')
+        ->orderBy('fecha_pago', 'asc')
+        ->get();
+
+        $totalAbonado = (float)$pagos->where('estado', 'Valido')->sum('monto');
+        $saldoPendiente = max(0.0, $montoTotal - $totalAbonado);
+
+        $this->pagosHistorial = $pagos;
+        $this->resumenFinanciero = [
+            'monto_total' => $montoTotal,
+            'total_abonado' => $totalAbonado,
+            'saldo_pendiente' => $saldoPendiente,
+            'numero_contrato' => $this->contratoHistorial->numero_contrato,
+            'codigo_evento' => $this->contratoHistorial->evento?->codigo_evento ?? 'S/E',
+            'estado_contrato' => $this->contratoHistorial->estado,
+            'codigo_verificacion' => $this->contratoHistorial->codigo_verificacion,
+            'cliente_id' => $this->contratoHistorial->cliente_id,
+        ];
+
+        $this->registrarAuditoria(
+            'Gestión Comercial',
+            'Consultar Pagos de Contrato',
+            "Se consultó el historial de pagos y contrato N° {$this->contratoHistorial->numero_contrato} (Evento: {$this->resumenFinanciero['codigo_evento']}, Cliente: " . ($this->contratoHistorial->cliente->nombre_completo ?? 'N/A') . ")"
+        );
+
+        $this->modalHistorialPagosOpen = true;
+    }
+
+    public function cerrarHistorialPagos()
+    {
+        $this->modalHistorialPagosOpen = false;
+        $this->contratoHistorial = null;
+        $this->pagosHistorial = [];
+        $this->resumenFinanciero = [];
     }
 
     public function render()

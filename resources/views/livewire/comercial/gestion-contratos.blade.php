@@ -70,12 +70,39 @@
                     @forelse($contratos as $ctr)
                         <tr class="hover:bg-slate-800/30 transition-all">
                             <td class="py-3.5 px-4">
-                                <span class="font-mono font-extrabold text-gold-400">{{ $ctr->numero_contrato }}</span>
+                                <a href="{{ route('admin.contratos.pdf', $ctr->codigo_verificacion) }}" target="_blank"
+                                   class="font-mono font-extrabold text-gold-400 hover:text-gold-300 transition-colors inline-block"
+                                   title="Ver Contrato Oficial en PDF con QR">
+                                    {{ $ctr->numero_contrato }}
+                                </a>
                             </td>
                             <td class="py-3.5 px-4">
-                                <div class="font-bold text-white">{{ $ctr->cliente->nombre_completo ?? 'N/A' }}</div>
-                                <div class="text-xs text-slate-400 font-mono">{{ $ctr->evento->codigo_evento ?? '' }}
-                                    &bull; {{ $ctr->servicio->nombre ?? '' }}</div>
+                                @php
+                                    $clienteIdCtr = $ctr->cliente_id;
+                                    $clienteTokenCtr = $clienteIdCtr ? \App\Services\Security\DocumentToken::encodeId($clienteIdCtr, 'cliente') : null;
+                                    $ctrTokenCtr = \App\Services\Security\DocumentToken::encodeId($ctr->id, 'contrato');
+                                @endphp
+                                @if($clienteTokenCtr)
+                                    <a href="{{ route('admin.clientes.historial-contratos.pdf', $clienteTokenCtr) }}" target="_blank"
+                                       class="font-bold text-white hover:text-gold-400 transition-colors inline-block"
+                                       title="Ver Historial de Contratos y Eventos del Cliente en PDF con QR">
+                                        {{ $ctr->cliente->nombre_completo ?? 'N/A' }}
+                                    </a>
+                                @else
+                                    <div class="font-bold text-white">{{ $ctr->cliente->nombre_completo ?? 'N/A' }}</div>
+                                @endif
+                                <div class="text-xs text-slate-400 font-mono mt-0.5">
+                                    @if($clienteTokenCtr && $ctr->evento)
+                                        <a href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $clienteTokenCtr, 'contrato' => $ctrTokenCtr, 'tipo' => 'contrato']) }}" target="_blank"
+                                           class="text-gold-400/80 hover:text-gold-300 transition-colors"
+                                           title="Ver Pagos de este Evento en PDF con QR">
+                                            {{ $ctr->evento->codigo_evento }}
+                                        </a>
+                                    @else
+                                        <span>{{ $ctr->evento->codigo_evento ?? '' }}</span>
+                                    @endif
+                                    &bull; {{ $ctr->servicio->nombre ?? '' }}
+                                </div>
                             </td>
                             <td class="py-3.5 px-4 font-mono text-xs">
                                 <div class="font-bold text-white">{{ $ctr->fecha_contrato->format('d/m/Y') }}</div>
@@ -101,14 +128,39 @@
                                     {{ $ctr->estado }}
                                 </span>
                             </td>
-                            <td class="py-3.5 px-4 text-right space-x-1">
+                            <td class="py-3.5 px-4 text-right space-x-1 whitespace-nowrap">
+                                <!-- Ver Contrato Oficial en PDF -->
                                 <a href="{{ route('admin.contratos.pdf', $ctr->codigo_verificacion) }}" target="_blank"
-                                    class="p-2 rounded-lg bg-rose-600/20 text-rose-400 hover:text-white hover:bg-rose-600 transition-all inline-block"
-                                    title="Imprimir Contrato PDF">
-                                    <i class="fa-solid fa-file-pdf"></i>
+                                    class="p-2 rounded-lg bg-rose-600/20 text-rose-400 hover:text-white hover:bg-rose-600 transition-all inline-block shadow-sm"
+                                    title="Ver Contrato Oficial en PDF con Cláusulas y QR">
+                                    <i class="fa-solid fa-file-contract"></i>
                                 </a>
+
+                                <!-- Ver Pagos del Evento en Modal Interactivo -->
+                                <button wire:click="abrirHistorialPagos({{ $ctr->id }})"
+                                    class="p-2 rounded-lg bg-gold-500/10 text-gold-400 hover:text-slate-950 hover:bg-gold-500 border border-gold-500/20 transition-all inline-block shadow-sm"
+                                    title="Ver Pagos del Cliente y Contrato por Evento">
+                                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                                </button>
+
+                                <!-- Ver Extracto de Pagos del Contrato/Evento en PDF con QR -->
+                                @if($clienteTokenCtr)
+                                    <a href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $clienteTokenCtr, 'contrato' => $ctrTokenCtr, 'tipo' => 'contrato']) }}" target="_blank"
+                                        class="p-2 rounded-lg bg-slate-800 text-amber-400 hover:text-white hover:bg-amber-600 transition-all inline-block shadow-sm"
+                                        title="Descargar Extracto de Pagos de este Evento/Contrato en PDF con QR">
+                                        <i class="fa-solid fa-file-pdf"></i>
+                                    </a>
+
+                                    <!-- Ver Historial de Contratos y Pagos del Cliente por Evento en PDF -->
+                                    <a href="{{ route('admin.clientes.historial-contratos.pdf', $clienteTokenCtr) }}" target="_blank"
+                                        class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:text-white hover:bg-emerald-600 border border-emerald-500/20 transition-all inline-block shadow-sm"
+                                        title="Ver Historial de Contratos y Eventos del Cliente en PDF con QR">
+                                        <i class="fa-solid fa-clock-rotate-left"></i>
+                                    </a>
+                                @endif
+
                                 <button wire:click="editar({{ $ctr->id }})"
-                                    class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-all"
+                                    class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-all inline-block"
                                     title="Editar Contrato">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
@@ -399,6 +451,283 @@
                         class="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500">
                         {{ $isEdit ? 'Actualizar Contrato' : 'Guardar Contrato' }}
                     </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal Historial de Pagos y Contrato por Evento -->
+    @if ($modalHistorialPagosOpen && $contratoHistorial)
+        @php
+            $cTokenModal = $contratoHistorial->cliente_id ? \App\Services\Security\DocumentToken::encodeId($contratoHistorial->cliente_id, 'cliente') : null;
+            $ctrTokenModal = \App\Services\Security\DocumentToken::encodeId($contratoHistorial->id, 'contrato');
+        @endphp
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+            <div class="bg-brand-card border border-brand-border rounded-3xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+                <!-- Header -->
+                <div class="flex items-center justify-between border-b border-brand-border px-6 py-4 shrink-0 bg-slate-950/60">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-gold-400 text-lg shadow-sm">
+                            <i class="fa-solid fa-file-contract"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="text-lg font-bold text-white">Contrato y Pagos del Evento</h3>
+                                <span class="font-mono font-extrabold text-gold-400 bg-gold-500/10 border border-gold-500/20 px-2 py-0.5 rounded-md text-xs">
+                                    {{ $contratoHistorial->numero_contrato }}
+                                </span>
+                                @if($contratoHistorial->evento)
+                                    <span class="font-mono font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-md text-xs">
+                                        <i class="fa-solid fa-calendar-day mr-1"></i>{{ $contratoHistorial->evento->codigo_evento }}
+                                    </span>
+                                @endif
+                                <span class="px-2 py-0.5 rounded-md text-[11px] font-bold 
+                                    @if ($contratoHistorial->estado === 'Confirmado' || $contratoHistorial->estado === 'Realizado' || $contratoHistorial->estado === 'Finalizado') bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
+                                    @elseif($contratoHistorial->estado === 'Pendiente de Confirmacion' || $contratoHistorial->estado === 'En Ejecucion') bg-amber-500/10 text-amber-400 border border-amber-500/20
+                                    @elseif($contratoHistorial->estado === 'Cancelado') bg-rose-500/10 text-rose-400 border border-rose-500/20
+                                    @else bg-slate-800 text-slate-300 border border-slate-700 @endif">
+                                    {{ $contratoHistorial->estado }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 flex items-center gap-2 mt-1 flex-wrap">
+                                <span><i class="fa-solid fa-user text-slate-500 mr-1"></i>{{ $contratoHistorial->cliente->nombre_completo ?? 'Cliente N/A' }}</span>
+                                <span class="text-slate-600">•</span>
+                                <span><i class="fa-solid fa-music text-slate-500 mr-1"></i>{{ $contratoHistorial->servicio->nombre ?? 'Servicio General' }}</span>
+                                @if($contratoHistorial->evento && $contratoHistorial->evento->lugar)
+                                    <span class="text-slate-600">•</span>
+                                    <span><i class="fa-solid fa-location-dot text-slate-500 mr-1"></i>{{ $contratoHistorial->evento->lugar }}</span>
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <!-- Ver Contrato Oficial en PDF con QR -->
+                        <a href="{{ route('admin.contratos.pdf', $contratoHistorial->codigo_verificacion) }}" 
+                           target="_blank"
+                           class="hidden sm:inline-flex px-3 py-1.5 rounded-xl bg-rose-600/10 hover:bg-rose-600 text-rose-400 hover:text-white font-bold text-xs border border-rose-500/20 transition-all items-center gap-1.5 shadow-sm" 
+                           title="Ver Contrato Oficial en PDF con Cláusulas y QR">
+                            <i class="fa-solid fa-file-contract"></i>
+                            <span>Contrato PDF</span>
+                        </a>
+
+                        @if($cTokenModal)
+                            <a href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $cTokenModal, 'contrato' => $ctrTokenModal, 'tipo' => 'contrato']) }}" 
+                               target="_blank"
+                               class="hidden sm:inline-flex px-3 py-1.5 rounded-xl bg-gold-500/10 hover:bg-gold-500 text-gold-400 hover:text-slate-950 font-bold text-xs border border-gold-500/20 transition-all items-center gap-1.5 shadow-sm" 
+                               title="Ver Extracto de Pagos en PDF con QR">
+                                <i class="fa-solid fa-file-pdf"></i>
+                                <span>Extracto PDF</span>
+                            </a>
+                        @endif
+
+                        <button wire:click="cerrarHistorialPagos" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors text-lg" title="Cerrar">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Body (Scrollable) -->
+                <div class="overflow-y-auto p-6 space-y-6">
+                    <!-- Tarjetas de Resumen Financiero -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <!-- Total Contratado -->
+                        <div class="bg-slate-900/90 border border-brand-border rounded-2xl p-4 flex items-center gap-3.5">
+                            <div class="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-lg shrink-0">
+                                <i class="fa-solid fa-handshake"></i>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Monto Contratado</span>
+                                <span class="text-lg font-extrabold font-mono text-white">
+                                    Bs {{ number_format($resumenFinanciero['monto_total'], 2) }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Total Abonado -->
+                        <div class="bg-slate-900/90 border border-brand-border rounded-2xl p-4 flex items-center gap-3.5">
+                            <div class="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg shrink-0">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Total Abonado</span>
+                                <span class="text-lg font-extrabold font-mono text-emerald-400">
+                                    Bs {{ number_format($resumenFinanciero['total_abonado'], 2) }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Saldo Pendiente -->
+                        <div class="bg-slate-900/90 border border-brand-border rounded-2xl p-4 flex items-center gap-3.5">
+                            <div class="w-11 h-11 rounded-xl {{ $resumenFinanciero['saldo_pendiente'] > 0 ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' }} border flex items-center justify-center text-lg shrink-0">
+                                <i class="fa-solid {{ $resumenFinanciero['saldo_pendiente'] > 0 ? 'fa-hourglass-half' : 'fa-check-double' }}"></i>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Saldo Pendiente</span>
+                                <span class="text-lg font-extrabold font-mono {{ $resumenFinanciero['saldo_pendiente'] > 0 ? 'text-rose-400' : 'text-emerald-400' }}">
+                                    Bs {{ number_format($resumenFinanciero['saldo_pendiente'], 2) }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Datos del Evento y Contrato Vinculado -->
+                    <div class="bg-slate-900/60 rounded-2xl border border-brand-border p-4 text-xs grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Fecha del Evento</span>
+                            <div class="font-bold text-white font-mono flex items-center gap-1.5">
+                                <i class="fa-solid fa-calendar-check text-gold-400"></i>
+                                @if($contratoHistorial->evento)
+                                    {{ $contratoHistorial->evento->fecha_evento ? $contratoHistorial->evento->fecha_evento->format('d/m/Y') : '-' }} 
+                                    ({{ $contratoHistorial->evento->hora_inicio ? \Carbon\Carbon::parse($contratoHistorial->evento->hora_inicio)->format('H:i') : '' }})
+                                @else
+                                    <span class="text-slate-400">Sin evento asignado</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Lugar / Ubicación</span>
+                            <div class="font-medium text-slate-200 truncate" title="{{ $contratoHistorial->evento->lugar ?? 'N/A' }}">
+                                <i class="fa-solid fa-map-pin text-rose-400 mr-1"></i>
+                                {{ $contratoHistorial->evento->lugar ?? 'No especificado' }}
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Fecha Firma Contrato</span>
+                            <div class="font-bold text-slate-200 font-mono flex items-center gap-1.5">
+                                <i class="fa-solid fa-signature text-emerald-400"></i>
+                                {{ $contratoHistorial->fecha_contrato ? $contratoHistorial->fecha_contrato->format('d/m/Y') : '-' }} {{ $contratoHistorial->hora_contrato }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Historial de Pagos del Evento -->
+                    <div class="bg-slate-950/60 rounded-2xl border border-brand-border overflow-hidden">
+                        <div class="px-4 py-3 bg-slate-900/70 border-b border-brand-border flex items-center justify-between">
+                            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-list-check text-gold-400"></i>
+                                <span>Pagos Registrados para este Evento ({{ count($pagosHistorial) }})</span>
+                            </h4>
+                            <span class="text-[11px] text-slate-400">
+                                Pagos anulados no suman al saldo
+                            </span>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-950/90 border-b border-brand-border text-slate-400 uppercase tracking-wider text-[11px]">
+                                        <th class="py-2.5 px-3 font-bold">N° Recibo</th>
+                                        <th class="py-2.5 px-3 font-bold">Fecha / Hora</th>
+                                        <th class="py-2.5 px-3 font-bold">Detalle / Concepto</th>
+                                        <th class="py-2.5 px-3 font-bold text-right">Importe (Bs)</th>
+                                        <th class="py-2.5 px-3 font-bold text-center">Método</th>
+                                        <th class="py-2.5 px-3 font-bold">Cobró</th>
+                                        <th class="py-2.5 px-3 font-bold text-center">Estado</th>
+                                        <th class="py-2.5 px-3 font-bold text-right">Recibo</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-brand-border/40 text-slate-300">
+                                    @forelse($pagosHistorial as $pago)
+                                        <tr class="hover:bg-slate-800/25 transition-all {{ $pago->estado === 'Anulado' ? 'opacity-60 bg-rose-950/10' : '' }}">
+                                            <td class="py-2.5 px-3 font-mono font-bold text-gold-400">
+                                                {{ $pago->numero_recibo }}
+                                            </td>
+                                            <td class="py-2.5 px-3 font-mono">
+                                                <div>{{ $pago->fecha_pago ? $pago->fecha_pago->format('d/m/Y') : '-' }}</div>
+                                                <div class="text-[10px] text-slate-400">{{ $pago->fecha_pago ? $pago->fecha_pago->format('H:i') : '' }}</div>
+                                            </td>
+                                            <td class="py-2.5 px-3 max-w-xs truncate" title="{{ $pago->observaciones }}">
+                                                {{ $pago->observaciones ?: 'Cobranza / Abono del servicio' }}
+                                            </td>
+                                            <td class="py-2.5 px-3 text-right font-mono font-bold {{ $pago->estado === 'Anulado' ? 'text-slate-400 line-through' : 'text-emerald-400' }}">
+                                                Bs {{ number_format($pago->monto, 2) }}
+                                            </td>
+                                            <td class="py-2.5 px-3 text-center">
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-200">
+                                                    {{ $pago->metodo_pago }}
+                                                </span>
+                                            </td>
+                                            <td class="py-2.5 px-3 text-slate-300">
+                                                {{ $pago->user->name ?? 'Sistema' }}
+                                            </td>
+                                            <td class="py-2.5 px-3 text-center">
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ $pago->estado === 'Valido' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20' }}">
+                                                    {{ $pago->estado }}
+                                                </span>
+                                            </td>
+                                            <td class="py-2.5 px-3 text-right whitespace-nowrap">
+                                                <a href="{{ route('comercial.pagos.recibo', $pago->codigo_verificacion) }}" target="_blank"
+                                                    class="p-1.5 rounded-lg bg-gold-500/10 text-gold-400 hover:text-slate-950 hover:bg-gold-500 border border-gold-500/20 transition-all inline-block"
+                                                    title="Ver / Imprimir Recibo Web">
+                                                    <i class="fa-solid fa-print"></i>
+                                                </a>
+                                                <a href="{{ route('comercial.pagos.pdf', $pago->codigo_verificacion) }}" target="_blank"
+                                                    class="p-1.5 rounded-lg bg-rose-600/10 text-rose-400 hover:text-white hover:bg-rose-600 border border-rose-500/20 transition-all inline-block"
+                                                    title="Descargar Recibo en PDF">
+                                                    <i class="fa-solid fa-file-pdf"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center py-8 text-slate-500">
+                                                <i class="fa-solid fa-receipt text-2xl text-slate-600 mb-2 block"></i>
+                                                No se registran pagos asociados a este contrato o evento.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-brand-border px-6 py-4 shrink-0 bg-slate-950/60">
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <!-- Ver Contrato Oficial PDF con QR -->
+                        <a href="{{ route('admin.contratos.pdf', $contratoHistorial->codigo_verificacion) }}" 
+                           target="_blank"
+                           class="px-3.5 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                           title="Ver Contrato Oficial en formato PDF con cláusulas legales y código QR">
+                            <i class="fa-solid fa-file-contract text-sm"></i>
+                            <span>Ver Contrato en PDF</span>
+                        </a>
+
+                        @if($cTokenModal)
+                            <!-- Botón: Ver Extracto de Pagos en PDF -->
+                            <a href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $cTokenModal, 'contrato' => $ctrTokenModal, 'tipo' => 'contrato']) }}" 
+                               target="_blank"
+                               class="px-4 py-2 rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-md hover:shadow-gold-500/20 transition-all cursor-pointer"
+                               title="Ver Extracto de Pagos del Contrato {{ $contratoHistorial->numero_contrato }} en formato PDF oficial con QR">
+                                <i class="fa-solid fa-file-pdf text-sm text-slate-950"></i>
+                                <span>Extracto de Pagos en PDF</span>
+                            </a>
+
+                            <!-- Historial de Contratos del Cliente en PDF -->
+                            <a href="{{ route('admin.clientes.historial-contratos.pdf', $cTokenModal) }}" 
+                               target="_blank"
+                               class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-white border border-emerald-500/20 font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                               title="Ver Historial de Todos los Contratos y Eventos del Cliente en PDF con QR">
+                                <i class="fa-solid fa-clock-rotate-left text-xs"></i>
+                                <span>Historial del Cliente (PDF)</span>
+                            </a>
+
+                            <!-- Enlace a Vista Web Completa -->
+                            <a href="{{ route('admin.clientes.estado-cuenta', ['token' => $cTokenModal, 'contrato' => $ctrTokenModal]) }}" 
+                               class="text-xs font-bold text-slate-400 hover:text-gold-300 flex items-center gap-1.5 underline decoration-slate-600 hover:decoration-gold-400 transition-colors ml-1"
+                               title="Ver Estado de Cuenta interactivo en el sistema">
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                <span>Estado de Cuenta Web</span>
+                            </a>
+                        @endif
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button wire:click="cerrarHistorialPagos"
+                            class="px-5 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-all">
+                            Cerrar
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
