@@ -24,10 +24,16 @@
                 </div>
             </div>
             @if($ultimoRecibo)
-                <a href="{{ route('comercial.pagos.pdf', $ultimoRecibo['id']) }}" target="_blank" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all">
-                    <i class="fa-solid fa-file-pdf text-red-800 text-sm"></i>
-                    <span>Descargar Recibo {{ $ultimoRecibo['numero'] }}</span>
-                </a>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('comercial.pagos.recibo', $ultimoRecibo['id']) }}" target="_blank" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all">
+                        <i class="fa-solid fa-print"></i>
+                        <span>Imprimir Recibo {{ $ultimoRecibo['numero'] }}</span>
+                    </a>
+                    <a href="{{ route('comercial.pagos.pdf', $ultimoRecibo['id']) }}" target="_blank" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 hover:text-white font-bold text-xs flex items-center gap-1.5 border border-slate-700 transition-all">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>PDF</span>
+                    </a>
+                </div>
             @endif
         </div>
     @endif
@@ -137,6 +143,13 @@
                             </td>
                             <td class="py-3.5 px-4 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
+                                    <!-- Ver e Imprimir Recibo Cuarto Oficio -->
+                                    <a href="{{ route('comercial.pagos.recibo', $p->id) }}" target="_blank"
+                                       class="p-2 rounded-lg bg-slate-800 text-amber-400 hover:text-slate-950 hover:bg-amber-400 transition-all shadow"
+                                       title="Ver e Imprimir Recibo Oficial (Cuarto Oficio)">
+                                        <i class="fa-solid fa-print"></i>
+                                    </a>
+
                                     <!-- Descargar Recibo Oficial PDF con QR -->
                                     <a href="{{ route('comercial.pagos.pdf', $p->id) }}" target="_blank"
                                        class="p-2 rounded-lg bg-slate-800 text-rose-400 hover:text-white hover:bg-rose-600 transition-all shadow"

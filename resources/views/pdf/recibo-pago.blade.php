@@ -5,296 +5,373 @@
     <title>Recibo de Cobranza - {{ $pago->numero_recibo }}</title>
     <style>
         @page {
-            size: letter portrait;
-            margin: 1.2cm 1.4cm 1.4cm 1.4cm;
+            size: 216mm 140mm landscape;
+            margin: 5mm 8mm 4mm 8mm;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
-            font-size: 8.5pt;
-            color: #0f172a;
-            line-height: 1.4;
+            font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif;
+            font-size: 7.2pt;
+            color: #102846;
+            line-height: 1.25;
             margin: 0;
             padding: 0;
+            background-color: #FFFFFF;
         }
 
         .watermark-anulado {
             position: fixed;
-            top: 30%;
-            left: 10%;
-            width: 80%;
+            top: 25%;
+            left: 15%;
+            width: 70%;
             text-align: center;
-            font-size: 55pt;
+            font-size: 42pt;
             font-weight: 900;
-            color: rgba(220, 38, 38, 0.16);
-            transform: rotate(-30deg);
+            color: rgba(169, 35, 35, 0.16);
+            transform: rotate(-22deg);
             z-index: -1000;
             text-transform: uppercase;
-            letter-spacing: 6px;
+            letter-spacing: 5px;
         }
 
-        .page-footer {
-            position: fixed;
-            bottom: -1.0cm;
-            left: 0;
-            right: 0;
-            height: 0.8cm;
-            font-size: 7pt;
-            color: #475569;
-            border-top: 1.5px solid #d97706;
-            padding-top: 5px;
-        }
-
-        .footer-table {
+        /* Header Table */
+        .header-table {
             width: 100%;
             border-collapse: collapse;
+            margin-bottom: 4px;
         }
 
-        .top-header-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 8px;
-        }
-
-        .logo-col {
-            width: 22%;
+        .header-logo-col {
+            width: 18%;
             vertical-align: middle;
             text-align: left;
         }
 
-        .logo-col img {
-            max-width: 110px;
-            max-height: 80px;
+        .header-logo-col img {
+            max-width: 95px;
+            max-height: 48px;
             object-fit: contain;
         }
 
-        .title-col {
-            width: 53%;
+        .header-title-col {
+            width: 58%;
             vertical-align: middle;
             text-align: center;
+            padding: 0 4px;
         }
 
-        .receipt-badge-col {
-            width: 25%;
+        .header-brand {
+            font-size: 11pt;
+            font-weight: 900;
+            color: #102846;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .header-slogan {
+            font-size: 6.2pt;
+            font-weight: bold;
+            color: #C99A2E;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-top: 1px;
+            font-style: italic;
+        }
+
+        .header-doc-title {
+            font-size: 9.5pt;
+            font-weight: 800;
+            color: #102846;
+            text-transform: uppercase;
+            margin-top: 2px;
+            letter-spacing: 0.5px;
+            border-bottom: 1.5px solid #C99A2E;
+            display: inline-block;
+            padding-bottom: 1px;
+        }
+
+        .header-badge-col {
+            width: 24%;
             vertical-align: middle;
             text-align: right;
         }
 
-        .receipt-number-card {
-            border: 2px solid #0b1a30;
-            border-radius: 6px;
-            background-color: #f8fafc;
-            padding: 6px 8px;
+        .receipt-card {
+            border: 1.5px solid #C99A2E;
+            border-radius: 4px;
+            background-color: #E7ECF2;
+            padding: 3px 6px;
             text-align: center;
         }
 
-        .receipt-number-card .label {
-            font-size: 7.5pt;
+        .receipt-card-label {
+            font-size: 6.2pt;
             font-weight: bold;
-            color: #475569;
+            color: #102846;
             text-transform: uppercase;
         }
 
-        .receipt-number-card .value {
-            font-size: 11pt;
-            font-weight: 800;
-            color: #b45309;
-            margin-top: 2px;
+        .receipt-card-number {
+            font-size: 9.5pt;
+            font-weight: 900;
+            color: #102846;
+            letter-spacing: 0.5px;
         }
 
         .badge-status {
             display: inline-block;
-            margin-top: 4px;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 7.5pt;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 6pt;
             font-weight: bold;
             text-transform: uppercase;
+            margin-top: 1px;
         }
 
         .badge-valido {
             background-color: #dcfce7;
-            color: #15803d;
-            border: 1px solid #86efac;
+            color: #26733A;
+            border: 1px solid #26733A;
         }
 
         .badge-anulado {
             background-color: #fee2e2;
-            color: #b91c1c;
-            border: 1px solid #fca5a5;
+            color: #A92323;
+            border: 1px solid #A92323;
         }
 
-        .main-brand-name {
-            font-size: 14pt;
-            font-weight: 800;
-            color: #0b1329;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        /* Resumen Monto Destacado */
+        .amount-card {
+            background-color: #F8FAFC;
+            border: 1.5px solid #C99A2E;
+            border-left: 5px solid #102846;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin-bottom: 4px;
         }
 
-        .main-sub-title {
-            font-size: 8pt;
+        .amount-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .amount-label {
+            font-size: 6.2pt;
             font-weight: bold;
-            color: #1e293b;
+            color: #64748b;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
+        }
+
+        .amount-value {
+            font-size: 13.5pt;
+            font-weight: 900;
+            color: #102846;
+        }
+
+        .amount-literal {
+            font-size: 6.8pt;
+            font-weight: bold;
+            color: #C99A2E;
+            text-transform: uppercase;
             margin-top: 1px;
         }
 
-        .doc-type-title {
-            font-size: 11.5pt;
-            font-weight: 800;
-            color: #d97706;
+        .meta-pill {
+            display: inline-block;
+            background-color: #E7ECF2;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 6.5pt;
+            font-weight: bold;
+            color: #102846;
+        }
+
+        /* 2-Column Info Grid */
+        .info-grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 4px;
+        }
+
+        .col-half {
+            width: 50%;
+            vertical-align: top;
+        }
+
+        .col-half-left {
+            padding-right: 3px;
+        }
+
+        .col-half-right {
+            padding-left: 3px;
+        }
+
+        .section-header {
+            background-color: #102846;
+            color: #FFFFFF;
+            font-size: 6.5pt;
+            font-weight: bold;
             text-transform: uppercase;
-            margin-top: 3px;
-            letter-spacing: 0.5px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            letter-spacing: 0.4px;
+            border-left: 3px solid #C99A2E;
+            margin-bottom: 2px;
         }
 
-        .gold-line-container {
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 3px;
+            font-size: 6.8pt;
+        }
+
+        .detail-table td {
+            padding: 2px 4px;
+            border: 1px solid #cbd5e1;
+            vertical-align: top;
+        }
+
+        .label-cell {
+            background-color: #E7ECF2;
+            font-weight: bold;
+            color: #102846;
+            width: 32%;
+        }
+
+        .value-cell {
+            color: #0f172a;
+            width: 68%;
+        }
+
+        /* Balance del Contrato (3 Bloques Horizontales) */
+        .balance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 4px;
+        }
+
+        .balance-table td {
+            width: 33.33%;
             text-align: center;
-            margin: 4px auto 8px auto;
-            width: 90%;
+            padding: 3px 2px;
+            border: 1px solid #cbd5e1;
+            background-color: #F8FAFC;
         }
 
-        .gold-line-table {
+        .balance-label {
+            font-size: 6pt;
+            font-weight: bold;
+            color: #102846;
+            text-transform: uppercase;
+        }
+
+        .balance-val {
+            font-size: 9pt;
+            font-weight: 900;
+            margin-top: 1px;
+        }
+
+        .val-total { color: #102846; }
+        .val-pagado { color: #26733A; }
+        .val-saldo { color: #A92323; }
+
+        /* Firmas & QR Table */
+        .bottom-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2px;
+        }
+
+        .signatures-col {
+            width: 68%;
+            vertical-align: bottom;
+            padding-right: 8px;
+        }
+
+        .qr-col {
+            width: 32%;
+            vertical-align: middle;
+            text-align: right;
+        }
+
+        .sig-table {
             width: 100%;
             border-collapse: collapse;
         }
 
-        .gold-line-table td {
+        .sig-table td {
+            width: 50%;
+            vertical-align: bottom;
+            text-align: center;
+            padding: 0 8px;
+        }
+
+        .sig-line {
+            border-bottom: 1px solid #102846;
+            height: 22px;
+            margin-bottom: 2px;
+        }
+
+        .sig-title {
+            font-size: 6.2pt;
+            font-weight: bold;
+            color: #102846;
+            text-transform: uppercase;
+        }
+
+        .sig-name {
+            font-size: 5.8pt;
+            color: #475569;
+        }
+
+        /* QR & Anti-fraude Box */
+        .security-box {
+            display: inline-block;
+            border: 1px solid #cbd5e1;
+            border-radius: 3px;
+            background-color: #FFFFFF;
+            padding: 2px 4px;
+            text-align: left;
+            width: 100%;
+        }
+
+        .sec-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .sec-text-td {
+            vertical-align: middle;
+            font-size: 5.4pt;
+            color: #475569;
+            line-height: 1.2;
+            padding-right: 4px;
+        }
+
+        .sec-qr-td {
+            width: 58px;
+            text-align: center;
             vertical-align: middle;
         }
 
-        .gold-line-hr {
-            border-top: 1px solid #d97706;
-            width: 100%;
+        .sec-qr-td img {
+            width: 54px;
+            height: 54px;
         }
 
-        .gold-line-diamond {
-            color: #d97706;
-            font-size: 8pt;
-            padding: 0 6px;
-        }
-
-        .section-banner {
-            background-color: #0b1a30;
-            color: #ffffff;
-            font-size: 8pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            padding: 3px 8px;
-            border-radius: 3px;
-            margin-top: 8px;
-            margin-bottom: 5px;
-            letter-spacing: 0.5px;
-            border-left: 4px solid #d97706;
-            page-break-inside: avoid;
-        }
-
-        .info-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 6px;
-            font-size: 7.8pt;
-        }
-
-        .info-table td {
-            padding: 3.5px 6px;
-            border: 1px solid #cbd5e1;
-            vertical-align: top;
-        }
-
-        .info-label {
-            font-weight: bold;
-            color: #0b1a30;
-            width: 25%;
-            background-color: #f8fafc;
-        }
-
-        .amount-highlight-box {
-            background: #fffbeb;
-            border: 1.5px solid #d97706;
-            border-radius: 5px;
-            padding: 8px 12px;
-            margin: 8px 0;
-        }
-
-        .amount-number-row {
-            font-size: 16pt;
-            font-weight: 900;
-            color: #0b1a30;
-        }
-
-        .amount-literal-row {
-            font-size: 8pt;
-            font-weight: bold;
-            color: #92400e;
-            text-transform: uppercase;
-            margin-top: 2px;
-        }
-
-        .econ-box-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 4px;
-            margin-bottom: 8px;
-        }
-
-        .econ-box-table td {
-            width: 33.33%;
-            text-align: center;
-            padding: 6px 4px;
-            border: 1px solid #cbd5e1;
-            background-color: #f8fafc;
-        }
-
-        .econ-label {
-            font-size: 7pt;
-            font-weight: bold;
-            color: #0b1a30;
-            text-transform: uppercase;
-        }
-
-        .econ-val {
-            font-size: 10pt;
-            font-weight: 800;
-            margin-top: 2px;
-        }
-
-        .alert-anulado-box {
-            background-color: #fef2f2;
-            border: 1.5px solid #ef4444;
-            border-radius: 4px;
-            padding: 6px 10px;
-            margin-bottom: 8px;
-            color: #991b1b;
-            font-size: 7.8pt;
-        }
-
-        .signatures-grid {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 30px;
-            page-break-inside: avoid;
-        }
-
-        .signatures-grid td {
-            width: 50%;
-            vertical-align: top;
-            padding: 0 25px;
-        }
-
-        .sig-line-td {
-            border-bottom: 1px solid #0f172a;
-            height: 35px;
-        }
-
-        .sig-subtext {
-            text-align: center;
-            font-size: 7.5pt;
-            color: #0f172a;
+        /* Footer */
+        .footer-bar {
+            border-top: 1px solid #C99A2E;
+            padding-top: 2px;
             margin-top: 3px;
-            font-weight: bold;
+            font-size: 5.5pt;
+            color: #64748b;
+            text-align: center;
         }
     </style>
 </head>
@@ -304,57 +381,27 @@
         <div class="watermark-anulado">ANULADO</div>
     @endif
 
-    <!-- Fixed Footer -->
-    <div class="page-footer">
-        <table class="footer-table">
-            <tr>
-                <td style="width: 50%; text-align: left;">
-                    <div style="font-weight: bold; color: #0f172a;">{{ $empresa->nombre_comercial }}</div>
-                    <div>Comprobante Oficial de Ingreso / Cobranza Electrónica</div>
-                </td>
-                <td style="width: 25%; text-align: center;">
-                    <div style="font-weight: bold; color: #334155;">Recibo: {{ $pago->numero_recibo }}</div>
-                    <div>Fecha Impresión: {{ $fechaImpresion }}</div>
-                </td>
-                <td style="width: 25%; text-align: right; font-weight: bold; color: #0f172a;">
-                    <!-- DomPDF Inyectado -->
-                </td>
-            </tr>
-        </table>
-    </div>
-
-    <!-- DomPDF Script -->
-    <script type="text/php">
-        if (isset($pdf)) {
-            $text = "Página {PAGE_NUM} de {PAGE_COUNT}";
-            $font = $fontMetrics->get_font("DejaVu Sans", "bold");
-            $size = 7;
-            $color = array(0.06, 0.09, 0.16);
-            $pdf->page_text(495, 756, $text, $font, $size, $color);
-        }
-    </script>
-
-    <!-- Top Header Table -->
-    <table class="top-header-table">
+    <!-- Header Section -->
+    <table class="header-table">
         <tr>
-            <td class="logo-col">
+            <td class="header-logo-col">
                 @if($logoBase64)
-                    <img src="{{ $logoBase64 }}" alt="Logo">
+                    <img src="{{ $logoBase64 }}" alt="Logo Mariachi León">
                 @else
-                    <div style="width: 65px; height: 65px; border-radius: 50%; border: 2px solid #d97706; background-color: #0b1329; text-align: center; line-height: 1.2; padding-top: 12px; color: #f59e0b; font-weight: 900; font-size: 8pt;">
-                        LEÓN<br><span style="color: #ffffff; font-size: 4pt; letter-spacing: 1px;">GUANAJUATO</span>
+                    <div style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #C99A2E; background-color: #102846; text-align: center; line-height: 1.1; padding-top: 10px; color: #C99A2E; font-weight: 900; font-size: 7pt;">
+                        LEÓN<br><span style="color: #ffffff; font-size: 3.5pt; letter-spacing: 0.5px;">GUANAJUATO</span>
                     </div>
                 @endif
             </td>
-            <td class="title-col">
-                <div class="main-brand-name">{{ $empresa->nombre_comercial }}</div>
-                <div class="main-sub-title">EXCELENCIA Y VIRTUISISMO MUSICAL EN CADA PRESENTACIÓN</div>
-                <div class="doc-type-title">RECIBO DE COBRANZA Y PAGO</div>
+            <td class="header-title-col">
+                <div class="header-brand">{{ $empresa->razon_social ?: 'MARIACHI LEÓN GUANAJUATO S.R.L.' }}</div>
+                <div class="header-slogan">"Excelencia y virtuosismo musical en cada presentación"</div>
+                <div class="header-doc-title">RECIBO DE COBRANZA Y PAGO</div>
             </td>
-            <td class="receipt-badge-col">
-                <div class="receipt-number-card">
-                    <div class="label">N° RECIBO</div>
-                    <div class="value">{{ $pago->numero_recibo }}</div>
+            <td class="header-badge-col">
+                <div class="receipt-card">
+                    <div class="receipt-card-label">N° RECIBO</div>
+                    <div class="receipt-card-number">{{ $pago->numero_recibo }}</div>
                     @if($pago->estado === 'Anulado')
                         <div class="badge-status badge-anulado">ANULADO</div>
                     @else
@@ -365,192 +412,191 @@
         </tr>
     </table>
 
-    <!-- Gold Line Divider -->
-    <div class="gold-line-container">
-        <table class="gold-line-table">
+    <!-- Bloque A: Resumen Destacado del Pago -->
+    <div class="amount-card">
+        <table class="amount-table">
             <tr>
-                <td><div class="gold-line-hr"></div></td>
-                <td class="gold-line-diamond">◆</td>
-                <td><div class="gold-line-hr"></div></td>
-            </tr>
-        </table>
-    </div>
-
-    @if($pago->estado === 'Anulado')
-        <div class="alert-anulado-box">
-            <strong>⚠️ ESTE PAGO HA SIDO ANULADO</strong><br>
-            <strong>Fecha de Anulación:</strong> {{ $pago->fecha_anulacion ? $pago->fecha_anulacion->format('d/m/Y H:i:s') : 'N/A' }} | 
-            <strong>Anulado por:</strong> {{ $pago->anuladoPor ? $pago->anuladoPor->name : 'Administrador' }}<br>
-            <strong>Motivo registrado:</strong> {{ $pago->motivo_anulacion ?: 'Sin motivo especificado' }}
-        </div>
-    @endif
-
-    <!-- Monto Destacado -->
-    <div class="amount-highlight-box">
-        <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-                <td style="width: 50%; vertical-align: middle;">
-                    <div style="font-size: 8pt; font-weight: bold; color: #475569; text-transform: uppercase;">MONTO PERCIBIDO:</div>
-                    <div class="amount-number-row">Bs {{ number_format($pago->monto, 2, ',', '.') }}</div>
+                <td style="width: 52%; vertical-align: middle;">
+                    <div class="amount-label">MONTO PERCIBIDO (ACTUAL):</div>
+                    <div class="amount-value">Bs {{ number_format($pago->monto, 2, ',', '.') }}</div>
+                    <div class="amount-literal">SON: {{ $montoLiteral }}</div>
                 </td>
-                <td style="width: 50%; vertical-align: middle; text-align: right;">
-                    <div style="font-size: 7.5pt; color: #475569; font-weight: bold; text-transform: uppercase;">MÉTODO DE PAGO:</div>
-                    <div style="font-size: 11pt; font-weight: 800; color: #0b1a30; text-transform: uppercase;">{{ $pago->metodo_pago }}</div>
+                <td style="width: 48%; vertical-align: middle; text-align: right;">
+                    <div style="margin-bottom: 2px;">
+                        <span class="amount-label">MÉTODO DE PAGO:</span>
+                        <span class="meta-pill">{{ $pago->metodo_pago }}</span>
+                    </div>
                     @if($pago->comprobante_referencia)
-                        <div style="font-size: 7.5pt; color: #64748b;">Ref: {{ $pago->comprobante_referencia }}</div>
+                        <div style="font-size: 6.2pt; color: #475569; margin-bottom: 1px;">
+                            <strong>Ref:</strong> {{ $pago->comprobante_referencia }}
+                        </div>
                     @endif
+                    <div style="font-size: 6.2pt; color: #475569;">
+                        <strong>Fecha Cobro:</strong> {{ $pago->fecha_pago ? $pago->fecha_pago->format('d/m/Y H:i') : $pago->created_at->format('d/m/Y H:i') }}
+                    </div>
                 </td>
             </tr>
         </table>
-        <div class="amount-literal-row">
-            SON: {{ $montoLiteral }}
-        </div>
     </div>
 
-    <!-- 1. Datos de la Empresa Receptora -->
-    <div class="section-banner">1. DATOS DE LA EMPRESA RECEPTORA</div>
-    <table class="info-table">
+    <!-- 2 Columnas de Información: B, C y D -->
+    <table class="info-grid-table">
         <tr>
-            <td class="info-label">Razón Social:</td>
-            <td><strong>{{ $empresa->razon_social ?: $empresa->nombre_comercial }}</strong> (NIT: {{ $empresa->nit_ruc }})</td>
-            <td class="info-label">Teléfonos / WhatsApp:</td>
-            <td>{{ $empresa->telefono_principal }} / {{ $empresa->whatsapp_comercial }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Dirección Fiscal:</td>
-            <td colspan="3">{{ $empresa->direccion_fisica }} &bull; {{ $empresa->ciudad_pais }}</td>
-        </tr>
-    </table>
+            <!-- Columna Izquierda: Empresa y Cliente -->
+            <td class="col-half col-half-left">
+                <!-- B. Empresa Receptora -->
+                <div class="section-header">DATOS DE LA EMPRESA RECEPTORA</div>
+                <table class="detail-table">
+                    <tr>
+                        <td class="label-cell">Razón Social:</td>
+                        <td class="value-cell"><strong>{{ $empresa->razon_social ?: $empresa->nombre_comercial }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">NIT:</td>
+                        <td class="value-cell">{{ $empresa->nit_ruc }} &bull; Tel: {{ $empresa->telefono_principal }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">Dirección:</td>
+                        <td class="value-cell">{{ $empresa->direccion_fisica }} &bull; {{ $empresa->ciudad_pais }}</td>
+                    </tr>
+                </table>
 
-    <!-- 2. Datos del Cliente / Quien Paga -->
-    <div class="section-banner">2. DATOS DEL CLIENTE / PAGADOR</div>
-    <table class="info-table">
-        <tr>
-            <td class="info-label">Cliente / Pagador:</td>
-            <td><strong>{{ $pago->cliente ? $pago->cliente->nombre_completo : 'Cliente Particular' }}</strong></td>
-            <td class="info-label">C.I. / NIT:</td>
-            <td>{{ $pago->cliente ? ($pago->cliente->ci_nit ?: 'Sin documento') : '-' }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Teléfono / WhatsApp:</td>
-            <td>{{ $pago->cliente ? ($pago->cliente->telefono . ' / ' . $pago->cliente->whatsapp) : '-' }}</td>
-            <td class="info-label">Correo Electrónico:</td>
-            <td>{{ $pago->cliente ? ($pago->cliente->email ?: 'Sin correo') : '-' }}</td>
-        </tr>
-    </table>
+                <!-- C. Datos del Cliente -->
+                <div class="section-header">DATOS DEL CLIENTE / PAGADOR</div>
+                <table class="detail-table">
+                    <tr>
+                        <td class="label-cell">Cliente:</td>
+                        <td class="value-cell"><strong>{{ $pago->cliente ? $pago->cliente->nombre_completo : 'Cliente Particular' }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">C.I. / NIT:</td>
+                        <td class="value-cell">{{ $pago->cliente ? ($pago->cliente->ci_nit ?: 'Sin documento') : '-' }} &bull; Cel: {{ $pago->cliente ? ($pago->cliente->whatsapp ?: $pago->cliente->telefono) : '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">Correo:</td>
+                        <td class="value-cell">{{ $pago->cliente ? ($pago->cliente->email ?: 'Sin correo') : '-' }}</td>
+                    </tr>
+                </table>
+            </td>
 
-    <!-- 3. Concepto y Detalles del Servicio Vinculado -->
-    <div class="section-banner">3. CONCEPTO DE PAGO Y SERVICIO VINCULADO</div>
-    <table class="info-table">
-        <tr>
-            <td class="info-label">Concepto del Pago:</td>
-            <td><strong>{{ $pago->observaciones ?: 'Pago a cuenta de servicio musical contratado' }}</strong></td>
-            <td class="info-label">Fecha y Hora de Pago:</td>
-            <td><strong>{{ $pago->fecha_pago ? $pago->fecha_pago->format('d/m/Y H:i') : $pago->created_at->format('d/m/Y H:i') }}</strong></td>
-        </tr>
-        @if($pago->contrato)
-            <tr>
-                <td class="info-label">Contrato Asociado:</td>
-                <td><strong>N° {{ $pago->contrato->numero_contrato }}</strong></td>
-                <td class="info-label">Evento Asociado:</td>
-                <td>
-                    @if($pago->evento)
-                        <strong>{{ $pago->evento->codigo_evento }}</strong> ({{ $pago->evento->fecha_evento->format('d/m/Y') }} {{ $pago->evento->hora_evento }})
-                    @else
-                        -
+            <!-- Columna Derecha: Concepto y Servicio Vinculado -->
+            <td class="col-half col-half-right">
+                <div class="section-header">CONCEPTO DEL PAGO Y SERVICIO VINCULADO</div>
+                <table class="detail-table">
+                    <tr>
+                        <td class="label-cell">Concepto:</td>
+                        <td class="value-cell"><strong>{{ $pago->observaciones ?: 'Abono a cuenta por servicio musical' }}</strong></td>
+                    </tr>
+                    @if($pago->contrato)
+                        <tr>
+                            <td class="label-cell">Contrato N°:</td>
+                            <td class="value-cell">
+                                <strong style="color: #102846;">{{ $pago->contrato->numero_contrato }}</strong>
+                                @if($pago->evento)
+                                    &bull; Evento: <strong>{{ $pago->evento->codigo_evento }}</strong>
+                                @endif
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="label-cell">Servicio:</td>
+                            <td class="value-cell">{{ $pago->contrato->servicio ? $pago->contrato->servicio->nombre : 'Servicio Musical' }}</td>
+                        </tr>
+                        @if($pago->evento)
+                            <tr>
+                                <td class="label-cell">Fecha Evento:</td>
+                                <td class="value-cell">
+                                    {{ $pago->evento->fecha_evento->format('d/m/Y') }} a las {{ $pago->evento->hora_evento }}
+                                </td>
+                            </tr>
+                        @endif
                     @endif
-                </td>
-            </tr>
-            @if($pago->contrato->servicio)
-                <tr>
-                    <td class="info-label">Servicio Contratado:</td>
-                    <td colspan="3">{{ $pago->contrato->servicio->nombre }}</td>
-                </tr>
-            @endif
-        @endif
+                    <tr>
+                        <td class="label-cell">Cajero / Operador:</td>
+                        <td class="value-cell">{{ $usuarioCreacion }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
     </table>
 
-    <!-- 4. Estado de Cuenta del Contrato -->
+    <!-- E. Balance del Contrato (3 Bloques Horizontales) -->
     @if($pago->contrato)
-        <div class="section-banner">4. BALANCE Y ESTADO DE CUENTA ACTUAL DEL CONTRATO</div>
-        <table class="econ-box-table">
+        <table class="balance-table">
             <tr>
                 <td>
-                    <div class="econ-label">MONTO TOTAL CONTRATADO</div>
-                    <div class="econ-val" style="color: #0b1a30;">Bs {{ number_format($pago->contrato->monto_total, 2, ',', '.') }}</div>
+                    <div class="balance-label">1. MONTO TOTAL CONTRATADO</div>
+                    <div class="balance-val val-total">Bs {{ number_format($pago->contrato->monto_total, 2, ',', '.') }}</div>
                 </td>
                 <td>
-                    <div class="econ-label">TOTAL ABONADO A LA FECHA</div>
-                    <div class="econ-val" style="color: #16a34a;">Bs {{ number_format($pago->contrato->total_pagado, 2, ',', '.') }}</div>
+                    <div class="balance-label">2. TOTAL ABONADO ACUMULADO</div>
+                    <div class="balance-val val-pagado">Bs {{ number_format($pago->contrato->total_pagado, 2, ',', '.') }}</div>
                 </td>
                 <td>
-                    <div class="econ-label">SALDO PENDIENTE ACTUAL</div>
-                    <div class="econ-val" style="color: #dc2626;">Bs {{ number_format($pago->contrato->saldo_pendiente, 2, ',', '.') }}</div>
+                    <div class="balance-label">3. SALDO PENDIENTE ACTUAL</div>
+                    <div class="balance-val val-saldo">Bs {{ number_format($pago->contrato->saldo_pendiente, 2, ',', '.') }}</div>
                 </td>
             </tr>
         </table>
     @endif
 
-    <!-- Bloque de Firmas -->
-    <table class="signatures-grid">
+    <!-- F & G. Firmas y Verificación QR Antifraude -->
+    <table class="bottom-table">
         <tr>
-            <td>
-                <div class="sig-line-td"></div>
-                <div class="sig-subtext">POR LA EMPRESA / CAJERO</div>
-                <div style="text-align: center; font-size: 7.5pt; color: #475569;">
-                    {{ $usuarioCreacion }}<br>Cobranza Autorizada
-                </div>
-            </td>
-            <td>
-                <div class="sig-line-td"></div>
-                <div class="sig-subtext">POR EL CLIENTE / PAGADOR</div>
-                <div style="text-align: center; font-size: 7.5pt; color: #475569;">
-                    {{ $pago->cliente ? $pago->cliente->nombre_completo : 'Firma Pagador' }}<br>
-                    C.I.: {{ $pago->cliente ? ($pago->cliente->ci_nit ?: '-') : '-' }}
-                </div>
-            </td>
-        </tr>
-    </table>
-
-    <!-- Bloque de Seguridad y Validación QR Anti-Fraude (Inferior Derecho) -->
-    <table style="width: 100%; margin-top: 25px; border-top: 1px dashed #cbd5e1; padding-top: 8px; page-break-inside: avoid;">
-        <tr>
-            <td style="width: 72%; vertical-align: middle; padding-right: 15px;">
-                <div style="font-size: 8pt; font-weight: bold; color: #0b1a30; text-transform: uppercase; margin-bottom: 3px;">
-                    🛡️ Verificación de Autenticidad y Validez Tributaria/Contable
-                </div>
-                <div style="font-size: 7pt; color: #475569; line-height: 1.35;">
-                    Este recibo es emitido electrónicamente por el sistema contable de <strong>{{ $empresa->nombre_comercial }}</strong>. 
-                    Cualquier alteración física, enmienda o borrón invalida el documento. Para comprobar la autenticidad y estado de este cobro, escanee el código QR adjunto.
-                </div>
-                <table style="width: 100%; margin-top: 5px; font-size: 6.8pt; color: #334155; border-collapse: collapse;">
+            <!-- F. Firmas -->
+            <td class="signatures-col">
+                <table class="sig-table">
                     <tr>
-                        <td style="padding: 2px 0;"><strong>Creación Original:</strong> {{ $fechaCreacion }}</td>
-                        <td style="padding: 2px 0;"><strong>Cobrado/Registrado por:</strong> {{ $usuarioCreacion }}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 2px 0;"><strong>Fecha Impresión:</strong> {{ $fechaImpresion }}</td>
-                        <td style="padding: 2px 0;"><strong>Generado por:</strong> {{ $usuarioImpresion }}</td>
-                    </tr>
-                    <tr>
-                        <td colspan="2" style="padding: 2px 0; font-family: monospace; color: #64748b; font-size: 6.3pt;">
-                            HASH DE VERIFICACIÓN: {{ $pago->codigo_verificacion }}
+                        <td>
+                            <div class="sig-line"></div>
+                            <div class="sig-title">POR LA EMPRESA / CAJERO</div>
+                            <div class="sig-name">{{ $usuarioCreacion }} &bull; Cobranza Autorizada</div>
+                        </td>
+                        <td>
+                            <div class="sig-line"></div>
+                            <div class="sig-title">POR EL CLIENTE / PAGADOR</div>
+                            <div class="sig-name">
+                                {{ $pago->cliente ? $pago->cliente->nombre_completo : 'Firma Cliente' }}
+                                @if($pago->cliente && $pago->cliente->ci_nit)
+                                    &bull; C.I.: {{ $pago->cliente->ci_nit }}
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 </table>
             </td>
-            <td style="width: 28%; text-align: right; vertical-align: middle;">
-                <div style="display: inline-block; text-align: center; border: 1px solid #cbd5e1; padding: 4px; border-radius: 4px; background: #ffffff;">
-                    @if(isset($qrBase64))
-                        <img src="{{ $qrBase64 }}" style="width: 82px; height: 82px;" alt="QR Verificación Recibo">
-                    @endif
-                    <div style="font-size: 5.5pt; font-weight: bold; color: #0b1a30; margin-top: 2px; text-transform: uppercase;">
-                        Escanear para verificar
-                    </div>
+
+            <!-- G. Bloque QR y Autenticidad Antifraude -->
+            <td class="qr-col">
+                <div class="security-box">
+                    <table class="sec-table">
+                        <tr>
+                            <td class="sec-text-td">
+                                <strong style="color: #102846; font-size: 5.6pt;">VERIFICACIÓN ELECTRÓNICA</strong><br>
+                                <span>Escanee el QR para validar autenticidad oficial en línea.</span><br>
+                                <strong>Creación:</strong> {{ $fechaCreacion }} ({{ $usuarioCreacion }})<br>
+                                <strong>Impresión:</strong> {{ $fechaImpresion }} ({{ $usuarioImpresion }})<br>
+                                <span style="font-family: monospace; font-size: 4.8pt; color: #64748b;">
+                                    HASH: {{ substr($pago->codigo_verificacion, 0, 14) }}...
+                                </span>
+                            </td>
+                            <td class="sec-qr-td">
+                                @if($qrBase64)
+                                    <img src="{{ $qrBase64 }}" alt="QR Verificación">
+                                @else
+                                    <div style="font-size: 5pt; color: #94a3b8;">Verificación electrónica no habilitada</div>
+                                @endif
+                            </td>
+                        </tr>
+                    </table>
                 </div>
             </td>
         </tr>
     </table>
+
+    <!-- H. Pie de Página -->
+    <div class="footer-bar">
+        {{ $empresa->nombre_comercial }} &bull; Comprobante de ingreso / cobranza &bull; Recibo: {{ $pago->numero_recibo }} &bull; Fecha impresión: {{ $fechaImpresion }} &bull; Página 1 de 1
+    </div>
 
 </body>
 </html>

@@ -57,7 +57,8 @@ Route::get('/contacto', PaginaContacto::class)->name('web.contacto');
 Route::get('/verificar/recibo/{token}', [VerificacionQrController::class, 'verificarRecibo'])->name('public.verificar.recibo');
 Route::get('/verificar/contrato/{token}', [VerificacionQrController::class, 'verificarContrato'])->name('public.verificar.contrato');
 
-// Descarga / Visualización de Comprobantes Oficiales PDF
+// Descarga / Visualización de Comprobantes Oficiales PDF e Impresión
+Route::get('/comercial/pagos/recibo/{id}', [ReciboPdfController::class, 'verRecibo'])->name('comercial.pagos.recibo');
 Route::get('/comercial/pagos/pdf/{id}', [ReciboPdfController::class, 'exportarPdf'])->name('comercial.pagos.pdf');
 Route::get('/comercial/contratos/pdf/{id}', [ContratoPdfController::class, 'exportarPdf'])->name('comercial.contratos.pdf');
 
