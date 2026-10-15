@@ -58,9 +58,9 @@ Route::get('/verificar/recibo/{token}', [VerificacionQrController::class, 'verif
 Route::get('/verificar/contrato/{token}', [VerificacionQrController::class, 'verificarContrato'])->name('public.verificar.contrato');
 
 // Descarga / Visualización de Comprobantes Oficiales PDF e Impresión
-Route::get('/comercial/pagos/recibo/{id}', [ReciboPdfController::class, 'verRecibo'])->name('comercial.pagos.recibo');
-Route::get('/comercial/pagos/pdf/{id}', [ReciboPdfController::class, 'exportarPdf'])->name('comercial.pagos.pdf');
-Route::get('/comercial/contratos/pdf/{id}', [ContratoPdfController::class, 'exportarPdf'])->name('comercial.contratos.pdf');
+Route::get('/comercial/pagos/recibo/{token}', [ReciboPdfController::class, 'verRecibo'])->name('comercial.pagos.recibo');
+Route::get('/comercial/pagos/pdf/{token}', [ReciboPdfController::class, 'exportarPdf'])->name('comercial.pagos.pdf');
+Route::get('/comercial/contratos/pdf/{token}', [ContratoPdfController::class, 'exportarPdf'])->name('comercial.contratos.pdf');
 
 // Fallback para servir storage cuando el hosting no sigue el symlink
 Route::get('/storage/{path}', function (string $path) {
@@ -110,9 +110,9 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
         Route::get('/devoluciones', GestionDevolucionesActivos::class)->name('admin.activos-fijos.devoluciones');
         Route::get('/bajas', GestionBajasActivos::class)->name('admin.activos-fijos.bajas');
         Route::get('/kardex', GestionKardexActivos::class)->name('admin.activos-fijos.kardex');
-        Route::get('/kardex/pdf/{asset_id}', [KardexPdfController::class, 'exportarPdf'])->name('admin.activos-fijos.kardex.pdf');
+        Route::get('/kardex/pdf/{token}', [KardexPdfController::class, 'exportarPdf'])->name('admin.activos-fijos.kardex.pdf');
         Route::get('/inventario/pdf', [InventarioPdfController::class, 'exportarPdf'])->name('admin.activos-fijos.inventario.pdf');
-        Route::get('/comprobante/{tipo}/{id}', ComprobanteActivo::class)->name('admin.activos-fijos.comprobante');
+        Route::get('/comprobante/{tipo}/{token}', ComprobanteActivo::class)->name('admin.activos-fijos.comprobante');
     });
 
     // SPRINT 2: Módulo Comercial
@@ -123,16 +123,18 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
         Route::get('/agenda', GestionAgenda::class)->name('admin.agenda');
         Route::get('/cotizaciones', GestionCotizaciones::class)->name('admin.cotizaciones');
         Route::get('/contratos', GestionContratos::class)->name('admin.contratos');
-        Route::get('/contratos/pdf/{id}', [ContratoPdfController::class, 'exportarPdf'])->name('admin.contratos.pdf');
+        Route::get('/contratos/pdf/{token}', [ContratoPdfController::class, 'exportarPdf'])->name('admin.contratos.pdf');
         Route::get('/pagos', GestionPagos::class)->name('admin.pagos');
     });
 });
 
-// Redirección directa para accesos incompletos a rutas de PDF sin ID
+// Redirección directa para accesos incompletos a rutas de PDF sin token
 Route::get('/comercial/pagos/recibo', fn() => redirect()->route('web.home'));
 Route::get('/comercial/pagos/pdf', fn() => redirect()->route('web.home'));
 Route::get('/comercial/contratos/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/comercial/contratos/pdf', fn() => redirect()->route('web.home'));
+Route::get('/admin/activos-fijos/kardex/pdf', fn() => redirect()->route('web.home'));
+Route::get('/admin/activos-fijos/comprobante', fn() => redirect()->route('web.home'));
 
 // Redirección global de respaldo: cualquier ruta inválida o no registrada va al index principal
 Route::fallback(function () {

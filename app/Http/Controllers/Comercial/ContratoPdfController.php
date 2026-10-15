@@ -15,13 +15,19 @@ class ContratoPdfController extends Controller
 {
     use Auditable;
 
-    public function exportarPdf($id)
+    public function exportarPdf($token)
     {
-        $contrato = Contrato::with(['cliente', 'evento', 'servicio', 'cotizacion', 'user'])->findOrFail($id);
+        // Rechazar accesos que utilicen IDs numéricos simples directos (anti-enumeración)
+        if (ctype_digit((string)$token)) {
+            return redirect()->route('web.home');
+        }
 
-        if (empty($contrato->codigo_verificacion)) {
-            $contrato->codigo_verificacion = \Illuminate\Support\Str::random(40);
-            $contrato->save();
+        $contrato = Contrato::with(['cliente', 'evento', 'servicio', 'cotizacion', 'user'])
+            ->where('codigo_verificacion', $token)
+            ->first();
+
+        if (!$contrato) {
+            return redirect()->route('web.home');
         }
 
         $empresa = Empresa::obtener();

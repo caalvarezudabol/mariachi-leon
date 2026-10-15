@@ -221,7 +221,7 @@
 
                     <!-- Botón de Descarga de PDF -->
                     <div class="text-center pt-2">
-                        <a href="{{ route('comercial.pagos.pdf', $pago->id) }}" target="_blank"
+                        <a href="{{ route('comercial.pagos.pdf', $pago->codigo_verificacion) }}" target="_blank"
                            class="inline-flex items-center justify-center space-x-2 bg-[#0b1329] hover:bg-[#15254d] text-amber-400 font-bold px-6 py-3 rounded-lg shadow transition duration-200 text-sm">
                             <i class="fa-solid fa-file-pdf text-red-400 text-lg"></i>
                             <span>Descargar Recibo Oficial (PDF)</span>

@@ -102,7 +102,7 @@
                                 </span>
                             </td>
                             <td class="py-3.5 px-4 text-right space-x-1">
-                                <a href="{{ route('admin.contratos.pdf', $ctr->id) }}" target="_blank"
+                                <a href="{{ route('admin.contratos.pdf', $ctr->codigo_verificacion) }}" target="_blank"
                                     class="p-2 rounded-lg bg-rose-600/20 text-rose-400 hover:text-white hover:bg-rose-600 transition-all inline-block"
                                     title="Imprimir Contrato PDF">
                                     <i class="fa-solid fa-file-pdf"></i>

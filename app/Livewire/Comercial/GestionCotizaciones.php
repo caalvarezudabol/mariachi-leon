@@ -312,6 +312,7 @@ class GestionCotizaciones extends Component
 
             $this->ultimoRecibo = [
                 'id' => $pago->id,
+                'codigo_verificacion' => $pago->codigo_verificacion,
                 'numero' => $numRecibo,
                 'monto' => $pago->monto,
             ];

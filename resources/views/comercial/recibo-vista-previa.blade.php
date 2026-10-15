@@ -101,7 +101,7 @@
                 <span>Imprimir Recibo</span>
             </button>
 
-            <a href="{{ route('comercial.pagos.pdf', $pago->id) }}" target="_blank" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 hover:text-white font-bold text-xs flex items-center gap-1.5 border border-slate-700 transition-all">
+            <a href="{{ route('comercial.pagos.pdf', $pago->codigo_verificacion) }}" target="_blank" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 hover:text-white font-bold text-xs flex items-center gap-1.5 border border-slate-700 transition-all">
                 <i class="fa-solid fa-file-pdf"></i>
                 <span>Descargar PDF</span>
             </a>

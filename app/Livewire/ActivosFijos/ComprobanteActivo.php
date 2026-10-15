@@ -12,9 +12,20 @@ class ComprobanteActivo extends Component
     public $id;
     public $registro;
 
-    public function mount($tipo, $id)
+    public function mount($tipo, $token)
     {
         $this->tipo = strtolower($tipo);
+
+        // Rechazar accesos que utilicen IDs numéricos simples directos (anti-enumeración)
+        if (\App\Services\Security\DocumentToken::isPlainNumeric($token)) {
+            abort(404);
+        }
+
+        $id = \App\Services\Security\DocumentToken::decodeId($token, 'comprobante');
+        if (!$id) {
+            abort(404);
+        }
+
         $this->id = $id;
 
         if ($this->tipo === 'asignacion') {

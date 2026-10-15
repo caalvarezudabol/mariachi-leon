@@ -12,17 +12,32 @@ use Illuminate\Support\Facades\Auth;
 
 class KardexPdfController extends Controller
 {
-    public function exportarPdf($asset_id)
+    public function exportarPdf($token)
     {
+        // Rechazar accesos que utilicen IDs numéricos simples directos (anti-enumeración)
+        if (ctype_digit((string)$token)) {
+            return redirect()->route('web.home');
+        }
+
         // 1. Obtener la Empresa Activa
         $empresa = Empresa::obtener();
 
-        // 2. Obtener el Producto Seleccionado con su Categoría
-        $asset = Asset::with('category')->findOrFail($asset_id);
+        // 2. Obtener el Producto Seleccionado por su código o token seguro
+        $asset = Asset::with('category')->where('codigo', $token)->first();
+        if (!$asset) {
+            $decodedId = \App\Services\Security\DocumentToken::decodeId($token, 'kardex');
+            if ($decodedId) {
+                $asset = Asset::with('category')->find($decodedId);
+            }
+        }
+
+        if (!$asset) {
+            return redirect()->route('web.home');
+        }
 
         // 3. Obtener el Historial COMPLETO de Movimientos (Sin paginación)
         $movimientos = InventoryMovement::with(['user', 'responsable'])
-            ->where('asset_id', $asset_id)
+            ->where('asset_id', $asset->id)
             ->orderBy('fecha_movimiento', 'asc')
             ->orderBy('id', 'asc')
             ->get();

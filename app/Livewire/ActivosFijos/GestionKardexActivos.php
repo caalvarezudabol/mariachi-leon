@@ -86,7 +86,10 @@ class GestionKardexActivos extends Component
             return;
         }
 
-        return redirect()->route('admin.activos-fijos.kardex.pdf', ['asset_id' => $this->asset_id]);
+        $asset = \App\Models\Asset::find($this->asset_id);
+        $token = $asset ? $asset->codigo : \App\Services\Security\DocumentToken::encodeId((int)$this->asset_id, 'kardex');
+
+        return redirect()->route('admin.activos-fijos.kardex.pdf', ['token' => $token]);
     }
 
     public function render()

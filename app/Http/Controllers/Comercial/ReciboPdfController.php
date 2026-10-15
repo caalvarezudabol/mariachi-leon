@@ -20,19 +20,23 @@ class ReciboPdfController extends Controller
     /**
      * Obtiene los datos consolidados del recibo para PDF y Vista Previa
      */
-    public function obtenerDatosRecibo($id)
+    public function obtenerDatosRecibo($token)
     {
+        // Rechazar accesos con IDs numéricos simples directos (anti-enumeración)
+        if (ctype_digit((string)$token)) {
+            return null;
+        }
+
         $pago = Pago::with([
             'cliente',
             'contrato.servicio',
             'evento',
             'user',
             'anuladoPor'
-        ])->findOrFail($id);
+        ])->where('codigo_verificacion', $token)->first();
 
-        if (empty($pago->codigo_verificacion)) {
-            $pago->codigo_verificacion = Str::random(40);
-            $pago->save();
+        if (!$pago) {
+            return null;
         }
 
         $empresa = Empresa::obtener();
@@ -67,9 +71,13 @@ class ReciboPdfController extends Controller
     /**
      * Vista Previa en Pantalla con opción de Impresión Directa vía Navegador
      */
-    public function verRecibo($id)
+    public function verRecibo($token)
     {
-        $datos = $this->obtenerDatosRecibo($id);
+        $datos = $this->obtenerDatosRecibo($token);
+
+        if (!$datos) {
+            return redirect()->route('web.home');
+        }
 
         $this->registrarAuditoria(
             'Gestión Comercial',
@@ -83,9 +91,13 @@ class ReciboPdfController extends Controller
     /**
      * Generación y Descarga de Recibo en PDF en formato Cuarto Oficio Horizontal (Landscape)
      */
-    public function exportarPdf($id)
+    public function exportarPdf($token)
     {
-        $datos = $this->obtenerDatosRecibo($id);
+        $datos = $this->obtenerDatosRecibo($token);
+
+        if (!$datos) {
+            return redirect()->route('web.home');
+        }
 
         // Auditoría
         $this->registrarAuditoria(

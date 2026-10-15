@@ -132,6 +132,7 @@ class GestionPagos extends Component
 
             $this->ultimoRecibo = [
                 'id' => $pago->id,
+                'codigo_verificacion' => $pago->codigo_verificacion,
                 'numero' => $pago->numero_recibo,
                 'monto' => $pago->monto,
             ];

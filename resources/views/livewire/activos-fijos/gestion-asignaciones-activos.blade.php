@@ -63,7 +63,7 @@
                                 <i class="fa-solid fa-user-gear text-slate-500 mr-1"></i>{{ $asig->user->name ?? 'Sistema' }}
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('admin.activos-fijos.comprobante', ['tipo' => 'asignacion', 'id' => $asig->id]) }}" target="_blank" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-gold-500/10 text-gold-400 hover:bg-gold-500/20 border border-gold-500/30 transition-colors inline-flex items-center gap-1.5">
+                                <a href="{{ route('admin.activos-fijos.comprobante', ['tipo' => 'asignacion', 'token' => \App\Services\Security\DocumentToken::encodeId($asig->id, 'comprobante')]) }}" target="_blank" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-gold-500/10 text-gold-400 hover:bg-gold-500/20 border border-gold-500/30 transition-colors inline-flex items-center gap-1.5">
                                     <i class="fa-solid fa-file-pdf"></i>
                                     <span>Comprobante</span>
                                 </a>
