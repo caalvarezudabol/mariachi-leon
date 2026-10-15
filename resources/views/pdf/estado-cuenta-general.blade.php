@@ -221,7 +221,7 @@
             </td>
             <td class="title-col">
                 <div class="company-name">{{ $empresa->razon_social ?? $empresa->nombre_comercial }}</div>
-                <div class="doc-title">ESTADO DE CUENTA GENERAL DEL CLIENTE</div>
+                <div class="doc-title">ESTADO DE CUENTA E HISTORIAL DE PAGOS DEL CLIENTE</div>
                 <div style="font-size: 7.2pt; color: #64748b; margin-top: 1px;">NIT: {{ $empresa->nit_ruc }} &bull; {{ $empresa->ciudad_pais }}</div>
             </td>
             <td class="meta-col">
@@ -296,7 +296,7 @@
 
     <!-- TABLA 1: Resumen de Contratos del Cliente -->
     <div style="font-size: 7.8pt; font-weight: bold; color: #102846; margin-bottom: 3px; text-transform: uppercase;">
-        1. Resumen de Contratos Registrados
+        1. Resumen de Contratos Registrados (Monto Actual, Pagado y Saldo)
     </div>
 
     <table class="report-table">
@@ -306,9 +306,9 @@
                 <th style="width: 14%;">Contrato</th>
                 <th style="width: 12%;">Fecha</th>
                 <th style="width: 25%;">Servicio / Evento</th>
-                <th style="width: 15%; text-align: right;">Monto Contratado (Bs)</th>
-                <th style="width: 15%; text-align: right;">Total Abonado (Bs)</th>
-                <th style="width: 14%; text-align: right;">Saldo Pendiente (Bs)</th>
+                <th style="width: 15%; text-align: right;">Monto Actual (Bs)</th>
+                <th style="width: 15%; text-align: right;">Monto Pagado (Bs)</th>
+                <th style="width: 14%; text-align: right;">Saldo (Bs)</th>
             </tr>
         </thead>
         <tbody>
@@ -348,7 +348,7 @@
 
     <!-- TABLA 2: Historial Consolidado de Pagos -->
     <div style="font-size: 7.8pt; font-weight: bold; color: #102846; margin-top: 10px; margin-bottom: 3px; text-transform: uppercase;">
-        2. Historial Consolidado de Pagos y Abonos
+        2. Historial de Pagos Realizados por Contrato
     </div>
 
     <table class="report-table">
@@ -356,10 +356,10 @@
             <tr>
                 <th style="width: 4%;">N°</th>
                 <th style="width: 12%;">Recibo</th>
-                <th style="width: 12%;">Contrato</th>
+                <th style="width: 12%;">Contrato Asociado</th>
                 <th style="width: 13%;">Fecha y Hora</th>
                 <th style="width: 23%;">Detalle o Concepto</th>
-                <th style="width: 12%; text-align: right;">Importe (Bs)</th>
+                <th style="width: 12%; text-align: right;">Monto Pagado (Bs)</th>
                 <th style="width: 10%;">Método</th>
                 <th style="width: 8%;">Estado</th>
                 <th style="width: 6%;">Cobrador</th>

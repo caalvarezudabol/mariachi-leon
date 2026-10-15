@@ -107,11 +107,36 @@
                                 @endif
                             </td>
                             <td class="py-3.5 px-4">
-                                <div class="font-bold text-white font-mono">{{ $p->contrato->numero_contrato ?? 'N/A' }}</div>
+                                @php
+                                    $clienteIdPago = $p->cliente_id ?: ($p->contrato ? $p->contrato->cliente_id : null);
+                                    $clienteTokenPago = $clienteIdPago ? \App\Services\Security\DocumentToken::encodeId($clienteIdPago, 'cliente') : null;
+                                @endphp
+                                @if($p->contrato && $clienteTokenPago)
+                                    @php
+                                        $ctrTokenPago = \App\Services\Security\DocumentToken::encodeId($p->contrato->id, 'contrato');
+                                    @endphp
+                                    <a href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $clienteTokenPago, 'contrato' => $ctrTokenPago, 'tipo' => 'contrato']) }}" 
+                                       target="_blank"
+                                       class="font-bold text-white hover:text-gold-400 font-mono transition-colors inline-block" 
+                                       title="Ver Extracto de Pagos de este Contrato en PDF con QR">
+                                        {{ $p->contrato->numero_contrato }}
+                                    </a>
+                                @else
+                                    <div class="font-bold text-white font-mono">{{ $p->contrato->numero_contrato ?? 'N/A' }}</div>
+                                @endif
                                 <div class="text-xs text-slate-400 font-mono">{{ $p->evento->codigo_evento ?? '' }}</div>
                             </td>
                             <td class="py-3.5 px-4">
-                                <div class="font-bold text-white">{{ $p->cliente->nombre_completo ?? 'N/A' }}</div>
+                                @if($clienteTokenPago)
+                                    <a href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $clienteTokenPago, 'tipo' => 'general']) }}" 
+                                       target="_blank"
+                                       class="font-bold text-white hover:text-gold-400 transition-colors inline-block" 
+                                       title="Ver Historial de Pagos del Cliente en PDF con QR (Contratos, Monto Actual, Pagado y Saldo)">
+                                        {{ $p->cliente->nombre_completo ?? 'N/A' }}
+                                    </a>
+                                @else
+                                    <div class="font-bold text-white">{{ $p->cliente->nombre_completo ?? 'N/A' }}</div>
+                                @endif
                             </td>
                             <td class="py-3.5 px-4 font-mono text-xs text-slate-300">
                                 {{ $p->fecha_pago->format('d/m/Y H:i') }}
@@ -156,6 +181,16 @@
                                        title="Descargar Recibo Oficial PDF con QR">
                                         <i class="fa-solid fa-file-pdf"></i>
                                     </a>
+
+                                    <!-- Historial de Pagos del Cliente en PDF con QR -->
+                                    @if($clienteTokenPago)
+                                        <a href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $clienteTokenPago, 'tipo' => 'general']) }}" 
+                                           target="_blank"
+                                           class="p-2 rounded-lg bg-gold-500/10 text-gold-400 hover:text-slate-950 hover:bg-gold-500 border border-gold-500/20 transition-all shadow inline-block"
+                                           title="Ver Historial de Pagos del Cliente en PDF con QR (Contratos, Monto Actual, Pagado y Saldo)">
+                                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                                        </a>
+                                    @endif
 
                                     @if($p->estado !== 'Anulado')
                                         @php
