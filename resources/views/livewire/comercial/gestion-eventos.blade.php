@@ -810,13 +810,13 @@
                 <!-- Footer -->
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-brand-border px-6 py-4 shrink-0 bg-slate-950/60">
                     <div>
-                        @if($eventoHistorial->cliente_id)
+                        @if(!empty($resumenFinanciero['tiene_contrato']) && !empty($resumenFinanciero['contrato_id']) && $eventoHistorial->cliente_id)
                             @php
                                 $cToken = \App\Services\Security\DocumentToken::encodeId($eventoHistorial->cliente_id, 'cliente');
-                                $ctrToken = !empty($resumenFinanciero['contrato_id']) ? \App\Services\Security\DocumentToken::encodeId($resumenFinanciero['contrato_id'], 'contrato') : null;
+                                $ctrToken = \App\Services\Security\DocumentToken::encodeId($resumenFinanciero['contrato_id'], 'contrato');
                             @endphp
                             <a href="{{ route('admin.clientes.estado-cuenta', ['token' => $cToken, 'contrato' => $ctrToken]) }}" 
-                               class="text-xs font-bold text-gold-400 hover:text-gold-300 flex items-center gap-1.5 underline decoration-gold-500/40 hover:decoration-gold-400">
+                               class="text-xs font-bold text-gold-400 hover:text-gold-300 flex items-center gap-1.5 underline decoration-gold-500/40 hover:decoration-gold-400 transition-colors">
                                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                 <span>Ver Estado de Cuenta Completo y Exportar a PDF</span>
                             </a>
