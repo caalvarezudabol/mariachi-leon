@@ -4,6 +4,7 @@ namespace App\Livewire\Comercial;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\Url;
 use App\Models\Evento;
 use App\Models\Cliente;
 use App\Models\Servicio;
@@ -30,12 +31,22 @@ class GestionEventos extends Component
     public $observaciones = '';
 
     public $search = '';
+
+    #[Url(as: 'cliente_id')]
     public $cliente_filtro = '';
+
     public $estado_filtro = '';
     public $modalOpen = false;
     public $modalMapOpen = false;
     public $eventoMapa = null;
     public $isEdit = false;
+
+    public function mount()
+    {
+        if (request()->has('cliente_id')) {
+            $this->cliente_filtro = request()->get('cliente_id');
+        }
+    }
 
     protected function rules()
     {

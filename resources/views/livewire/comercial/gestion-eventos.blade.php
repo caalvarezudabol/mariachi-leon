@@ -57,6 +57,32 @@
                 </select>
             </div>
         </div>
+
+        @if($cliente_filtro)
+            @php
+                $clienteActivo = $clientes->firstWhere('id', $cliente_filtro);
+            @endphp
+            @if($clienteActivo)
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-500/30 text-xs shadow-md">
+                    <div class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm border border-amber-500/30">
+                            <i class="fa-solid fa-user-check"></i>
+                        </span>
+                        <div>
+                            <span class="text-slate-400 block text-[11px] uppercase tracking-wider font-semibold">Filtrando por cliente:</span>
+                            <span class="text-white text-sm font-extrabold">{{ $clienteActivo->nombre_completo }}</span>
+                            @if($clienteActivo->ci_nit)
+                                <span class="text-gold-400 font-mono text-xs ml-1 font-bold">({{ $clienteActivo->ci_nit }})</span>
+                            @endif
+                        </div>
+                    </div>
+                    <button wire:click="$set('cliente_filtro', '')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-white font-bold transition-all flex items-center gap-1.5 border border-slate-700 shadow text-xs self-start sm:self-auto cursor-pointer">
+                        <i class="fa-solid fa-xmark"></i>
+                        <span>Quitar filtro y ver todos</span>
+                    </button>
+                </div>
+            @endif
+        @endif
     </div>
 
     <!-- Table -->

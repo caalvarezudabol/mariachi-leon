@@ -87,9 +87,19 @@
                                 {{ $cliente->email ?: '-' }}
                             </td>
                             <td class="py-3.5 px-4 text-center">
-                                <span class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-gold-500/10 text-gold-400 border border-gold-500/20">
-                                    {{ $cliente->eventos_count }} eventos
-                                </span>
+                                @if($cliente->eventos_count > 0)
+                                    <a href="{{ route('admin.eventos', ['cliente_id' => $cliente->id]) }}" 
+                                       class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-gold-500/15 text-gold-400 border border-gold-500/30 hover:bg-gold-500 hover:text-slate-950 transition-all shadow-sm group"
+                                       title="Ver los {{ $cliente->eventos_count }} eventos de {{ $cliente->nombre_completo }}">
+                                        <i class="fa-solid fa-calendar-days text-[11px] group-hover:scale-110 transition-transform"></i>
+                                        <span>{{ $cliente->eventos_count }} {{ $cliente->eventos_count == 1 ? 'evento' : 'eventos' }}</span>
+                                        <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-70 group-hover:opacity-100"></i>
+                                    </a>
+                                @else
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-mono text-slate-500 bg-slate-900 border border-slate-800" title="Sin eventos registrados">
+                                        0 eventos
+                                    </span>
+                                @endif
                             </td>
                             <td class="py-3.5 px-4 text-center">
                                 <button wire:click="cambiarEstado({{ $cliente->id }})" class="px-3 py-1 rounded-full text-xs font-bold transition-all {{ $cliente->estado === 'Activo' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20' }}">
