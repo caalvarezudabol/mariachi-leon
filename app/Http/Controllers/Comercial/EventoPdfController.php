@@ -11,6 +11,7 @@ use App\Traits\Auditable;
 use App\Services\Security\DocumentToken;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class EventoPdfController extends Controller
 {
@@ -69,6 +70,11 @@ class EventoPdfController extends Controller
         $fechaEmision = now()->format('d/m/Y H:i:s');
         $usuarioEmision = Auth::check() ? Auth::user()->name : 'Sistema';
 
+        // Generación de Código QR para validación oficial
+        $urlVerificacion = route('admin.eventos.pdf', $request->all());
+        $qrSvg = QrCode::format('svg')->size(75)->errorCorrection('M')->generate($urlVerificacion);
+        $qrBase64 = 'data:image/svg+xml;base64,' . base64_encode($qrSvg);
+
         // Registro en bitácora de auditoría
         $descFiltros = [];
         if ($clienteSeleccionado) $descFiltros[] = "Cliente: {$clienteSeleccionado->nombre_completo}";
@@ -93,6 +99,7 @@ class EventoPdfController extends Controller
             'clienteSeleccionado' => $clienteSeleccionado,
             'estadoFiltro' => $estadoFiltro,
             'search' => $search,
+            'qrBase64' => $qrBase64,
             'fechaEmision' => $fechaEmision,
             'usuarioEmision' => $usuarioEmision,
         ])

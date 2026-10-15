@@ -113,6 +113,13 @@
                                    title="Estados de Cuenta e Historial de Pagos de {{ $cliente->nombre_completo }}">
                                     <i class="fa-solid fa-file-invoice-dollar"></i>
                                 </a>
+                                <!-- Historial de Contratos en PDF -->
+                                <a href="{{ route('admin.clientes.historial-contratos.pdf', \App\Services\Security\DocumentToken::encodeId($cliente->id, 'cliente')) }}" 
+                                   target="_blank"
+                                   class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:text-slate-950 hover:bg-emerald-500 transition-all shadow-sm inline-block border border-emerald-500/20" 
+                                   title="Ver Historial de Contratos en PDF de {{ $cliente->nombre_completo }}">
+                                    <i class="fa-solid fa-file-contract"></i>
+                                </a>
                                 <button wire:click="editar({{ $cliente->id }})" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-all inline-block" title="Editar Cliente">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>

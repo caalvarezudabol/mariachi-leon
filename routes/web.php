@@ -49,6 +49,7 @@ use App\Http\Controllers\Comercial\VerificacionQrController;
 use App\Livewire\Comercial\EstadoCuentaCliente;
 use App\Http\Controllers\Comercial\EstadoCuentaPdfController;
 use App\Http\Controllers\Comercial\EventoPdfController;
+use App\Http\Controllers\Comercial\ClienteContratosPdfController;
 
 Route::get('/', PaginaInicio::class)->name('web.home');
 Route::get('/nosotros', PaginaNosotros::class)->name('web.nosotros');
@@ -123,6 +124,7 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
         Route::get('/clientes', GestionClientes::class)->name('admin.clientes');
         Route::get('/clientes/{token}/estado-cuenta', EstadoCuentaCliente::class)->name('admin.clientes.estado-cuenta');
         Route::get('/clientes/{token}/estado-cuenta/pdf', [EstadoCuentaPdfController::class, 'exportarPdf'])->name('admin.clientes.estado-cuenta.pdf');
+        Route::get('/clientes/{token}/historial-contratos/pdf', [ClienteContratosPdfController::class, 'exportarPdf'])->name('admin.clientes.historial-contratos.pdf');
         Route::get('/eventos', GestionEventos::class)->name('admin.eventos');
         Route::get('/eventos/pdf', [EventoPdfController::class, 'exportarPdf'])->name('admin.eventos.pdf');
         Route::get('/eventos/{evento}/participantes', GestionParticipantesEvento::class)->name('admin.eventos.participantes');
@@ -141,6 +143,7 @@ Route::get('/comercial/contratos/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/comercial/contratos/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/comercial/clientes/estado-cuenta', fn() => redirect()->route('web.home'));
 Route::get('/admin/comercial/clientes/estado-cuenta/pdf', fn() => redirect()->route('web.home'));
+Route::get('/admin/comercial/clientes/historial-contratos/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/activos-fijos/kardex/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/activos-fijos/comprobante', fn() => redirect()->route('web.home'));
 

@@ -407,6 +407,44 @@
         @endif
     </table>
 
+    <!-- Bloque de Seguridad y Validación QR en la Parte Inferior Derecha -->
+    <table style="width: 100%; margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 8px; page-break-inside: avoid;">
+        <tr>
+            <td style="width: 75%; vertical-align: middle; padding-right: 15px;">
+                <div style="font-size: 8pt; font-weight: bold; color: #102846; text-transform: uppercase; margin-bottom: 3px;">
+                    🛡️ Verificación de Autenticidad y Validez Oficial
+                </div>
+                <div style="font-size: 6.8pt; color: #475569; line-height: 1.35;">
+                    Documento financiero oficial de <strong>{{ $empresa->nombre_comercial ?? 'Mariachi León Guanajuato' }}</strong>. 
+                    Escanee el código QR adjunto para verificar la validez e integridad del estado de cuenta general del cliente en tiempo real.
+                </div>
+                <table style="width: 100%; margin-top: 5px; font-size: 6.5pt; color: #334155; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 1.5px 0;"><strong>Fecha y Hora de Emisión:</strong> {{ $fechaEmision }}</td>
+                        <td style="padding: 1.5px 0;"><strong>Generado por:</strong> {{ $usuarioGenerador }}</td>
+                    </tr>
+                    @if(isset($token))
+                    <tr>
+                        <td colspan="2" style="padding: 1.5px 0; font-family: monospace; color: #64748b; font-size: 6pt;">
+                            TOKEN DE SEGURIDAD: {{ $token }}
+                        </td>
+                    </tr>
+                    @endif
+                </table>
+            </td>
+            <td style="width: 25%; text-align: right; vertical-align: middle;">
+                <div style="display: inline-block; text-align: center; border: 1px solid #cbd5e1; padding: 4px; border-radius: 4px; background: #ffffff;">
+                    @if(isset($qrBase64))
+                        <img src="{{ $qrBase64 }}" style="width: 75px; height: 75px;" alt="Código QR de Verificación">
+                    @endif
+                    <div style="font-size: 5.5pt; font-weight: bold; color: #102846; margin-top: 2px; text-transform: uppercase;">
+                        Escanear para verificar
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
     <!-- Pie del Documento -->
     <table class="doc-footer">
         <tr>

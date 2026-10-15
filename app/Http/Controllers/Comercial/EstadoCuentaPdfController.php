@@ -12,6 +12,7 @@ use App\Traits\Auditable;
 use App\Services\Security\DocumentToken;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class EstadoCuentaPdfController extends Controller
 {
@@ -101,6 +102,11 @@ class EstadoCuentaPdfController extends Controller
 
             $pagos = $queryPagos->orderBy('fecha_pago', 'asc')->get();
 
+            // Generación de Código QR para validación oficial
+            $urlVerificacion = route('admin.clientes.estado-cuenta', ['token' => $token, 'contrato_id' => $contrato->codigo_verificacion]);
+            $qrSvg = QrCode::format('svg')->size(75)->errorCorrection('M')->generate($urlVerificacion);
+            $qrBase64 = 'data:image/svg+xml;base64,' . base64_encode($qrSvg);
+
             // Registro en bitácora de auditoría
             $this->registrarAuditoria(
                 'Gestión Comercial',
@@ -119,6 +125,8 @@ class EstadoCuentaPdfController extends Controller
                 'cantidadPagosValidos' => $cantidadPagosValidos,
                 'ultimoPago' => $ultimoPago,
                 'pagos' => $pagos,
+                'token' => $token,
+                'qrBase64' => $qrBase64,
                 'fechaEmision' => $fechaEmision,
                 'usuarioGenerador' => $usuarioGenerador,
             ])
@@ -157,6 +165,11 @@ class EstadoCuentaPdfController extends Controller
 
             $pagos = $queryPagos->orderBy('fecha_pago', 'asc')->get();
 
+            // Generación de Código QR para validación oficial
+            $urlVerificacion = route('admin.clientes.estado-cuenta', $token);
+            $qrSvg = QrCode::format('svg')->size(75)->errorCorrection('M')->generate($urlVerificacion);
+            $qrBase64 = 'data:image/svg+xml;base64,' . base64_encode($qrSvg);
+
             // Registro en bitácora de auditoría
             $this->registrarAuditoria(
                 'Gestión Comercial',
@@ -176,6 +189,8 @@ class EstadoCuentaPdfController extends Controller
                 'cantidadPagosValidosTotal' => $cantidadPagosValidosTotal,
                 'ultimoPagoTotal' => $ultimoPagoTotal,
                 'pagos' => $pagos,
+                'token' => $token,
+                'qrBase64' => $qrBase64,
                 'fechaEmision' => $fechaEmision,
                 'usuarioGenerador' => $usuarioGenerador,
             ])
