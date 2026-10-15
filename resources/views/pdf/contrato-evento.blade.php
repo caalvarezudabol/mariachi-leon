@@ -399,5 +399,45 @@
         </tr>
     </table>
 
+    <!-- Bloque de Seguridad y Validación QR Anti-Fraude (Inferior Derecho) -->
+    <table style="width: 100%; margin-top: 25px; border-top: 1px dashed #cbd5e1; padding-top: 8px; page-break-inside: avoid;">
+        <tr>
+            <td style="width: 72%; vertical-align: middle; padding-right: 15px;">
+                <div style="font-size: 8pt; font-weight: bold; color: #0b1a30; text-transform: uppercase; margin-bottom: 3px;">
+                    🛡️ Verificación de Autenticidad y Validez Legal
+                </div>
+                <div style="font-size: 7pt; color: #475569; line-height: 1.35;">
+                    Este contrato es un documento oficial emitido por el sistema informático de <strong>{{ $empresa->nombre_comercial }}</strong>. 
+                    Escanee el código QR adjunto con cualquier dispositivo móvil para verificar la integridad del contrato, su estado actual y su validez jurídica en línea.
+                </div>
+                <table style="width: 100%; margin-top: 5px; font-size: 6.8pt; color: #334155; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 2px 0;"><strong>Creación Original:</strong> {{ $fechaCreacion }}</td>
+                        <td style="padding: 2px 0;"><strong>Registrado por:</strong> {{ $usuarioCreacion }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 2px 0;"><strong>Fecha Impresión:</strong> {{ $fechaEmision }}</td>
+                        <td style="padding: 2px 0;"><strong>Generado por:</strong> {{ $usuarioImpresion }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="padding: 2px 0; font-family: monospace; color: #64748b; font-size: 6.3pt;">
+                            HASH DE SEGURIDAD: {{ $contrato->codigo_verificacion }}
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td style="width: 28%; text-align: right; vertical-align: middle;">
+                <div style="display: inline-block; text-align: center; border: 1px solid #cbd5e1; padding: 4px; border-radius: 4px; background: #ffffff;">
+                    @if(isset($qrBase64))
+                        <img src="{{ $qrBase64 }}" style="width: 82px; height: 82px;" alt="QR Verificación">
+                    @endif
+                    <div style="font-size: 5.5pt; font-weight: bold; color: #0b1a30; margin-top: 2px; text-transform: uppercase;">
+                        Escanear para verificar
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
 </body>
 </html>

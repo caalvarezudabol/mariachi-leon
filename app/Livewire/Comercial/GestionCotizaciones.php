@@ -9,8 +9,11 @@ use App\Models\Evento;
 use App\Models\Cliente;
 use App\Models\Servicio;
 use App\Models\Contrato;
+use App\Models\Pago;
 use App\Traits\Auditable;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class GestionCotizaciones extends Component
 {
@@ -32,6 +35,18 @@ class GestionCotizaciones extends Component
     public $estado_filtro = '';
     public $modalOpen = false;
     public $isEdit = false;
+
+    // Modal Pago Rápido
+    public $modalPagoRapidoOpen = false;
+    public $pagoContratoId = null;
+    public $pagoContrato = null;
+    public $tipoPago = 'acuenta'; // 'acuenta' | 'saldo'
+    public $pagoMonto = 0.00;
+    public $pagoMetodo = 'Efectivo';
+    public $pagoReferencia = '';
+    public $pagoObservaciones = '';
+    public $pagoFecha = '';
+    public $ultimoRecibo = null;
 
     protected function rules()
     {
@@ -202,6 +217,105 @@ class GestionCotizaciones extends Component
 
         $this->registrarAuditoria('Gestión Comercial', 'Convertir Cotización en Contrato', 'Se convirtió la cotización ' . $c->numero_cotizacion . ' en el contrato ' . $numContrato);
         session()->flash('success', 'Cotización ' . $c->numero_cotizacion . ' convertida exitosamente en el contrato ' . $numContrato . '.');
+    }
+
+    public function abrirModalPagoRapido($contratoId)
+    {
+        $this->pagoContrato = Contrato::with(['cliente', 'evento', 'servicio'])->findOrFail($contratoId);
+        $this->pagoContratoId = $this->pagoContrato->id;
+        $this->tipoPago = 'acuenta';
+        $this->pagoMonto = min(500, (float)$this->pagoContrato->saldo_pendiente);
+        if ($this->pagoMonto <= 0) {
+            $this->pagoMonto = (float)$this->pagoContrato->saldo_pendiente;
+        }
+        $this->pagoMetodo = 'Efectivo';
+        $this->pagoReferencia = '';
+        $this->pagoObservaciones = 'Abono a cuenta por servicio musical';
+        $this->pagoFecha = date('Y-m-d\TH:i');
+        $this->modalPagoRapidoOpen = true;
+    }
+
+    public function seleccionarTipoPago($tipo)
+    {
+        $this->tipoPago = $tipo;
+        if ($tipo === 'saldo') {
+            $this->pagoMonto = (float)$this->pagoContrato->saldo_pendiente;
+            $this->pagoObservaciones = 'Cancelación total de saldo pendiente';
+        } else {
+            $this->pagoMonto = min(500, (float)$this->pagoContrato->saldo_pendiente);
+            $this->pagoObservaciones = 'Abono a cuenta por servicio musical';
+        }
+    }
+
+    public function guardarPagoRapido()
+    {
+        if (!$this->pagoContrato) {
+            return;
+        }
+
+        $saldoPendiente = (float)$this->pagoContrato->saldo_pendiente;
+
+        $this->validate([
+            'pagoMonto' => 'required|numeric|min:1|max:' . $saldoPendiente,
+            'pagoMetodo' => 'required|string|in:Efectivo,Transferencia,QR,Tarjeta,Otro',
+            'pagoReferencia' => 'nullable|string|max:100',
+            'pagoObservaciones' => 'nullable|string|max:255',
+            'pagoFecha' => 'required',
+        ], [
+            'pagoMonto.max' => 'El monto no puede superar el saldo pendiente actual de Bs ' . number_format($saldoPendiente, 2),
+            'pagoMonto.min' => 'El monto debe ser de al menos Bs 1.00',
+        ]);
+
+        DB::transaction(function () {
+            $lastPago = Pago::orderBy('id', 'desc')->first();
+            $nextNum = $lastPago ? ($lastPago->id + 1) : 1;
+            $numRecibo = 'REC-' . str_pad($nextNum, 5, '0', STR_PAD_LEFT);
+
+            $pago = Pago::create([
+                'numero_recibo' => $numRecibo,
+                'contrato_id' => $this->pagoContrato->id,
+                'cliente_id' => $this->pagoContrato->cliente_id,
+                'evento_id' => $this->pagoContrato->evento_id,
+                'fecha_pago' => $this->pagoFecha,
+                'monto' => $this->pagoMonto,
+                'metodo_pago' => $this->pagoMetodo,
+                'comprobante_referencia' => $this->pagoReferencia ? trim($this->pagoReferencia) : null,
+                'observaciones' => $this->pagoObservaciones ? trim($this->pagoObservaciones) : 'Pago registrado desde Cotizaciones',
+                'codigo_verificacion' => Str::random(40),
+                'estado' => 'Valido',
+                'user_id' => Auth::id(),
+            ]);
+
+            $nuevoTotalPagado = (float)$this->pagoContrato->total_pagado + (float)$this->pagoMonto;
+            $nuevoSaldo = max(0, (float)$this->pagoContrato->monto_total - $nuevoTotalPagado);
+            $nuevoEstado = $nuevoSaldo <= 0 ? 'Pagado Total' : ($nuevoTotalPagado > 0 ? 'Con Pago Parcial' : $this->pagoContrato->estado);
+
+            $this->pagoContrato->update([
+                'total_pagado' => $nuevoTotalPagado,
+                'saldo_pendiente' => $nuevoSaldo,
+                'estado' => $nuevoEstado,
+            ]);
+
+            if ($this->pagoContrato->evento && $this->pagoContrato->evento->estado === 'Reservado' && $nuevoTotalPagado > 0) {
+                $this->pagoContrato->evento->update(['estado' => 'Confirmado']);
+            }
+
+            // Auditoría obligatoria
+            $this->registrarAuditoria(
+                'Gestión Comercial',
+                'Registrar Pago Rápido',
+                'Se registró el pago ' . $numRecibo . ' por Bs ' . number_format($this->pagoMonto, 2) . ' para el contrato ' . $this->pagoContrato->numero_contrato . ' del cliente ' . ($this->pagoContrato->cliente ? $this->pagoContrato->cliente->nombre_completo : 'N/A')
+            );
+
+            $this->ultimoRecibo = [
+                'id' => $pago->id,
+                'numero' => $numRecibo,
+                'monto' => $pago->monto,
+            ];
+        });
+
+        session()->flash('success_pago', 'Pago ' . $this->ultimoRecibo['numero'] . ' registrado con éxito por Bs ' . number_format($this->ultimoRecibo['monto'], 2) . '.');
+        $this->modalPagoRapidoOpen = false;
     }
 
     public function render()

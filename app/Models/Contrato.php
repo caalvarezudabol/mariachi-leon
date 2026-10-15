@@ -27,8 +27,18 @@ class Contrato extends Model
         'saldo_pendiente',
         'estado',
         'observaciones',
+        'codigo_verificacion',
         'user_id',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($contrato) {
+            if (empty($contrato->codigo_verificacion)) {
+                $contrato->codigo_verificacion = \Illuminate\Support\Str::random(40);
+            }
+        });
+    }
 
     protected $casts = [
         'fecha_contrato' => 'date',

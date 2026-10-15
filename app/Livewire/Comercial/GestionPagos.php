@@ -9,6 +9,7 @@ use App\Models\Contrato;
 use App\Traits\Auditable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class GestionPagos extends Component
 {
@@ -25,7 +26,15 @@ class GestionPagos extends Component
 
     public $search = '';
     public $metodo_filtro = '';
+    public $estado_filtro = '';
     public $modalOpen = false;
+
+    // Modal de Anulación
+    public $modalAnularOpen = false;
+    public $pagoIdAnular = null;
+    public $pagoParaAnular = null;
+    public $motivoAnulacion = '';
+    public $ultimoRecibo = null;
 
     protected function rules()
     {
@@ -85,7 +94,7 @@ class GestionPagos extends Component
                 return;
             }
 
-            // Registrar Pago
+            // Registrar Pago (Inmutable)
             $pago = Pago::create([
                 'numero_recibo' => strtoupper(trim($this->numero_recibo)),
                 'contrato_id' => $contrato->id,
@@ -96,6 +105,8 @@ class GestionPagos extends Component
                 'metodo_pago' => $this->metodo_pago,
                 'comprobante_referencia' => trim($this->comprobante_referencia),
                 'observaciones' => trim($this->observaciones),
+                'codigo_verificacion' => Str::random(40),
+                'estado' => 'Valido',
                 'user_id' => Auth::id(),
             ]);
 
@@ -106,19 +117,115 @@ class GestionPagos extends Component
             $contrato->update([
                 'total_pagado' => $nuevoTotalPagado,
                 'saldo_pendiente' => $nuevoSaldo,
-                'estado' => ($nuevoSaldo <= 0) ? 'Confirmado' : $contrato->estado,
+                'estado' => ($nuevoSaldo <= 0) ? 'Pagado Total' : 'Con Pago Parcial',
             ]);
+
+            if ($contrato->evento && $contrato->evento->estado === 'Reservado' && $nuevoTotalPagado > 0) {
+                $contrato->evento->update(['estado' => 'Confirmado']);
+            }
 
             $this->registrarAuditoria('Gestión Comercial', 'Registrar Pago Cliente', 'Se registró el pago recibo N° ' . $pago->numero_recibo . ' por Bs ' . number_format($montoPago, 2) . ' para el contrato N° ' . $contrato->numero_contrato);
 
-            session()->flash('success', 'Pago de cliente registrado exitosamente.');
+            $this->ultimoRecibo = [
+                'id' => $pago->id,
+                'numero' => $pago->numero_recibo,
+                'monto' => $pago->monto,
+            ];
+
+            session()->flash('success_pago', 'Pago ' . $pago->numero_recibo . ' registrado exitosamente por Bs ' . number_format($montoPago, 2) . '.');
             $this->modalOpen = false;
+        });
+    }
+
+    public function abrirModalAnular($id)
+    {
+        $user = Auth::user();
+        if (!$user->can('gestionar-pagos') && !$user->hasRole('Administrador')) {
+            session()->flash('error', 'No tiene los permisos requeridos (gestionar-pagos) para anular pagos.');
+            return;
+        }
+
+        $pago = Pago::with(['evento', 'contrato.evento', 'cliente'])->findOrFail($id);
+
+        if ($pago->estado === 'Anulado') {
+            session()->flash('error', 'Este pago ya se encuentra anulado.');
+            return;
+        }
+
+        $evento = $pago->evento ?: ($pago->contrato ? $pago->contrato->evento : null);
+        if ($evento && in_array($evento->estado, ['Realizado', 'Finalizado', 'Concluido'])) {
+            session()->flash('error', 'No se puede anular el pago porque el evento (' . $evento->codigo_evento . ') ya ha sido concluido/realizado.');
+            return;
+        }
+
+        $this->pagoIdAnular = $pago->id;
+        $this->pagoParaAnular = $pago;
+        $this->motivoAnulacion = '';
+        $this->modalAnularOpen = true;
+    }
+
+    public function confirmarAnulacion()
+    {
+        $user = Auth::user();
+        if (!$user->can('gestionar-pagos') && !$user->hasRole('Administrador')) {
+            session()->flash('error', 'No tiene los permisos requeridos para anular pagos.');
+            $this->modalAnularOpen = false;
+            return;
+        }
+
+        $this->validate([
+            'motivoAnulacion' => 'required|string|min:5|max:255',
+        ], [
+            'motivoAnulacion.required' => 'Debe ingresar obligatoriamente un motivo para anular el pago.',
+            'motivoAnulacion.min' => 'El motivo debe tener al menos 5 caracteres.',
+        ]);
+
+        DB::transaction(function () {
+            $pago = Pago::lockForUpdate()->findOrFail($this->pagoIdAnular);
+
+            $evento = $pago->evento ?: ($pago->contrato ? $pago->contrato->evento : null);
+            if ($evento && in_array($evento->estado, ['Realizado', 'Finalizado', 'Concluido'])) {
+                session()->flash('error', 'No se puede anular el pago porque el evento ya concluyó.');
+                $this->modalAnularOpen = false;
+                return;
+            }
+
+            $pago->update([
+                'estado' => 'Anulado',
+                'motivo_anulacion' => trim($this->motivoAnulacion),
+                'fecha_anulacion' => now(),
+                'anulado_por' => Auth::id(),
+            ]);
+
+            // Revertir saldos en el contrato
+            $contrato = $pago->contrato;
+            if ($contrato) {
+                $nuevoTotalPagado = max(0, (float)$contrato->total_pagado - (float)$pago->monto);
+                $nuevoSaldo = min((float)$contrato->monto_total, (float)$contrato->saldo_pendiente + (float)$pago->monto);
+                $nuevoEstado = ($nuevoSaldo >= (float)$contrato->monto_total) ? 'Pendiente de Confirmacion' : 'Con Pago Parcial';
+
+                $contrato->update([
+                    'total_pagado' => $nuevoTotalPagado,
+                    'saldo_pendiente' => $nuevoSaldo,
+                    'estado' => $nuevoEstado,
+                ]);
+            }
+
+            // Registrar en Bitácora del sistema
+            $this->registrarAuditoria(
+                'Gestión Comercial',
+                'Anular Pago Cliente',
+                'Se anuló el recibo de pago N° ' . $pago->numero_recibo . ' por Bs ' . number_format($pago->monto, 2) . ' del cliente ' . ($pago->cliente ? $pago->cliente->nombre_completo : 'N/A') . '. Motivo: ' . $this->motivoAnulacion . '. Anulado por: ' . Auth::user()->name
+            );
+
+            session()->flash('success', 'El pago ' . $pago->numero_recibo . ' ha sido anulado correctamente y los saldos del contrato fueron revertidos.');
+            $this->modalAnularOpen = false;
         });
     }
 
     public function render()
     {
-        $query = Pago::with(['contrato', 'cliente', 'evento', 'user']);
+        $query = Pago::with(['contrato', 'cliente', 'evento', 'user', 'anuladoPor']);
 
         if ($this->search) {
             $query->where(function ($q) {
@@ -135,6 +242,10 @@ class GestionPagos extends Component
 
         if ($this->metodo_filtro) {
             $query->where('metodo_pago', $this->metodo_filtro);
+        }
+
+        if ($this->estado_filtro) {
+            $query->where('estado', $this->estado_filtro);
         }
 
         $pagos = $query->orderBy('fecha_pago', 'desc')->paginate(10);

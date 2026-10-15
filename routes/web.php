@@ -44,12 +44,22 @@ use App\Livewire\Comercial\GestionContratos;
 use App\Livewire\Comercial\GestionPagos;
 use App\Livewire\Comercial\GestionParticipantesEvento;
 use App\Http\Controllers\Comercial\ContratoPdfController;
+use App\Http\Controllers\Comercial\ReciboPdfController;
+use App\Http\Controllers\Comercial\VerificacionQrController;
 
 Route::get('/', PaginaInicio::class)->name('web.home');
 Route::get('/nosotros', PaginaNosotros::class)->name('web.nosotros');
 Route::get('/servicios', PaginaServicios::class)->name('web.servicios');
 Route::get('/galeria', PaginaGaleria::class)->name('web.galeria');
 Route::get('/contacto', PaginaContacto::class)->name('web.contacto');
+
+// Portal Público de Verificación QR Anti-Fraude
+Route::get('/verificar/recibo/{token}', [VerificacionQrController::class, 'verificarRecibo'])->name('public.verificar.recibo');
+Route::get('/verificar/contrato/{token}', [VerificacionQrController::class, 'verificarContrato'])->name('public.verificar.contrato');
+
+// Descarga / Visualización de Comprobantes Oficiales PDF
+Route::get('/comercial/pagos/pdf/{id}', [ReciboPdfController::class, 'exportarPdf'])->name('comercial.pagos.pdf');
+Route::get('/comercial/contratos/pdf/{id}', [ContratoPdfController::class, 'exportarPdf'])->name('comercial.contratos.pdf');
 
 // Fallback para servir storage cuando el hosting no sigue el symlink
 Route::get('/storage/{path}', function (string $path) {

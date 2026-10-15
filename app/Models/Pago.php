@@ -19,13 +19,31 @@ class Pago extends Model
         'metodo_pago',
         'comprobante_referencia',
         'observaciones',
+        'codigo_verificacion',
+        'estado',
+        'motivo_anulacion',
+        'fecha_anulacion',
+        'anulado_por',
         'user_id',
     ];
 
     protected $casts = [
         'fecha_pago' => 'datetime',
+        'fecha_anulacion' => 'datetime',
         'monto' => 'decimal:2',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($pago) {
+            if (empty($pago->codigo_verificacion)) {
+                $pago->codigo_verificacion = \Illuminate\Support\Str::random(40);
+            }
+            if (empty($pago->estado)) {
+                $pago->estado = 'Valido';
+            }
+        });
+    }
 
     public function contrato(): BelongsTo
     {
@@ -45,5 +63,10 @@ class Pago extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function anuladoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'anulado_por');
     }
 }
