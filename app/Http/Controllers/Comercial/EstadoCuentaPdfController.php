@@ -9,6 +9,7 @@ use App\Models\Contrato;
 use App\Models\Pago;
 use App\Models\Empresa;
 use App\Traits\Auditable;
+use App\Services\Security\DocumentToken;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,10 +17,47 @@ class EstadoCuentaPdfController extends Controller
 {
     use Auditable;
 
-    public function exportarPdf(Request $request, Cliente $cliente)
+    public function exportarPdf(Request $request, $token)
     {
+        // 1. Rechazar accesos que utilicen IDs numéricos simples directos (anti-enumeración)
+        if (ctype_digit((string)$token) || DocumentToken::isPlainNumeric($token)) {
+            return redirect()->route('web.home');
+        }
+
+        // 2. Verificar parámetro contrato en URL si se envía numérico simple
+        $contratoParam = $request->get('contrato_id') ?? $request->get('contrato');
+        if ($contratoParam !== null && (ctype_digit((string)$contratoParam) || is_numeric($contratoParam))) {
+            return redirect()->route('web.home');
+        }
+
+        // 3. Decodificar el token del cliente
+        $clienteId = DocumentToken::decodeId($token, 'cliente');
+        if (!$clienteId) {
+            return redirect()->route('web.home');
+        }
+
+        $cliente = Cliente::find($clienteId);
+        if (!$cliente) {
+            return redirect()->route('web.home');
+        }
+
+        // 4. Decodificar parámetro contrato si se envía
+        $contrato_id = null;
+        if ($contratoParam) {
+            $decodedContratoId = DocumentToken::decodeId($contratoParam, 'contrato');
+            if ($decodedContratoId) {
+                $contrato_id = $decodedContratoId;
+            } else {
+                $contratoObj = Contrato::where('codigo_verificacion', $contratoParam)
+                    ->where('cliente_id', $cliente->id)
+                    ->first();
+                if ($contratoObj) {
+                    $contrato_id = $contratoObj->id;
+                }
+            }
+        }
+
         $tipo = $request->get('tipo', 'general');
-        $contrato_id = $request->get('contrato_id');
         $fecha_inicio = $request->get('fecha_inicio');
         $fecha_fin = $request->get('fecha_fin');
         $metodo_pago = $request->get('metodo_pago');
@@ -33,10 +71,18 @@ class EstadoCuentaPdfController extends Controller
         $usuarioGenerador = Auth::check() ? Auth::user()->name : 'Sistema';
 
         if ($tipo === 'contrato') {
+            if (!$contrato_id) {
+                return redirect()->route('web.home');
+            }
+
             $contrato = Contrato::with(['evento', 'servicio', 'cliente', 'pagos.user'])
                 ->where('cliente_id', $cliente->id)
                 ->where('id', $contrato_id)
-                ->firstOrFail();
+                ->first();
+
+            if (!$contrato) {
+                return redirect()->route('web.home');
+            }
 
             $montoContratado = (float)$contrato->monto_total;
             $totalAbonado = (float)$contrato->pagos->where('estado', 'Valido')->sum('monto');

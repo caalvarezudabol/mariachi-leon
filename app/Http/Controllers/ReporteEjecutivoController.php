@@ -7,9 +7,13 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Empresa;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
+use App\Traits\Auditable;
 
 class ReporteEjecutivoController extends Controller
 {
+    use Auditable;
+
     public function exportarPdf()
     {
         $empresa = Empresa::obtener();
@@ -97,6 +101,13 @@ class ReporteEjecutivoController extends Controller
             'prompts' => $prompts,
             'fechaEmision' => now()->format('d/m/Y H:i:s'),
         ];
+
+        // Registro en bitácora de auditoría
+        $this->registrarAuditoria(
+            'Administración',
+            'Generar Reporte Ejecutivo PDF',
+            "Se generó en PDF el Reporte Ejecutivo del Proyecto Mariachi León Guanajuato por el usuario " . (Auth::check() ? Auth::user()->name : 'Sistema')
+        );
 
         $pdf = Pdf::loadView('pdf.reporte-ejecutivo', $datos)
             ->setPaper('letter', 'portrait')

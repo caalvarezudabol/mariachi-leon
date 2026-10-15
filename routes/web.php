@@ -120,8 +120,8 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
     // SPRINT 2: Módulo Comercial
     Route::prefix('comercial')->group(function () {
         Route::get('/clientes', GestionClientes::class)->name('admin.clientes');
-        Route::get('/clientes/{cliente}/estado-cuenta', EstadoCuentaCliente::class)->name('admin.clientes.estado-cuenta');
-        Route::get('/clientes/{cliente}/estado-cuenta/pdf', [EstadoCuentaPdfController::class, 'exportarPdf'])->name('admin.clientes.estado-cuenta.pdf');
+        Route::get('/clientes/{token}/estado-cuenta', EstadoCuentaCliente::class)->name('admin.clientes.estado-cuenta');
+        Route::get('/clientes/{token}/estado-cuenta/pdf', [EstadoCuentaPdfController::class, 'exportarPdf'])->name('admin.clientes.estado-cuenta.pdf');
         Route::get('/eventos', GestionEventos::class)->name('admin.eventos');
         Route::get('/eventos/{evento}/participantes', GestionParticipantesEvento::class)->name('admin.eventos.participantes');
         Route::get('/agenda', GestionAgenda::class)->name('admin.agenda');
@@ -137,6 +137,8 @@ Route::get('/comercial/pagos/recibo', fn() => redirect()->route('web.home'));
 Route::get('/comercial/pagos/pdf', fn() => redirect()->route('web.home'));
 Route::get('/comercial/contratos/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/comercial/contratos/pdf', fn() => redirect()->route('web.home'));
+Route::get('/admin/comercial/clientes/estado-cuenta', fn() => redirect()->route('web.home'));
+Route::get('/admin/comercial/clientes/estado-cuenta/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/activos-fijos/kardex/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/activos-fijos/comprobante', fn() => redirect()->route('web.home'));
 

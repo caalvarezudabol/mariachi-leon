@@ -48,9 +48,9 @@
 
             <!-- Exportar a PDF -->
             <a href="{{ route('admin.clientes.estado-cuenta.pdf', [
-                    'cliente' => $cliente->id,
+                    'token' => \App\Services\Security\DocumentToken::encodeId($cliente->id, 'cliente'),
                     'tipo' => $tipo_reporte,
-                    'contrato_id' => $contrato_id,
+                    'contrato' => $contrato_id ? \App\Services\Security\DocumentToken::encodeId($contrato_id, 'contrato') : null,
                     'fecha_inicio' => $fecha_inicio,
                     'fecha_fin' => $fecha_fin,
                     'metodo_pago' => $metodo_pago,
@@ -61,12 +61,6 @@
                 <i class="fa-solid fa-file-pdf"></i>
                 <span>Exportar a PDF</span>
             </a>
-
-            <!-- Exportar a Excel -->
-            <button wire:click="exportarExcel" class="px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white font-bold text-xs flex items-center gap-2 border border-emerald-500/30 transition-all shadow cursor-pointer" title="Descargar reporte en formato Excel/CSV">
-                <i class="fa-solid fa-file-excel"></i>
-                <span>Exportar a Excel</span>
-            </button>
         </div>
     </div>
 

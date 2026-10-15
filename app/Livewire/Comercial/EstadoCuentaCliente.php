@@ -10,12 +10,13 @@ use App\Models\Pago;
 use App\Models\User;
 use App\Models\Empresa;
 use App\Traits\Auditable;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Services\Security\DocumentToken;
 
 class EstadoCuentaCliente extends Component
 {
     use WithPagination, Auditable;
 
+    public $token = '';
     public Cliente $cliente;
     public $tipo_reporte = 'general'; // 'general' | 'contrato'
     public $contrato_id = null;
@@ -32,15 +33,49 @@ class EstadoCuentaCliente extends Component
     public $sortField = 'fecha_pago';
     public $sortDirection = 'asc';
 
-    public function mount(Cliente $cliente)
+    public function mount($token)
     {
-        $this->cliente = $cliente;
+        // 1. Rechazar accesos que utilicen IDs numéricos simples directos (anti-enumeración)
+        if (DocumentToken::isPlainNumeric($token) || ctype_digit((string)$token)) {
+            return redirect()->route('web.home');
+        }
 
-        // Si se recibe un contrato por parámetro GET en la URL
-        $contratoParam = request()->query('contrato_id');
+        // 2. Verificar parámetro contrato en URL si se envía numérico simple
+        $contratoParam = request()->query('contrato_id') ?? request()->query('contrato');
+        if ($contratoParam !== null && (ctype_digit((string)$contratoParam) || is_numeric($contratoParam))) {
+            return redirect()->route('web.home');
+        }
+
+        // 3. Decodificar el token del cliente
+        $clienteId = DocumentToken::decodeId($token, 'cliente');
+        if (!$clienteId) {
+            return redirect()->route('web.home');
+        }
+
+        $clienteObj = Cliente::find($clienteId);
+        if (!$clienteObj) {
+            return redirect()->route('web.home');
+        }
+        $this->cliente = $clienteObj;
+        $this->token = $token;
+
+        // 4. Si se recibe un contrato por parámetro en la URL
         if ($contratoParam) {
-            $this->contrato_id = $contratoParam;
-            $this->tipo_reporte = 'contrato';
+            $decodedContratoId = DocumentToken::decodeId($contratoParam, 'contrato');
+            if ($decodedContratoId) {
+                $this->contrato_id = $decodedContratoId;
+            } else {
+                $contratoObj = Contrato::where('codigo_verificacion', $contratoParam)
+                    ->where('cliente_id', $this->cliente->id)
+                    ->first();
+                if ($contratoObj) {
+                    $this->contrato_id = $contratoObj->id;
+                }
+            }
+
+            if ($this->contrato_id) {
+                $this->tipo_reporte = 'contrato';
+            }
         } else {
             // Seleccionar por defecto el primer contrato si existe para cuando se cambie a modo contrato
             $primerContrato = $this->cliente->contratos()->first();
@@ -76,18 +111,53 @@ class EstadoCuentaCliente extends Component
         $this->resetPage();
 
         $contrato = Contrato::find($id);
-        if ($contrato) {
-            $this->registrarAuditoria(
-                'Gestión Comercial',
-                'Consultar Estado de Cuenta Contrato',
-                "Se consultó el Estado de Cuenta del Contrato N° {$contrato->numero_contrato} del cliente {$this->cliente->nombre_completo}"
-            );
-        }
+        $this->registrarAuditoria(
+            'Gestión Comercial',
+            'Seleccionar Contrato Estado Cuenta',
+            "Se seleccionó el Contrato N° " . ($contrato ? $contrato->numero_contrato : $id) . " para el cliente {$this->cliente->nombre_completo}"
+        );
+    }
+
+    public function updatingSearchRecibo()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFechaInicio()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFechaFin()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingMetodoPago()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingUsuarioId()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingEstadoPago()
+    {
+        $this->resetPage();
     }
 
     public function limpiarFiltros()
     {
-        $this->reset(['fecha_inicio', 'fecha_fin', 'metodo_pago', 'usuario_id', 'estado_pago', 'search_recibo']);
+        $this->reset([
+            'fecha_inicio',
+            'fecha_fin',
+            'metodo_pago',
+            'usuario_id',
+            'estado_pago',
+            'search_recibo'
+        ]);
         $this->estado_pago = 'Valido';
         $this->resetPage();
     }
@@ -100,131 +170,6 @@ class EstadoCuentaCliente extends Component
             $this->sortField = $field;
             $this->sortDirection = 'asc';
         }
-    }
-
-    public function exportarExcel(): StreamedResponse
-    {
-        $this->registrarAuditoria(
-            'Gestión Comercial',
-            'Exportar Excel Estado de Cuenta',
-            "Se exportó a Excel el Estado de Cuenta (" . strtoupper($this->tipo_reporte) . ") del cliente {$this->cliente->nombre_completo}"
-        );
-
-        $clienteNombre = str_replace(' ', '_', strtolower($this->cliente->nombre_completo));
-        $tipo = $this->tipo_reporte;
-        $filename = "estado_cuenta_{$tipo}_{$clienteNombre}_" . date('Ymd_His') . ".csv";
-
-        return response()->streamDownload(function () {
-            $handle = fopen('php://output', 'w');
-            
-            // UTF-8 BOM para que Excel abra directamente con tildes y caracteres especiales
-            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
-
-            if ($this->tipo_reporte === 'contrato') {
-                $contrato = Contrato::with(['evento', 'servicio'])->where('cliente_id', $this->cliente->id)->find($this->contrato_id);
-                
-                fputcsv($handle, ['MARIACHI LEÓN GUANAJUATO S.R.L. - ESTADO DE CUENTA POR CONTRATO']);
-                fputcsv($handle, ['Fecha de Emisión:', date('d/m/Y H:i:s')]);
-                fputcsv($handle, ['Cliente:', $this->cliente->nombre_completo, 'CI/NIT:', $this->cliente->ci_nit ?: 'S/N']);
-                fputcsv($handle, ['Teléfono:', $this->cliente->telefono ?: $this->cliente->whatsapp, 'Correo:', $this->cliente->email]);
-                fputcsv($handle, ['N° Contrato:', $contrato ? $contrato->numero_contrato : 'N/A', 'Fecha Contrato:', $contrato && $contrato->fecha_contrato ? $contrato->fecha_contrato->format('d/m/Y') : 'N/A']);
-                fputcsv($handle, ['Servicio:', $contrato && $contrato->servicio ? $contrato->servicio->nombre : 'N/A', 'Estado Contrato:', $contrato ? $contrato->estado : 'N/A']);
-                fputcsv($handle, []);
-
-                // Resumen Financiero
-                $montoContratado = $contrato ? (float)$contrato->monto_total : 0;
-                $totalAbonado = $contrato ? (float)$contrato->pagos()->where('estado', 'Valido')->sum('monto') : 0;
-                $saldoPendiente = max(0, $montoContratado - $totalAbonado);
-                fputcsv($handle, ['RESUMEN FINANCIERO']);
-                fputcsv($handle, ['Monto Contratado (Bs)', 'Total Abonado (Bs)', 'Saldo Pendiente (Bs)']);
-                fputcsv($handle, [number_format($montoContratado, 2, '.', ''), number_format($totalAbonado, 2, '.', ''), number_format($saldoPendiente, 2, '.', '')]);
-                fputcsv($handle, []);
-
-                // Tabla de Pagos
-                fputcsv($handle, ['HISTORIAL DE PAGOS']);
-                fputcsv($handle, ['N°', 'Recibo', 'Fecha y Hora', 'Detalle o Concepto', 'Importe (Bs)', 'Método de Pago', 'Usuario que Cobró', 'Estado']);
-
-                $queryPagos = $contrato ? $contrato->pagos()->with('user') : Pago::whereRaw('1=0');
-                $this->aplicarFiltrosQuery($queryPagos);
-                $pagos = $queryPagos->orderBy($this->sortField, $this->sortDirection)->get();
-
-                foreach ($pagos as $idx => $p) {
-                    fputcsv($handle, [
-                        $idx + 1,
-                        $p->numero_recibo,
-                        $p->fecha_pago ? $p->fecha_pago->format('d/m/Y H:i') : '-',
-                        $p->observaciones ?: 'Abono a cuenta por servicio musical',
-                        number_format($p->monto, 2, '.', ''),
-                        $p->metodo_pago,
-                        $p->user ? $p->user->name : 'Sistema',
-                        $p->estado,
-                    ]);
-                }
-            } else {
-                // Reporte General
-                fputcsv($handle, ['MARIACHI LEÓN GUANAJUATO S.R.L. - ESTADO DE CUENTA GENERAL']);
-                fputcsv($handle, ['Fecha de Emisión:', date('d/m/Y H:i:s')]);
-                fputcsv($handle, ['Cliente:', $this->cliente->nombre_completo, 'CI/NIT:', $this->cliente->ci_nit ?: 'S/N']);
-                fputcsv($handle, ['Teléfono:', $this->cliente->telefono ?: $this->cliente->whatsapp, 'Correo:', $this->cliente->email]);
-                fputcsv($handle, []);
-
-                // Contratos
-                $contratos = $this->cliente->contratos()->with(['evento', 'servicio', 'pagos'])->orderBy('fecha_contrato', 'desc')->get();
-                $montoContratadoTotal = (float)$contratos->sum('monto_total');
-                $totalAbonadoNeto = (float)Pago::where('cliente_id', $this->cliente->id)->where('estado', 'Valido')->sum('monto');
-                $saldoPendienteTotal = max(0, $montoContratadoTotal - $totalAbonadoNeto);
-
-                fputcsv($handle, ['RESUMEN FINANCIERO CONSOLIDADO']);
-                fputcsv($handle, ['Total Contratos', 'Monto Contratado Total (Bs)', 'Total Abonado Neto (Bs)', 'Saldo Pendiente Total (Bs)']);
-                fputcsv($handle, [$contratos->count(), number_format($montoContratadoTotal, 2, '.', ''), number_format($totalAbonadoNeto, 2, '.', ''), number_format($saldoPendienteTotal, 2, '.', '')]);
-                fputcsv($handle, []);
-
-                fputcsv($handle, ['RESUMEN DE CONTRATOS']);
-                fputcsv($handle, ['N°', 'Contrato', 'Fecha', 'Servicio', 'Monto Contratado (Bs)', 'Total Abonado (Bs)', 'Saldo Pendiente (Bs)', 'Estado']);
-                foreach ($contratos as $idx => $c) {
-                    $ab = (float)$c->pagos->where('estado', 'Valido')->sum('monto');
-                    $sp = max(0, (float)$c->monto_total - $ab);
-                    fputcsv($handle, [
-                        $idx + 1,
-                        $c->numero_contrato,
-                        $c->fecha_contrato ? $c->fecha_contrato->format('d/m/Y') : '-',
-                        $c->servicio ? $c->servicio->nombre : 'Servicio Musical',
-                        number_format($c->monto_total, 2, '.', ''),
-                        number_format($ab, 2, '.', ''),
-                        number_format($sp, 2, '.', ''),
-                        $c->estado,
-                    ]);
-                }
-                fputcsv($handle, []);
-
-                // Historial Consolidado de Pagos
-                fputcsv($handle, ['HISTORIAL CONSOLIDADO DE PAGOS']);
-                fputcsv($handle, ['N°', 'Recibo', 'Contrato', 'Fecha y Hora', 'Detalle o Concepto', 'Importe (Bs)', 'Método de Pago', 'Usuario que Cobró', 'Estado']);
-
-                $queryPagos = Pago::with(['contrato', 'user'])->where('cliente_id', $this->cliente->id);
-                $this->aplicarFiltrosQuery($queryPagos);
-                $pagos = $queryPagos->orderBy($this->sortField, $this->sortDirection)->get();
-
-                foreach ($pagos as $idx => $p) {
-                    fputcsv($handle, [
-                        $idx + 1,
-                        $p->numero_recibo,
-                        $p->contrato ? $p->contrato->numero_contrato : 'N/A',
-                        $p->fecha_pago ? $p->fecha_pago->format('d/m/Y H:i') : '-',
-                        $p->observaciones ?: 'Abono a cuenta por servicio musical',
-                        number_format($p->monto, 2, '.', ''),
-                        $p->metodo_pago,
-                        $p->user ? $p->user->name : 'Sistema',
-                        $p->estado,
-                    ]);
-                }
-            }
-
-            fclose($handle);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ]);
     }
 
     protected function aplicarFiltrosQuery($query)
@@ -309,9 +254,6 @@ class EstadoCuentaCliente extends Component
 
             // Consulta de pagos consolidados con filtros
             $queryPagos = Pago::with(['contrato', 'user'])->where('cliente_id', $this->cliente->id);
-            if ($this->contrato_id) {
-                // Filtro opcional por contrato dentro del consolidado si se desea
-            }
             $this->aplicarFiltrosQuery($queryPagos);
             $pagos = $queryPagos->orderBy($this->sortField, $this->sortDirection)->paginate(15);
 

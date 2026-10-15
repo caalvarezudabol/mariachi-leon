@@ -10,9 +10,12 @@ use App\Models\Asset;
 use App\Models\AssetCategory;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\Auditable;
 
 class InventarioPdfController extends Controller
 {
+    use Auditable;
+
     public function exportarPdf()
     {
         $empresa = Empresa::obtener();
@@ -68,6 +71,13 @@ class InventarioPdfController extends Controller
             'usuarioEmision' => Auth::user()->name ?? 'Enrrique Escalera',
             'fechaEmision' => now()->format('d/m/Y H:i:s'),
         ];
+
+        // Registro en bitácora de auditoría
+        $this->registrarAuditoria(
+            'Activos Fijos',
+            'Generar Inventario Valorado PDF',
+            "Se generó en PDF el Informe de Inventario Valorado con {$articulos->count()} artículos por un valor total de Bs " . number_format($valorTotalGeneral, 2) . " por el usuario " . (Auth::check() ? Auth::user()->name : 'Sistema')
+        );
 
         $pdf = Pdf::loadView('pdf.reporte-inventario-valorado', $datos)
             ->setPaper('letter', 'portrait')

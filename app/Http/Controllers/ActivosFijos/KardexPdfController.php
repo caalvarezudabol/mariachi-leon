@@ -9,9 +9,12 @@ use App\Models\InventoryMovement;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\Auditable;
 
 class KardexPdfController extends Controller
 {
+    use Auditable;
+
     public function exportarPdf($token)
     {
         // Rechazar accesos que utilicen IDs numéricos simples directos (anti-enumeración)
@@ -77,6 +80,13 @@ class KardexPdfController extends Controller
             'usuarioEmision' => Auth::user()->name ?? 'Enrrique Escalera',
             'fechaEmision' => now()->format('d/m/Y H:i'),
         ];
+
+        // Registro en bitácora de auditoría
+        $this->registrarAuditoria(
+            'Activos Fijos',
+            'Generar Kardex PDF',
+            "Se generó en PDF el Kardex del producto {$asset->codigo} - {$asset->nombre} por el usuario " . (Auth::check() ? Auth::user()->name : 'Sistema')
+        );
 
         // 7. Generar PDF Ultrarrápido en Tamaño Carta y Márgenes de 2 cm
         $pdf = Pdf::loadView('pdf.kardex-producto', $datos)

@@ -108,7 +108,7 @@
                             </td>
                             <td class="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
                                 <!-- Estados de Cuenta -->
-                                <a href="{{ route('admin.clientes.estado-cuenta', $cliente->id) }}" 
+                                <a href="{{ route('admin.clientes.estado-cuenta', \App\Services\Security\DocumentToken::encodeId($cliente->id, 'cliente')) }}" 
                                    class="p-2 rounded-lg bg-gold-500/10 text-gold-400 hover:text-slate-950 hover:bg-gold-500 transition-all shadow-sm inline-block border border-gold-500/20" 
                                    title="Estados de Cuenta e Historial de Pagos de {{ $cliente->nombre_completo }}">
                                     <i class="fa-solid fa-file-invoice-dollar"></i>
