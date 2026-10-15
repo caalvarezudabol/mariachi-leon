@@ -106,8 +106,14 @@
                                     {{ $cliente->estado }}
                                 </button>
                             </td>
-                            <td class="py-3.5 px-4 text-right space-x-2">
-                                <button wire:click="editar({{ $cliente->id }})" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-all" title="Editar Cliente">
+                            <td class="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
+                                <!-- Estados de Cuenta -->
+                                <a href="{{ route('admin.clientes.estado-cuenta', $cliente->id) }}" 
+                                   class="p-2 rounded-lg bg-gold-500/10 text-gold-400 hover:text-slate-950 hover:bg-gold-500 transition-all shadow-sm inline-block border border-gold-500/20" 
+                                   title="Estados de Cuenta e Historial de Pagos de {{ $cliente->nombre_completo }}">
+                                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                                </a>
+                                <button wire:click="editar({{ $cliente->id }})" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-all inline-block" title="Editar Cliente">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
                             </td>

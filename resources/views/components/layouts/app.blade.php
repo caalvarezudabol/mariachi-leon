@@ -199,7 +199,7 @@
                 </div>
 
                 <!-- Grupo: Gestión Comercial -->
-                <div x-data="{ open: {{ request()->routeIs('admin.clientes') || request()->routeIs('admin.eventos') || request()->routeIs('admin.eventos.*') || request()->routeIs('admin.agenda') || request()->routeIs('admin.cotizaciones') || request()->routeIs('admin.contratos') || request()->routeIs('admin.pagos') ? 'true' : 'false' }} }" class="pt-2">
+                <div x-data="{ open: {{ request()->routeIs('admin.clientes*') || request()->routeIs('admin.eventos') || request()->routeIs('admin.eventos.*') || request()->routeIs('admin.agenda') || request()->routeIs('admin.cotizaciones') || request()->routeIs('admin.contratos') || request()->routeIs('admin.pagos') ? 'true' : 'false' }} }" class="pt-2">
                     <button @click="open = !open" type="button"
                         class="w-full flex items-center justify-between px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-200 transition-colors">
                         <span>Gestión Comercial</span>
@@ -208,7 +208,7 @@
                     </button>
                     <div x-show="open" x-collapse class="space-y-1.5 mt-1">
                         <a href="{{ route('admin.clientes') }}"
-                            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.clientes') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.clientes*') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
                             <i class="fa-solid fa-users w-5 text-center"></i>
                             <span>Clientes</span>
                         </a>

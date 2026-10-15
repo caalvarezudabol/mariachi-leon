@@ -46,6 +46,8 @@ use App\Livewire\Comercial\GestionParticipantesEvento;
 use App\Http\Controllers\Comercial\ContratoPdfController;
 use App\Http\Controllers\Comercial\ReciboPdfController;
 use App\Http\Controllers\Comercial\VerificacionQrController;
+use App\Livewire\Comercial\EstadoCuentaCliente;
+use App\Http\Controllers\Comercial\EstadoCuentaPdfController;
 
 Route::get('/', PaginaInicio::class)->name('web.home');
 Route::get('/nosotros', PaginaNosotros::class)->name('web.nosotros');
@@ -118,6 +120,8 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
     // SPRINT 2: Módulo Comercial
     Route::prefix('comercial')->group(function () {
         Route::get('/clientes', GestionClientes::class)->name('admin.clientes');
+        Route::get('/clientes/{cliente}/estado-cuenta', EstadoCuentaCliente::class)->name('admin.clientes.estado-cuenta');
+        Route::get('/clientes/{cliente}/estado-cuenta/pdf', [EstadoCuentaPdfController::class, 'exportarPdf'])->name('admin.clientes.estado-cuenta.pdf');
         Route::get('/eventos', GestionEventos::class)->name('admin.eventos');
         Route::get('/eventos/{evento}/participantes', GestionParticipantesEvento::class)->name('admin.eventos.participantes');
         Route::get('/agenda', GestionAgenda::class)->name('admin.agenda');
