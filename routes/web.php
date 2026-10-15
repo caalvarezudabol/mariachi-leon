@@ -127,3 +127,14 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
         Route::get('/pagos', GestionPagos::class)->name('admin.pagos');
     });
 });
+
+// Redirección directa para accesos incompletos a rutas de PDF sin ID
+Route::get('/comercial/pagos/recibo', fn() => redirect()->route('web.home'));
+Route::get('/comercial/pagos/pdf', fn() => redirect()->route('web.home'));
+Route::get('/comercial/contratos/pdf', fn() => redirect()->route('web.home'));
+Route::get('/admin/comercial/contratos/pdf', fn() => redirect()->route('web.home'));
+
+// Redirección global de respaldo: cualquier ruta inválida o no registrada va al index principal
+Route::fallback(function () {
+    return redirect()->route('web.home');
+});
