@@ -197,6 +197,18 @@
                                     title="Historial de Pagos y Estado Financiero">
                                     <i class="fa-solid fa-file-invoice-dollar"></i>
                                 </button>
+                                @if($ev->contrato && $ev->cliente_id)
+                                    @php
+                                        $evClientTok = \App\Services\Security\DocumentToken::encodeId($ev->cliente_id, 'cliente');
+                                        $evCtrTok = \App\Services\Security\DocumentToken::encodeId($ev->contrato->id, 'contrato');
+                                    @endphp
+                                    <a href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $evClientTok, 'contrato' => $evCtrTok, 'tipo' => 'contrato']) }}" 
+                                       target="_blank"
+                                       class="p-2 rounded-lg bg-rose-500/10 text-rose-400 hover:text-white hover:bg-rose-600 border border-rose-500/20 transition-all inline-block shadow-sm" 
+                                       title="Ver Extracto de Pagos en PDF (Contrato {{ $ev->contrato->numero_contrato }})">
+                                        <i class="fa-solid fa-file-pdf"></i>
+                                    </a>
+                                @endif
                                 <a href="{{ route('admin.eventos.participantes', $ev->id) }}"
                                     class="p-2 rounded-lg bg-slate-800 text-gold-400 hover:text-gold-300 hover:bg-slate-700 transition-all inline-block"
                                     title="Gestionar Participantes">
@@ -676,9 +688,24 @@
                             </p>
                         </div>
                     </div>
-                    <button wire:click="cerrarHistorialPagos" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors text-lg" title="Cerrar">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        @if(!empty($resumenFinanciero['tiene_contrato']) && !empty($resumenFinanciero['contrato_id']) && $eventoHistorial->cliente_id)
+                            @php
+                                $cTokenHeader = \App\Services\Security\DocumentToken::encodeId($eventoHistorial->cliente_id, 'cliente');
+                                $ctrTokenHeader = \App\Services\Security\DocumentToken::encodeId($resumenFinanciero['contrato_id'], 'contrato');
+                            @endphp
+                            <a href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $cTokenHeader, 'contrato' => $ctrTokenHeader, 'tipo' => 'contrato']) }}" 
+                               target="_blank"
+                               class="hidden sm:inline-flex px-3 py-1.5 rounded-xl bg-gold-500/10 hover:bg-gold-500 text-gold-400 hover:text-slate-950 font-bold text-xs border border-gold-500/20 transition-all items-center gap-1.5 shadow-sm" 
+                               title="Ver Extracto de Pagos en PDF">
+                                <i class="fa-solid fa-file-pdf"></i>
+                                <span>Extracto PDF</span>
+                            </a>
+                        @endif
+                        <button wire:click="cerrarHistorialPagos" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors text-lg" title="Cerrar">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Body (Scrollable) -->
@@ -809,16 +836,36 @@
 
                 <!-- Footer -->
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-brand-border px-6 py-4 shrink-0 bg-slate-950/60">
-                    <div>
+                    <div class="flex items-center gap-3 flex-wrap">
                         @if(!empty($resumenFinanciero['tiene_contrato']) && !empty($resumenFinanciero['contrato_id']) && $eventoHistorial->cliente_id)
                             @php
                                 $cToken = \App\Services\Security\DocumentToken::encodeId($eventoHistorial->cliente_id, 'cliente');
                                 $ctrToken = \App\Services\Security\DocumentToken::encodeId($resumenFinanciero['contrato_id'], 'contrato');
                             @endphp
+                            <!-- Botón Principal: Ver Extracto de Pagos en PDF -->
+                            <a href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $cToken, 'contrato' => $ctrToken, 'tipo' => 'contrato']) }}" 
+                               target="_blank"
+                               class="px-4 py-2 rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-md hover:shadow-gold-500/20 transition-all cursor-pointer"
+                               title="Ver Extracto de Pagos del Contrato {{ $resumenFinanciero['numero_contrato'] }} en formato PDF oficial con QR">
+                                <i class="fa-solid fa-file-pdf text-sm text-slate-950"></i>
+                                <span>Ver Extracto de Pagos en PDF</span>
+                            </a>
+
+                            <!-- Extracto General de Pagos PDF -->
+                            <a href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $cToken, 'tipo' => 'general']) }}" 
+                               target="_blank"
+                               class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-400 hover:text-white border border-rose-500/20 font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                               title="Ver Extracto de Pagos Global Consolidado del Cliente en PDF">
+                                <i class="fa-solid fa-receipt text-xs"></i>
+                                <span>Extracto General del Cliente</span>
+                            </a>
+
+                            <!-- Enlace a Vista Web Completa -->
                             <a href="{{ route('admin.clientes.estado-cuenta', ['token' => $cToken, 'contrato' => $ctrToken]) }}" 
-                               class="text-xs font-bold text-gold-400 hover:text-gold-300 flex items-center gap-1.5 underline decoration-gold-500/40 hover:decoration-gold-400 transition-colors">
-                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                <span>Ver Estado de Cuenta Completo y Exportar a PDF</span>
+                               class="text-xs font-bold text-slate-400 hover:text-gold-300 flex items-center gap-1.5 underline decoration-slate-600 hover:decoration-gold-400 transition-colors ml-1"
+                               title="Ver Estado de Cuenta interactivo en el sistema">
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                <span>Estado de Cuenta Web</span>
                             </a>
                         @endif
                     </div>
