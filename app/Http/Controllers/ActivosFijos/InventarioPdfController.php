@@ -88,6 +88,6 @@ class InventarioPdfController extends Controller
 
         $filename = 'informe_inventario_valorado_mariachi_leon.pdf';
 
-        return $pdf->download($filename);
+        return $pdf->stream($filename);
     }
 }

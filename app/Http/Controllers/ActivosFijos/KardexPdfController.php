@@ -98,6 +98,6 @@ class KardexPdfController extends Controller
 
         $filename = 'kardex_' . Str::slug($asset->codigo) . '_' . Str::slug($asset->nombre) . '.pdf';
 
-        return $pdf->download($filename);
+        return $pdf->stream($filename);
     }
 }
