@@ -50,6 +50,7 @@ use App\Livewire\Comercial\EstadoCuentaCliente;
 use App\Http\Controllers\Comercial\EstadoCuentaPdfController;
 use App\Http\Controllers\Comercial\EventoPdfController;
 use App\Http\Controllers\Comercial\ClienteContratosPdfController;
+use App\Http\Controllers\Comercial\EventoComisionesPdfController;
 
 Route::get('/', PaginaInicio::class)->name('web.home');
 Route::get('/nosotros', PaginaNosotros::class)->name('web.nosotros');
@@ -60,6 +61,7 @@ Route::get('/contacto', PaginaContacto::class)->name('web.contacto');
 // Portal Público de Verificación QR Anti-Fraude
 Route::get('/verificar/recibo/{token}', [VerificacionQrController::class, 'verificarRecibo'])->name('public.verificar.recibo');
 Route::get('/verificar/contrato/{token}', [VerificacionQrController::class, 'verificarContrato'])->name('public.verificar.contrato');
+Route::get('/verificar/comisiones/{token}', [VerificacionQrController::class, 'verificarComisiones'])->name('public.verificar.comisiones');
 
 // Descarga / Visualización de Comprobantes Oficiales PDF e Impresión
 Route::get('/comercial/pagos/recibo/{token}', [ReciboPdfController::class, 'verRecibo'])->name('comercial.pagos.recibo');
@@ -128,6 +130,7 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
         Route::get('/eventos', GestionEventos::class)->name('admin.eventos');
         Route::get('/eventos/pdf', [EventoPdfController::class, 'exportarPdf'])->name('admin.eventos.pdf');
         Route::get('/eventos/{evento}/participantes', GestionParticipantesEvento::class)->name('admin.eventos.participantes');
+        Route::get('/eventos/{token}/comisiones/pdf', [EventoComisionesPdfController::class, 'exportarPdf'])->name('admin.eventos.comisiones.pdf');
         Route::get('/agenda', GestionAgenda::class)->name('admin.agenda');
         Route::get('/cotizaciones', GestionCotizaciones::class)->name('admin.cotizaciones');
         Route::get('/contratos', GestionContratos::class)->name('admin.contratos');
@@ -141,6 +144,8 @@ Route::get('/comercial/pagos/recibo', fn() => redirect()->route('web.home'));
 Route::get('/comercial/pagos/pdf', fn() => redirect()->route('web.home'));
 Route::get('/comercial/contratos/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/comercial/contratos/pdf', fn() => redirect()->route('web.home'));
+Route::get('/admin/comercial/eventos/comisiones/pdf', fn() => redirect()->route('web.home'));
+Route::get('/verificar/comisiones', fn() => redirect()->route('web.home'));
 Route::get('/admin/comercial/clientes/estado-cuenta', fn() => redirect()->route('web.home'));
 Route::get('/admin/comercial/clientes/estado-cuenta/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/comercial/clientes/historial-contratos/pdf', fn() => redirect()->route('web.home'));

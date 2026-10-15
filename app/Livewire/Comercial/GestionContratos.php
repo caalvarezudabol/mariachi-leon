@@ -43,6 +43,11 @@ class GestionContratos extends Component
     public $pagosHistorial = [];
     public $resumenFinanciero = [];
 
+    // Modal de Comisiones de Músicos y Personal por Evento
+    public $modalComisionesOpen = false;
+    public $eventoComisiones = null;
+    public $resumenComisiones = [];
+
     protected function rules()
     {
         return [
@@ -270,9 +275,105 @@ class GestionContratos extends Component
         $this->resumenFinanciero = [];
     }
 
+    public function abrirComisiones($contratoId)
+    {
+        $contrato = Contrato::with(['evento.cliente', 'evento.servicio', 'evento.contrato', 'evento.participantes.persona', 'evento.distribuciones'])->findOrFail($contratoId);
+
+        if (!$contrato->evento) {
+            session()->flash('error', 'Este contrato no tiene un evento vinculado.');
+            return;
+        }
+
+        $this->eventoComisiones = $contrato->evento;
+        $this->calcularResumenComisiones();
+
+        $this->registrarAuditoria(
+            'Gestión Comercial',
+            'Consultar Comisiones desde Contrato',
+            "Se consultaron comisiones de músicos del contrato {$contrato->numero_contrato} (Evento: {$this->eventoComisiones->codigo_evento})"
+        );
+
+        $this->modalComisionesOpen = true;
+    }
+
+    public function calcularResumenComisiones()
+    {
+        if (!$this->eventoComisiones) return;
+
+        $montoEvento = $this->eventoComisiones->contrato 
+            ? (float)$this->eventoComisiones->contrato->monto_total 
+            : (float)($this->eventoComisiones->monto_total ?? 0);
+
+        $participantes = $this->eventoComisiones->participantes;
+        $totalComisiones = (float)$participantes->sum('monto_asignado');
+        $totalPagado = (float)$participantes->where('estado_distribucion', 'Distribuido')->sum('monto_asignado');
+        $totalPendiente = max(0.0, $totalComisiones - $totalPagado);
+        $margenGrupo = $montoEvento - $totalComisiones;
+
+        $token = \App\Services\Security\DocumentToken::encodeId($this->eventoComisiones->id, 'evento');
+
+        $this->resumenComisiones = [
+            'monto_evento' => $montoEvento,
+            'total_comisiones' => $totalComisiones,
+            'total_pagado' => $totalPagado,
+            'total_pendiente' => $totalPendiente,
+            'margen_grupo' => $margenGrupo,
+            'token' => $token,
+            'count_participantes' => $participantes->count(),
+            'count_pagados' => $participantes->where('estado_distribucion', 'Distribuido')->count(),
+            'count_pendientes' => $participantes->where('estado_distribucion', '!=', 'Distribuido')->count(),
+        ];
+    }
+
+    public function cambiarEstadoComision($participanteId)
+    {
+        $part = \App\Models\EventoParticipante::with('persona')->findOrFail($participanteId);
+        $nuevoEstado = ($part->estado_distribucion === 'Distribuido') ? 'Pendiente' : 'Distribuido';
+        $part->update(['estado_distribucion' => $nuevoEstado]);
+
+        // Sincronizar o crear distribucion_economica
+        $dist = \App\Models\DistribucionEconomica::where('evento_participante_id', $part->id)->first();
+        if ($dist) {
+            $dist->update(['estado' => $nuevoEstado]);
+        } else {
+            \App\Models\DistribucionEconomica::create([
+                'evento_id' => $part->evento_id,
+                'contrato_id' => optional($this->eventoComisiones->contrato)->id,
+                'persona_id' => $part->persona_id,
+                'evento_participante_id' => $part->id,
+                'funcion' => $part->funcion,
+                'concepto' => $part->concepto_pago,
+                'monto' => $part->monto_asignado,
+                'fecha_distribucion' => now(),
+                'estado' => $nuevoEstado,
+                'user_id' => Auth::id(),
+            ]);
+        }
+
+        $personaNombre = $part->persona->nombre_completo ?? 'Participante';
+        $this->registrarAuditoria(
+            'Gestión Comercial',
+            'Cambiar Estado Comisión Músico',
+            "Se cambió estado de comisión de {$personaNombre} a {$nuevoEstado} desde contrato N° " . ($this->eventoComisiones->contrato?->numero_contrato ?? '')
+        );
+
+        // Recargar evento y resumen
+        $this->eventoComisiones = Evento::with(['cliente', 'servicio', 'contrato', 'participantes.persona', 'distribuciones'])->findOrFail($this->eventoComisiones->id);
+        $this->calcularResumenComisiones();
+
+        session()->flash('comision_success', "Estado de comisión de {$personaNombre} actualizado a {$nuevoEstado}.");
+    }
+
+    public function cerrarComisiones()
+    {
+        $this->modalComisionesOpen = false;
+        $this->eventoComisiones = null;
+        $this->resumenComisiones = [];
+    }
+
     public function render()
     {
-        $query = Contrato::with(['cliente', 'servicio', 'evento', 'pagos']);
+        $query = Contrato::with(['cliente', 'servicio', 'evento.participantes.persona', 'pagos']);
 
         if ($this->search) {
             $query->where(function ($q) {

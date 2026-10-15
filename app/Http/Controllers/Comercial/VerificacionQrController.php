@@ -46,4 +46,25 @@ class VerificacionQrController extends Controller
             'fechaConsulta' => $fechaConsulta,
         ]);
     }
+
+    public function verificarComisiones($token)
+    {
+        $eventoId = \App\Services\Security\DocumentToken::decodeId($token, 'evento');
+        $evento = null;
+        if ($eventoId) {
+            $evento = \App\Models\Evento::with(['cliente', 'servicio', 'contrato', 'participantes.persona'])
+                ->find($eventoId);
+        }
+
+        $empresa = Empresa::obtener();
+        $fechaConsulta = now()->format('d/m/Y H:i:s');
+
+        return view('public.verificar-comisiones', [
+            'evento' => $evento,
+            'empresa' => $empresa,
+            'token' => $token,
+            'fechaConsulta' => $fechaConsulta,
+        ]);
+    }
 }
+

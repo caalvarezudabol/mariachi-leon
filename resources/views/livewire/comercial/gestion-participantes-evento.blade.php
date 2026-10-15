@@ -19,7 +19,16 @@
                 </p>
             </div>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
+            @php
+                $tokenEventoPart = \App\Services\Security\DocumentToken::encodeId($evento->id, 'evento');
+            @endphp
+            <a href="{{ route('admin.eventos.comisiones.pdf', $tokenEventoPart) }}" target="_blank"
+                class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-gold-500 to-amber-500 hover:from-gold-400 hover:to-amber-400 text-slate-950 text-sm font-bold shadow-lg shadow-gold-500/20 transition-all flex items-center gap-2"
+                title="Descargar Planilla Oficial de Comisiones y Liquidación a Músicos y Personal en PDF con QR">
+                <i class="fa-solid fa-file-pdf text-base"></i>
+                <span>Planilla Comisiones (PDF)</span>
+            </a>
             <a href="{{ route('admin.eventos') }}" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold border border-slate-700 transition-all flex items-center gap-2">
                 <i class="fa-solid fa-list text-slate-400"></i>
                 <span>Volver a Eventos</span>

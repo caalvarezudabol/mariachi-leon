@@ -195,7 +195,7 @@
                                 <button wire:click="abrirHistorialPagos({{ $ev->id }})"
                                     class="p-2 rounded-lg bg-gold-500/10 text-gold-400 hover:text-slate-950 hover:bg-gold-500 border border-gold-500/20 transition-all inline-block shadow-sm"
                                     title="Historial de Pagos y Estado Financiero">
-                                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                                    <i class="fa-solid fa-receipt"></i>
                                 </button>
                                 @if($ev->contrato && $ev->cliente_id)
                                     @php
@@ -209,6 +209,24 @@
                                         <i class="fa-solid fa-file-pdf"></i>
                                     </a>
                                 @endif
+
+                                <!-- Ver Comisiones a Músicos y Personal por Evento -->
+                                <button wire:click="abrirComisiones({{ $ev->id }})"
+                                    class="p-2 rounded-lg bg-sky-500/10 text-sky-400 hover:text-white hover:bg-sky-600 border border-sky-500/20 transition-all inline-block shadow-sm"
+                                    title="Ver Comisiones a Músicos y Personal del Evento ({{ $ev->participantes->count() }} integrantes)">
+                                    <i class="fa-solid fa-users-viewfinder"></i>
+                                </button>
+
+                                <!-- Planilla de Comisiones en PDF con QR -->
+                                @php
+                                    $evTokCom = \App\Services\Security\DocumentToken::encodeId($ev->id, 'evento');
+                                @endphp
+                                <a href="{{ route('admin.eventos.comisiones.pdf', $evTokCom) }}" target="_blank"
+                                    class="p-2 rounded-lg bg-amber-500/10 text-amber-400 hover:text-slate-950 hover:bg-amber-500 border border-amber-500/20 transition-all inline-block shadow-sm"
+                                    title="Descargar Planilla Oficial de Comisiones y Liquidación en PDF con QR">
+                                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                                </a>
+
                                 <a href="{{ route('admin.eventos.participantes', $ev->id) }}"
                                     class="p-2 rounded-lg bg-slate-800 text-gold-400 hover:text-gold-300 hover:bg-slate-700 transition-all inline-block"
                                     title="Gestionar Participantes">
@@ -871,6 +889,248 @@
                     </div>
                     <div class="flex items-center gap-3">
                         <button wire:click="cerrarHistorialPagos"
+                            class="px-5 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-all">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal Comisiones a Músicos y Personal por Evento -->
+    @if ($modalComisionesOpen && $eventoComisiones)
+        @php
+            $tokenEvCom = $resumenComisiones['token'] ?? \App\Services\Security\DocumentToken::encodeId($eventoComisiones->id, 'evento');
+        @endphp
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+            <div class="bg-brand-card border border-brand-border rounded-3xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+                <!-- Header -->
+                <div class="flex items-center justify-between border-b border-brand-border px-6 py-4 shrink-0 bg-slate-950/60">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-lg shadow-sm">
+                            <i class="fa-solid fa-users-viewfinder"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="text-lg font-bold text-white">Comisiones a Músicos y Personal</h3>
+                                <span class="font-mono font-extrabold text-gold-400 bg-gold-500/10 border border-gold-500/20 px-2 py-0.5 rounded-md text-xs">
+                                    {{ $eventoComisiones->codigo_evento }}
+                                </span>
+                                @if($eventoComisiones->contrato)
+                                    <span class="font-mono font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-md text-xs">
+                                        Contrato: {{ $eventoComisiones->contrato->numero_contrato }}
+                                    </span>
+                                @else
+                                    <span class="text-amber-400 italic text-xs bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                                        Sin contrato formal
+                                    </span>
+                                @endif
+                                <span class="px-2 py-0.5 rounded-md text-[11px] font-bold 
+                                    @if ($eventoComisiones->estado === 'Confirmado' || $eventoComisiones->estado === 'Realizado') bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
+                                    @elseif($eventoComisiones->estado === 'Pendiente') bg-amber-500/10 text-amber-400 border border-amber-500/20
+                                    @elseif($eventoComisiones->estado === 'Cancelado') bg-rose-500/10 text-rose-400 border border-rose-500/20
+                                    @else bg-slate-800 text-slate-300 border border-slate-700 @endif">
+                                    {{ $eventoComisiones->estado }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 flex items-center gap-2 mt-1 flex-wrap">
+                                <span><i class="fa-solid fa-user text-slate-500 mr-1"></i>Cliente: <strong>{{ $eventoComisiones->cliente->nombre_completo ?? 'N/A' }}</strong></span>
+                                <span class="text-slate-600">•</span>
+                                <span><i class="fa-solid fa-music text-slate-500 mr-1"></i>{{ $eventoComisiones->servicio->nombre ?? 'Servicio Estándar' }}</span>
+                                <span class="text-slate-600">•</span>
+                                <span><i class="fa-solid fa-calendar text-slate-500 mr-1"></i>{{ $eventoComisiones->fecha_evento ? $eventoComisiones->fecha_evento->format('d/m/Y') : '-' }} {{ $eventoComisiones->hora_evento }}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <!-- Botón Planilla PDF con QR -->
+                        <a href="{{ route('admin.eventos.comisiones.pdf', $tokenEvCom) }}" 
+                           target="_blank"
+                           class="hidden sm:inline-flex px-3 py-1.5 rounded-xl bg-gold-500/10 hover:bg-gold-500 text-gold-400 hover:text-slate-950 font-bold text-xs border border-gold-500/20 transition-all items-center gap-1.5 shadow-sm" 
+                           title="Descargar Planilla Oficial de Comisiones en PDF con QR">
+                            <i class="fa-solid fa-file-pdf"></i>
+                            <span>Planilla PDF</span>
+                        </a>
+
+                        <button wire:click="cerrarComisiones" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors text-lg" title="Cerrar">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Notificación Flash dentro del modal -->
+                @if (session()->has('comision_success'))
+                    <div class="mx-6 mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-circle-check text-sm"></i>
+                        <span>{{ session('comision_success') }}</span>
+                    </div>
+                @endif
+
+                <!-- Body (Scrollable) -->
+                <div class="overflow-y-auto p-6 space-y-6">
+                    <!-- Tarjetas de Resumen Financiero -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                        <!-- Total Evento / Contratado -->
+                        <div class="bg-slate-900/90 border border-brand-border rounded-2xl p-3.5">
+                            <div class="flex items-center justify-between text-slate-400 mb-1">
+                                <span class="text-[10px] font-bold uppercase tracking-wider">Total Evento</span>
+                                <i class="fa-solid fa-money-bill-wave text-blue-400 text-xs"></i>
+                            </div>
+                            <span class="text-base sm:text-lg font-extrabold font-mono text-white block">
+                                Bs {{ number_format($resumenComisiones['monto_evento'] ?? 0, 2) }}
+                            </span>
+                            <span class="text-[10px] text-slate-400">Cobrado al cliente</span>
+                        </div>
+
+                        <!-- Total Comisiones Asignadas -->
+                        <div class="bg-slate-900/90 border border-brand-border rounded-2xl p-3.5">
+                            <div class="flex items-center justify-between text-slate-400 mb-1">
+                                <span class="text-[10px] font-bold uppercase tracking-wider">Total Comisiones</span>
+                                <i class="fa-solid fa-users text-sky-400 text-xs"></i>
+                            </div>
+                            <span class="text-base sm:text-lg font-extrabold font-mono text-sky-400 block">
+                                Bs {{ number_format($resumenComisiones['total_comisiones'] ?? 0, 2) }}
+                            </span>
+                            <span class="text-[10px] text-slate-400">{{ $resumenComisiones['count_participantes'] ?? 0 }} integrante(s)</span>
+                        </div>
+
+                        <!-- Comisiones Pagadas / Distribuidas -->
+                        <div class="bg-slate-900/90 border border-brand-border rounded-2xl p-3.5">
+                            <div class="flex items-center justify-between text-slate-400 mb-1">
+                                <span class="text-[10px] font-bold uppercase tracking-wider">Comisiones Pagadas</span>
+                                <i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>
+                            </div>
+                            <span class="text-base sm:text-lg font-extrabold font-mono text-emerald-400 block">
+                                Bs {{ number_format($resumenComisiones['total_pagado'] ?? 0, 2) }}
+                            </span>
+                            <span class="text-[10px] text-slate-400">{{ $resumenComisiones['count_pagados'] ?? 0 }} liquidado(s)</span>
+                        </div>
+
+                        <!-- Margen Mariachi León -->
+                        <div class="bg-slate-900/90 border border-brand-border rounded-2xl p-3.5">
+                            <div class="flex items-center justify-between text-slate-400 mb-1">
+                                <span class="text-[10px] font-bold uppercase tracking-wider">Margen Grupo</span>
+                                <i class="fa-solid fa-vault text-gold-400 text-xs"></i>
+                            </div>
+                            <span class="text-base sm:text-lg font-extrabold font-mono {{ ($resumenComisiones['margen_grupo'] ?? 0) >= 0 ? 'text-gold-400' : 'text-rose-400' }} block">
+                                Bs {{ number_format($resumenComisiones['margen_grupo'] ?? 0, 2) }}
+                            </span>
+                            <span class="text-[10px] text-slate-400">Utilidad Mariachi León</span>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Músicos y Personal -->
+                    <div class="bg-slate-950/60 rounded-2xl border border-brand-border overflow-hidden">
+                        <div class="px-4 py-3 bg-slate-900/70 border-b border-brand-border flex items-center justify-between flex-wrap gap-2">
+                            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-users-gear text-gold-400"></i>
+                                <span>Integrantes y Liquidación por Persona ({{ $eventoComisiones->participantes->count() }})</span>
+                            </h4>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] text-slate-400">
+                                    Haz clic en el estado para marcar como <strong>Pagado</strong> o <strong>Pendiente</strong>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-950/90 border-b border-brand-border text-slate-400 uppercase tracking-wider text-[11px]">
+                                        <th class="py-2.5 px-3 font-bold">Músico / Personal</th>
+                                        <th class="py-2.5 px-3 font-bold">Función / Rol</th>
+                                        <th class="py-2.5 px-3 font-bold">Concepto</th>
+                                        <th class="py-2.5 px-3 font-bold text-right">Comisión (Bs)</th>
+                                        <th class="py-2.5 px-3 font-bold text-center">Estado Liquidación</th>
+                                        <th class="py-2.5 px-3 font-bold text-center">Acción Rápida</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-brand-border/40 text-slate-300">
+                                    @forelse($eventoComisiones->participantes as $part)
+                                        <tr class="hover:bg-slate-800/25 transition-all">
+                                            <td class="py-2.5 px-3">
+                                                <div class="font-bold text-white">
+                                                    {{ $part->persona->nombre_completo ?? ($part->persona->nombre ?? 'N/A') }}
+                                                </div>
+                                                <div class="text-[10px] text-slate-400">
+                                                    CI: {{ $part->persona->ci_nit ?? '-' }} &bull; Tel: {{ $part->persona->telefono ?? '-' }}
+                                                </div>
+                                            </td>
+                                            <td class="py-2.5 px-3">
+                                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-800 border border-slate-700 text-gold-300">
+                                                    {{ $part->funcion }}
+                                                </span>
+                                            </td>
+                                            <td class="py-2.5 px-3 text-slate-300 text-xs">
+                                                {{ $part->concepto_pago ?: 'Comisión por Evento' }}
+                                            </td>
+                                            <td class="py-2.5 px-3 text-right font-mono font-bold text-emerald-400 text-sm">
+                                                Bs {{ number_format($part->monto_asignado, 2) }}
+                                            </td>
+                                            <td class="py-2.5 px-3 text-center">
+                                                @if($part->estado_distribucion === 'Distribuido')
+                                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1">
+                                                        <i class="fa-solid fa-check-double text-[9px]"></i>
+                                                        <span>DISTRIBUIDO / PAGADO</span>
+                                                    </span>
+                                                @else
+                                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 inline-flex items-center gap-1">
+                                                        <i class="fa-solid fa-clock text-[9px]"></i>
+                                                        <span>PENDIENTE DE PAGO</span>
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="py-2.5 px-3 text-center whitespace-nowrap">
+                                                <button wire:click="cambiarEstadoComision({{ $part->id }})" wire:loading.attr="disabled"
+                                                    class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1.5 shadow-sm {{ $part->estado_distribucion === 'Distribuido' ? 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/20' : 'bg-emerald-600 hover:bg-emerald-500 text-white' }}"
+                                                    title="{{ $part->estado_distribucion === 'Distribuido' ? 'Marcar como Pendiente' : 'Marcar como Pagado / Distribuido' }}">
+                                                    <i class="fa-solid {{ $part->estado_distribucion === 'Distribuido' ? 'fa-arrow-rotate-left' : 'fa-check' }}"></i>
+                                                    <span>{{ $part->estado_distribucion === 'Distribuido' ? 'Desmarcar' : 'Marcar Pagado' }}</span>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="6" class="text-center py-8 text-slate-500">
+                                                <i class="fa-solid fa-user-slash text-2xl text-slate-600 mb-2 block"></i>
+                                                No se han asignado músicos ni personal a este evento.
+                                                <div class="mt-2">
+                                                    <a href="{{ route('admin.eventos.participantes', $eventoComisiones->id) }}" class="text-gold-400 hover:underline font-bold text-xs">
+                                                        <i class="fa-solid fa-user-plus mr-1"></i>Asignar integrantes ahora
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-brand-border px-6 py-4 shrink-0 bg-slate-950/60">
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <!-- Botón: Planilla de Comisiones en PDF con QR -->
+                        <a href="{{ route('admin.eventos.comisiones.pdf', $tokenEvCom) }}" 
+                           target="_blank"
+                           class="px-4 py-2 rounded-xl bg-gradient-to-r from-gold-500 to-amber-500 hover:from-gold-400 hover:to-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-md hover:shadow-gold-500/20 transition-all cursor-pointer"
+                           title="Descargar Planilla Oficial de Comisiones y Liquidación a Músicos en formato PDF con QR">
+                            <i class="fa-solid fa-file-pdf text-sm text-slate-950"></i>
+                            <span>Descargar Planilla en PDF (con QR)</span>
+                        </a>
+
+                        <!-- Gestionar Participantes en pantalla completa -->
+                        <a href="{{ route('admin.eventos.participantes', $eventoComisiones->id) }}" 
+                           class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                           title="Ir a la pantalla de asignación completa de participantes">
+                            <i class="fa-solid fa-users text-xs"></i>
+                            <span>Gestionar / Agregar Integrantes</span>
+                        </a>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button wire:click="cerrarComisiones"
                             class="px-5 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-all">
                             Cerrar
                         </button>
