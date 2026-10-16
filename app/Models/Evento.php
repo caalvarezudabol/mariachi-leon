@@ -78,6 +78,11 @@ class Evento extends Model
         return $this->hasMany(DistribucionEconomica::class, 'evento_id');
     }
 
+    public function pagosParticipantes(): HasMany
+    {
+        return $this->hasMany(PagoParticipante::class, 'evento_id');
+    }
+
     public function getMontoContratadoAttribute(): float
     {
         if ($this->contrato) {

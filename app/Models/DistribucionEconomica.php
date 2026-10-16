@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DistribucionEconomica extends Model
 {
@@ -50,5 +51,36 @@ class DistribucionEconomica extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function pagos(): HasMany
+    {
+        return $this->hasMany(PagoParticipante::class, 'distribucion_economica_id');
+    }
+
+    public function getTotalPagadoAttribute(): float
+    {
+        if ($this->participante) {
+            return $this->participante->total_pagado;
+        }
+        return (float)$this->pagos()->where('estado', 'Valido')->sum('monto');
+    }
+
+    public function getSaldoPendienteAttribute(): float
+    {
+        return max(0.0, (float)$this->monto - $this->total_pagado);
+    }
+
+    public function getEstadoCalculadoAttribute(): string
+    {
+        if ($this->participante) {
+            return $this->participante->estado_calculado;
+        }
+        $pagado = $this->total_pagado;
+        $monto = (float)$this->monto;
+
+        if ($pagado <= 0) return 'PENDIENTE';
+        if ($pagado < $monto) return 'PAGO PARCIAL';
+        return 'PAGADO';
     }
 }
