@@ -8,6 +8,7 @@ use App\Models\Cliente;
 use App\Traits\Auditable;
 use App\Services\Comercial\ClienteExcelService;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Illuminate\Support\Facades\Auth;
 
 class GestionClientes extends Component
 {
@@ -132,12 +133,21 @@ class GestionClientes extends Component
 
         $spreadsheet = $excelService->generar($estado, $search);
         $nombreArchivo = $excelService->getNombreArchivo($estado);
+        $totalClientes = $excelService->getUltimoConteo();
 
-        $descFiltro = $estado ? "estado: {$estado}" : "todos los estados";
+        $descFiltro = $estado ? "estado: {$estado}" : "todos los estados (activos e inactivos)";
         if ($search) {
-            $descFiltro .= " con búsqueda: '{$search}'";
+            $descFiltro .= ", búsqueda: '{$search}'";
         }
-        $this->registrarAuditoria('Gestión Comercial', 'Exportar Clientes Excel', "Se exportó el listado de clientes en formato Excel ({$descFiltro}).");
+
+        $nombreUsuario = Auth::user()?->name ?? 'Usuario del Sistema';
+
+        // Registro detallado en la Bitácora de Operaciones
+        $this->registrarAuditoria(
+            'Gestión Comercial',
+            'Descargar Reporte Excel Clientes',
+            "El usuario {$nombreUsuario} descargó el reporte oficial en formato Excel del directorio de clientes ({$totalClientes} registros, {$descFiltro}). Archivo: {$nombreArchivo}"
+        );
 
         return response()->streamDownload(function () use ($spreadsheet) {
             $writer = new Xlsx($spreadsheet);

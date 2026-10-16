@@ -17,6 +17,16 @@ use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 
 class ClienteExcelService
 {
+    protected int $ultimoConteo = 0;
+
+    /**
+     * Retorna el número de clientes procesados en la última generación.
+     */
+    public function getUltimoConteo(): int
+    {
+        return $this->ultimoConteo;
+    }
+
     /**
      * Genera el archivo Excel profesional para los clientes filtrados.
      */
@@ -46,6 +56,7 @@ class ClienteExcelService
 
         // 2. Métricas y KPIs para las tarjetas de resumen
         $totalClientes = $clientes->count();
+        $this->ultimoConteo = $totalClientes;
         $totalActivos = $clientes->where('estado', 'Activo')->count();
         $totalInactivos = $clientes->where('estado', 'Inactivo')->count();
         $totalConEventos = $clientes->where('eventos_count', '>', 0)->count();
