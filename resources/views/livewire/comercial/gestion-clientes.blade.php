@@ -5,10 +5,19 @@
             <h1 class="text-2xl font-bold text-white">Gestionar Clientes</h1>
             <p class="text-xs text-slate-400">Directorio centralizado de clientes de Mariachi León Guanajuato.</p>
         </div>
-        <button wire:click="abrirModal" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-lg shadow-gold-500/20 transition-all flex items-center justify-center gap-2">
-            <i class="fa-solid fa-user-plus"></i>
-            <span>Nuevo Cliente</span>
-        </button>
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{{ route('admin.clientes.excel', ['estado' => $estado_filtro, 'search' => $search]) }}" 
+               target="_blank"
+               class="px-4 py-2.5 rounded-xl text-sm font-bold bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2 shadow-sm shadow-emerald-950/50"
+               title="Exportar clientes filtrados a Excel (.xlsx)">
+                <i class="fa-solid fa-file-excel text-base"></i>
+                <span>Descargar Excel</span>
+            </a>
+            <button wire:click="abrirModal" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-lg shadow-gold-500/20 transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Nuevo Cliente</span>
+            </button>
+        </div>
     </div>
 
     <!-- Mensajes de Notificación -->
@@ -33,6 +42,16 @@
                     <option value="Activo">Activos</option>
                     <option value="Inactivo">Inactivos</option>
                 </select>
+            </div>
+
+            <div>
+                <a href="{{ route('admin.clientes.excel', ['estado' => $estado_filtro, 'search' => $search]) }}" 
+                   target="_blank"
+                   class="w-full h-full min-h-[38px] px-4 py-2 bg-emerald-600/15 border border-emerald-500/30 rounded-xl text-emerald-400 hover:bg-emerald-600 hover:text-white text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-sm group"
+                   title="Exportar listado de clientes de acuerdo al filtro actual">
+                    <i class="fa-solid fa-file-excel text-base text-emerald-400 group-hover:text-white transition-colors"></i>
+                    <span>Exportar Excel</span>
+                </a>
             </div>
         </div>
     </div>

@@ -6,6 +6,8 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Cliente;
 use App\Traits\Auditable;
+use App\Services\Comercial\ClienteExcelService;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class GestionClientes extends Component
 {
@@ -121,6 +123,30 @@ class GestionClientes extends Component
         $cliente->update(['estado' => $nuevoEstado]);
         $this->registrarAuditoria('Gestión Comercial', 'Cambiar Estado Cliente', 'Se cambió el estado del cliente ' . $cliente->nombre_completo . ' a ' . $nuevoEstado);
         session()->flash('success', 'Estado del cliente actualizado a ' . $nuevoEstado . '.');
+    }
+
+    public function exportarExcel(ClienteExcelService $excelService)
+    {
+        $estado = $this->estado_filtro ?: null;
+        $search = $this->search ?: null;
+
+        $spreadsheet = $excelService->generar($estado, $search);
+        $nombreArchivo = $excelService->getNombreArchivo($estado);
+
+        $descFiltro = $estado ? "estado: {$estado}" : "todos los estados";
+        if ($search) {
+            $descFiltro .= " con búsqueda: '{$search}'";
+        }
+        $this->registrarAuditoria('Gestión Comercial', 'Exportar Clientes Excel', "Se exportó el listado de clientes en formato Excel ({$descFiltro}).");
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $nombreArchivo, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $nombreArchivo . '"',
+            'Cache-Control' => 'max-age=0',
+        ]);
     }
 
     public function render()

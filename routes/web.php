@@ -51,6 +51,7 @@ use App\Http\Controllers\Comercial\EstadoCuentaPdfController;
 use App\Http\Controllers\Comercial\EventoPdfController;
 use App\Http\Controllers\Comercial\ClienteContratosPdfController;
 use App\Http\Controllers\Comercial\EventoComisionesPdfController;
+use App\Http\Controllers\Comercial\ClienteExcelController;
 
 Route::get('/', PaginaInicio::class)->name('web.home');
 Route::get('/nosotros', PaginaNosotros::class)->name('web.nosotros');
@@ -124,6 +125,7 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
     // SPRINT 2: Módulo Comercial
     Route::prefix('comercial')->group(function () {
         Route::get('/clientes', GestionClientes::class)->name('admin.clientes');
+        Route::get('/clientes/exportar-excel', [ClienteExcelController::class, 'exportarExcel'])->name('admin.clientes.excel');
         Route::get('/clientes/{token}/estado-cuenta', EstadoCuentaCliente::class)->name('admin.clientes.estado-cuenta');
         Route::get('/clientes/{token}/estado-cuenta/pdf', [EstadoCuentaPdfController::class, 'exportarPdf'])->name('admin.clientes.estado-cuenta.pdf');
         Route::get('/clientes/{token}/historial-contratos/pdf', [ClienteContratosPdfController::class, 'exportarPdf'])->name('admin.clientes.historial-contratos.pdf');
