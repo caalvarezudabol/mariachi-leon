@@ -1082,12 +1082,21 @@
                                                 @endif
                                             </td>
                                             <td class="py-2.5 px-3 text-center whitespace-nowrap">
-                                                <button wire:click="cambiarEstadoComision({{ $part->id }})" wire:loading.attr="disabled"
-                                                    class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1.5 shadow-sm {{ $part->estado_distribucion === 'Distribuido' ? 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/20' : 'bg-emerald-600 hover:bg-emerald-500 text-white' }}"
-                                                    title="{{ $part->estado_distribucion === 'Distribuido' ? 'Marcar como Pendiente' : 'Marcar como Pagado / Distribuido' }}">
-                                                    <i class="fa-solid {{ $part->estado_distribucion === 'Distribuido' ? 'fa-arrow-rotate-left' : 'fa-check' }}"></i>
-                                                    <span>{{ $part->estado_distribucion === 'Distribuido' ? 'Desmarcar' : 'Marcar Pagado' }}</span>
-                                                </button>
+                                                @if($part->estado_distribucion === 'Distribuido')
+                                                    <button wire:click="solicitarDesmarcarComision({{ $part->id }})" wire:loading.attr="disabled"
+                                                        class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1.5 shadow-sm bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/20"
+                                                        title="Desmarcar comisión y revertir pago con observación">
+                                                        <i class="fa-solid fa-arrow-rotate-left"></i>
+                                                        <span>Desmarcar</span>
+                                                    </button>
+                                                @else
+                                                    <button wire:click="marcarComisionPagada({{ $part->id }})" wire:loading.attr="disabled"
+                                                        class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1.5 shadow-sm bg-emerald-600 hover:bg-emerald-500 text-white"
+                                                        title="Marcar como Pagado / Distribuido">
+                                                        <i class="fa-solid fa-check"></i>
+                                                        <span>Marcar Pagado</span>
+                                                    </button>
+                                                @endif
                                             </td>
                                         </tr>
                                     @empty
@@ -1136,6 +1145,88 @@
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal para Desmarcar Comisión y Revertir Pago -->
+    @if ($modalDesmarcarOpen && $desmarcarParticipante)
+        <div class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-fade-in">
+            <div class="bg-brand-card border border-rose-500/40 rounded-3xl w-full max-w-lg p-6 space-y-4 shadow-2xl">
+                <!-- Header -->
+                <div class="flex items-center justify-between border-b border-brand-border/60 pb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 text-lg shadow-sm">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-white">Desmarcar y Revertir Pago</h3>
+                            <p class="text-xs text-slate-400">Comisión de Músico / Personal</p>
+                        </div>
+                    </div>
+                    <button wire:click="cerrarModalDesmarcar" class="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors">
+                        <i class="fa-solid fa-xmark text-base"></i>
+                    </button>
+                </div>
+
+                <!-- Info Box del Participante -->
+                <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-xs space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">Participante:</span>
+                        <span class="font-bold text-white text-sm">{{ $desmarcarParticipante->persona->nombre_completo ?? ($desmarcarParticipante->persona->nombre ?? 'N/A') }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">Rol / Función:</span>
+                        <span class="text-gold-300 font-semibold">{{ $desmarcarParticipante->funcion }} ({{ $desmarcarParticipante->concepto_pago ?: 'Comisión por Evento' }})</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">Monto Comisión:</span>
+                        <span class="font-mono font-bold text-emerald-400 text-sm">Bs {{ number_format($desmarcarParticipante->monto_asignado, 2) }}</span>
+                    </div>
+                    @if($eventoComisiones)
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-400">Evento:</span>
+                            <span class="font-mono text-slate-300">{{ $eventoComisiones->codigo_evento }}</span>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Advertencia -->
+                <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-start gap-2.5">
+                    <i class="fa-solid fa-triangle-exclamation text-sm text-amber-400 shrink-0 mt-0.5"></i>
+                    <p>
+                        Al desmarcar, el estado de la liquidación volverá a <strong>PENDIENTE DE PAGO</strong>, se revertirán los registros de pago y se actualizarán inmediatamente los totales de comisiones pagadas. Esta acción se asentará en la <strong>Bitácora de Auditoría</strong>.
+                    </p>
+                </div>
+
+                <!-- Formulario de Observación Obligatoria -->
+                <form wire:submit.prevent="confirmarDesmarcarComision" class="space-y-4">
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                            Motivo / Observación de la Reversión <span class="text-rose-400">*</span>
+                        </label>
+                        <textarea wire:model="observacionDesmarcar" rows="3"
+                            placeholder="Ingrese el motivo o justificación para desmarcar esta comisión (ej: error en registro, cambio de integrante, ajuste de liquidación)..."
+                            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:border-rose-500 focus:outline-none transition-all placeholder:text-slate-600"></textarea>
+                        @error('observacionDesmarcar')
+                            <span class="text-xs text-rose-400 font-semibold block">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <!-- Footer Acciones -->
+                    <div class="flex items-center justify-end gap-3 pt-2 border-t border-brand-border/60">
+                        <button type="button" wire:click="cerrarModalDesmarcar"
+                            class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition-all">
+                            Cancelar
+                        </button>
+                        <button type="submit" wire:loading.attr="disabled"
+                            class="px-5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/20 transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            <span wire:loading.remove wire:target="confirmarDesmarcarComision">Confirmar Reversión</span>
+                            <span wire:loading wire:target="confirmarDesmarcarComision">Revirtiendo...</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     @endif

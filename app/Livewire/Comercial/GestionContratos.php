@@ -48,6 +48,12 @@ class GestionContratos extends Component
     public $eventoComisiones = null;
     public $resumenComisiones = [];
 
+    // Modal para Desmarcar / Revertir Comisión
+    public $modalDesmarcarOpen = false;
+    public $desmarcarParticipanteId = null;
+    public $desmarcarParticipante = null;
+    public $observacionDesmarcar = '';
+
     protected function rules()
     {
         return [
@@ -306,6 +312,8 @@ class GestionContratos extends Component
 
         $participantes = $this->eventoComisiones->participantes;
         $totalComisiones = (float)$participantes->sum('monto_asignado');
+
+        // Sumar como pagado solo los que están en estado Distribuido
         $totalPagado = (float)$participantes->where('estado_distribucion', 'Distribuido')->sum('monto_asignado');
         $totalPendiente = max(0.0, $totalComisiones - $totalPagado);
         $margenGrupo = $montoEvento - $totalComisiones;
@@ -325,43 +333,155 @@ class GestionContratos extends Component
         ];
     }
 
-    public function cambiarEstadoComision($participanteId)
+    public function solicitarDesmarcarComision($participanteId)
     {
-        $part = \App\Models\EventoParticipante::with('persona')->findOrFail($participanteId);
-        $nuevoEstado = ($part->estado_distribucion === 'Distribuido') ? 'Pendiente' : 'Distribuido';
-        $part->update(['estado_distribucion' => $nuevoEstado]);
+        $this->desmarcarParticipante = \App\Models\EventoParticipante::with(['persona', 'pagosValidos'])->findOrFail($participanteId);
+        $this->desmarcarParticipanteId = $this->desmarcarParticipante->id;
+        $this->observacionDesmarcar = '';
+        $this->resetValidation('observacionDesmarcar');
+        $this->modalDesmarcarOpen = true;
+    }
 
-        // Sincronizar o crear distribucion_economica
-        $dist = \App\Models\DistribucionEconomica::where('evento_participante_id', $part->id)->first();
-        if ($dist) {
-            $dist->update(['estado' => $nuevoEstado]);
-        } else {
-            \App\Models\DistribucionEconomica::create([
-                'evento_id' => $part->evento_id,
-                'contrato_id' => optional($this->eventoComisiones->contrato)->id,
-                'persona_id' => $part->persona_id,
-                'evento_participante_id' => $part->id,
-                'funcion' => $part->funcion,
-                'concepto' => $part->concepto_pago,
-                'monto' => $part->monto_asignado,
-                'fecha_distribucion' => now(),
-                'estado' => $nuevoEstado,
-                'user_id' => Auth::id(),
-            ]);
-        }
+    public function cerrarModalDesmarcar()
+    {
+        $this->modalDesmarcarOpen = false;
+        $this->desmarcarParticipanteId = null;
+        $this->desmarcarParticipante = null;
+        $this->observacionDesmarcar = '';
+        $this->resetValidation('observacionDesmarcar');
+    }
+
+    public function confirmarDesmarcarComision()
+    {
+        $this->validate([
+            'observacionDesmarcar' => 'required|string|min:4|max:500',
+        ], [
+            'observacionDesmarcar.required' => 'Debe ingresar una observación o motivo para desmarcar la comisión.',
+            'observacionDesmarcar.min' => 'El motivo debe tener al menos 4 caracteres.',
+            'observacionDesmarcar.max' => 'El motivo no debe exceder 500 caracteres.',
+        ]);
+
+        $part = \App\Models\EventoParticipante::with(['persona', 'pagosValidos'])->findOrFail($this->desmarcarParticipanteId);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($part) {
+            // Revertir todos los pagos válidos de este participante en este evento
+            $pagos = \App\Models\PagoParticipante::where('evento_participante_id', $part->id)
+                ->where('estado', 'Valido')
+                ->get();
+
+            $montoRevertido = 0;
+            foreach ($pagos as $p) {
+                $p->update([
+                    'estado' => 'Revertido',
+                    'motivo_reversion' => trim($this->observacionDesmarcar),
+                    'fecha_reversion' => now(),
+                    'revertido_por' => Auth::id(),
+                ]);
+                $montoRevertido += (float)$p->monto;
+            }
+
+            // Cambiar estado a Pendiente en EventoParticipante y DistribucionEconomica
+            $part->update(['estado_distribucion' => 'Pendiente']);
+
+            \App\Models\DistribucionEconomica::where('evento_participante_id', $part->id)
+                ->update(['estado' => 'Pendiente']);
+
+            $personaNombre = $part->persona->nombre_completo ?? 'Participante';
+            $eventoCodigo = $this->eventoComisiones->codigo_evento ?? 'Evento';
+            $contratoRef = $this->eventoComisiones->contrato?->numero_contrato 
+                ? " (Contrato: {$this->eventoComisiones->contrato->numero_contrato})" 
+                : '';
+
+            $this->registrarAuditoria(
+                'Gestión Comercial',
+                'Desmarcar Comisión Músico',
+                "Se desmarcó comisión y revirtió pago de {$personaNombre} en evento {$eventoCodigo}{$contratoRef}. Comisión: Bs. " . number_format($part->monto_asignado, 2) . " (Monto revertido en pagos: Bs. " . number_format($montoRevertido, 2) . "). Observación: " . trim($this->observacionDesmarcar)
+            );
+        });
 
         $personaNombre = $part->persona->nombre_completo ?? 'Participante';
-        $this->registrarAuditoria(
-            'Gestión Comercial',
-            'Cambiar Estado Comisión Músico',
-            "Se cambió estado de comisión de {$personaNombre} a {$nuevoEstado} desde contrato N° " . ($this->eventoComisiones->contrato?->numero_contrato ?? '')
-        );
+        $this->cerrarModalDesmarcar();
 
-        // Recargar evento y resumen
-        $this->eventoComisiones = Evento::with(['cliente', 'servicio', 'contrato', 'participantes.persona', 'distribuciones'])->findOrFail($this->eventoComisiones->id);
+        // Recargar evento y actualizar resumen de comisiones
+        $this->eventoComisiones = Evento::with(['cliente', 'servicio', 'contrato', 'participantes.persona', 'participantes.pagos', 'distribuciones'])->findOrFail($this->eventoComisiones->id);
         $this->calcularResumenComisiones();
 
-        session()->flash('comision_success', "Estado de comisión de {$personaNombre} actualizado a {$nuevoEstado}.");
+        session()->flash('comision_success', "La comisión de {$personaNombre} ha sido desmarcada y su pago fue revertido exitosamente.");
+    }
+
+    public function marcarComisionPagada($participanteId)
+    {
+        $part = \App\Models\EventoParticipante::with(['persona', 'pagosValidos'])->findOrFail($participanteId);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($part) {
+            $part->update(['estado_distribucion' => 'Distribuido']);
+
+            // Sincronizar o crear distribucion_economica
+            $dist = \App\Models\DistribucionEconomica::where('evento_participante_id', $part->id)->first();
+            if ($dist) {
+                $dist->update(['estado' => 'Distribuido']);
+            } else {
+                $dist = \App\Models\DistribucionEconomica::create([
+                    'evento_id' => $part->evento_id,
+                    'contrato_id' => optional($this->eventoComisiones->contrato)->id,
+                    'persona_id' => $part->persona_id,
+                    'evento_participante_id' => $part->id,
+                    'funcion' => $part->funcion,
+                    'concepto' => $part->concepto_pago,
+                    'monto' => $part->monto_asignado,
+                    'fecha_distribucion' => now(),
+                    'estado' => 'Distribuido',
+                    'user_id' => Auth::id(),
+                ]);
+            }
+
+            // Sincronizar pagos_participantes si no tiene pagos válidos
+            $pagadoPrevio = (float)$part->pagosValidos()->sum('monto');
+            $saldoRestante = max(0.0, (float)$part->monto_asignado - $pagadoPrevio);
+            if ($saldoRestante > 0) {
+                \App\Models\PagoParticipante::create([
+                    'evento_participante_id' => $part->id,
+                    'distribucion_economica_id' => $dist->id,
+                    'evento_id' => $part->evento_id,
+                    'persona_id' => $part->persona_id,
+                    'monto' => $saldoRestante,
+                    'metodo_pago' => 'Efectivo',
+                    'glosa' => "Liquidación de {$part->concepto_pago} a {$part->persona->nombre_completo}",
+                    'observaciones' => 'Marcado como pagado desde módulo de comisiones',
+                    'fecha_pago' => now(),
+                    'estado' => 'Valido',
+                    'user_id' => Auth::id(),
+                ]);
+            }
+
+            $personaNombre = $part->persona->nombre_completo ?? 'Participante';
+            $eventoCodigo = $this->eventoComisiones->codigo_evento ?? 'Evento';
+            $contratoRef = $this->eventoComisiones->contrato?->numero_contrato 
+                ? " (Contrato: {$this->eventoComisiones->contrato->numero_contrato})" 
+                : '';
+
+            $this->registrarAuditoria(
+                'Gestión Comercial',
+                'Marcar Comisión Pagada',
+                "Se marcó como pagada la comisión de {$personaNombre} por Bs. " . number_format($part->monto_asignado, 2) . " en el evento {$eventoCodigo}{$contratoRef}."
+            );
+        });
+
+        $personaNombre = $part->persona->nombre_completo ?? 'Participante';
+        $this->eventoComisiones = Evento::with(['cliente', 'servicio', 'contrato', 'participantes.persona', 'participantes.pagos', 'distribuciones'])->findOrFail($this->eventoComisiones->id);
+        $this->calcularResumenComisiones();
+
+        session()->flash('comision_success', "La comisión de {$personaNombre} fue marcada como pagada correctamente.");
+    }
+
+    public function cambiarEstadoComision($participanteId)
+    {
+        $part = \App\Models\EventoParticipante::findOrFail($participanteId);
+        if ($part->estado_distribucion === 'Distribuido') {
+            $this->solicitarDesmarcarComision($participanteId);
+        } else {
+            $this->marcarComisionPagada($participanteId);
+        }
     }
 
     public function cerrarComisiones()
@@ -369,6 +489,7 @@ class GestionContratos extends Component
         $this->modalComisionesOpen = false;
         $this->eventoComisiones = null;
         $this->resumenComisiones = [];
+        $this->cerrarModalDesmarcar();
     }
 
     public function render()
