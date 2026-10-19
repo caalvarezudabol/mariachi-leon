@@ -13,8 +13,8 @@
             @endif
             <div class="space-y-0.5">
                 <div
-                    class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gold-500/10 text-gold-400 border border-gold-500/20">
-                    <i class="fa-solid fa-crown text-gold-400 text-[10px]"></i> Sprint 1 Inicializado
+                    class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <i class="fa-solid fa-circle-check text-emerald-400 text-[10px]"></i> Sprints Finalizados
                 </div>
                 <h1 class="text-lg md:text-lg font-extrabold text-white">¡Bienvenido, {{ Auth::user()->name }}!</h1>
                 <p class="text-xs text-slate-400">Sistema de Administración y Gestión Operativa de
