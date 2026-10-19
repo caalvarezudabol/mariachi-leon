@@ -150,6 +150,13 @@ class ReporteFinanciero extends Component
             'clientes' => $clientes,
             'eventosLista' => $eventosLista,
             'servicios' => $servicios,
+            'fecha_inicio' => $this->fecha_inicio,
+            'fecha_fin' => $this->fecha_fin,
+            'cliente_id' => $this->cliente_id,
+            'evento_id' => $this->evento_id,
+            'servicio_id' => $this->servicio_id,
+            'tipo_balance' => $this->tipo_balance,
+            'periodo_preset' => $this->periodo_preset,
         ])->layout('components.layouts.app', ['title' => 'Reporte Financiero & Balances - Mariachi León Guanajuato']);
     }
 }

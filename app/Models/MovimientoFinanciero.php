@@ -76,12 +76,27 @@ class MovimientoFinanciero extends Model
         return $query->where('tipo', 'EGRESO');
     }
 
+    public function scopeEgreso(Builder $query): Builder
+    {
+        return $query->where('tipo', 'EGRESO');
+    }
+
     public function scopeIngresos(Builder $query): Builder
     {
         return $query->where('tipo', 'INGRESO');
     }
 
+    public function scopeIngreso(Builder $query): Builder
+    {
+        return $query->where('tipo', 'INGRESO');
+    }
+
     public function scopeOperativos(Builder $query): Builder
+    {
+        return $query->where('clasificacion', 'OPERATIVO');
+    }
+
+    public function scopeOperativo(Builder $query): Builder
     {
         return $query->where('clasificacion', 'OPERATIVO');
     }

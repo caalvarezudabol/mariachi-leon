@@ -203,6 +203,12 @@ class ReporteDistribucionEconomica extends Component
         return view('livewire.reportes.reporte-distribucion-economica', array_merge($datosVista, [
             'eventosLista' => $eventosLista,
             'musicosLista' => $musicosLista,
+            'modalidad' => $this->modalidad,
+            'evento_id' => $this->evento_id,
+            'persona_id' => $this->persona_id,
+            'fecha_desde' => $this->fecha_desde,
+            'fecha_hasta' => $this->fecha_hasta,
+            'search' => $this->search,
         ]))->layout('components.layouts.app', ['title' => 'Distribución Económica a Músicos - Mariachi León Guanajuato']);
     }
 }

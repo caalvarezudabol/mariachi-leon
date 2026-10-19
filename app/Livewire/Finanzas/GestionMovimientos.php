@@ -309,6 +309,21 @@ class GestionMovimientos extends Component
             'movimientos' => $movimientos,
             'totalesConsulta' => $totalesConsulta,
             'eventos' => $eventos,
+            'search' => $this->search,
+            'filtro_tipo' => $this->filtro_tipo,
+            'filtro_clasificacion' => $this->filtro_clasificacion,
+            'filtro_categoria' => $this->filtro_categoria,
+            'filtro_estado' => $this->filtro_estado,
+            'fecha_desde' => $this->fecha_desde,
+            'fecha_hasta' => $this->fecha_hasta,
+            'modalOpen' => $this->modalOpen,
+            'modalAnularOpen' => $this->modalAnularOpen,
+            'tipo' => $this->tipo,
+            'clasificacion' => $this->clasificacion,
+            'categoria' => $this->categoria,
+            'categoriasOperativas' => $this->categoriasOperativas,
+            'categoriasEventos' => $this->categoriasEventos,
+            'categoriasIngresos' => $this->categoriasIngresos,
         ])->layout('components.layouts.app', ['title' => 'Ingresos y Gastos - Mariachi León Guanajuato']);
     }
 }

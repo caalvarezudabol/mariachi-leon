@@ -250,6 +250,15 @@ class GestionFondoComun extends Component
             'totalRetirosHistorico' => $totalRetirosHistorico,
             'aportesPeriodo' => $aportesPeriodo,
             'retirosPeriodo' => $retirosPeriodo,
+            'fecha_desde' => $this->fecha_desde,
+            'fecha_hasta' => $this->fecha_hasta,
+            'filtro_tipo' => $this->filtro_tipo,
+            'search' => $this->search,
+            'modalOpen' => $this->modalOpen,
+            'modalAnularOpen' => $this->modalAnularOpen,
+            'tipo' => $this->tipo,
+            'conceptosAporte' => $this->conceptosAporte,
+            'conceptosRetiro' => $this->conceptosRetiro,
         ])->layout('components.layouts.app', ['title' => 'Fondo Común - Mariachi León Guanajuato']);
     }
 }
