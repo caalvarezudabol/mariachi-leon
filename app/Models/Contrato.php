@@ -82,4 +82,9 @@ class Contrato extends Model
     {
         return $this->hasMany(DistribucionEconomica::class, 'contrato_id');
     }
+
+    public function gastos(): HasMany
+    {
+        return $this->hasMany(MovimientoFinanciero::class, 'contrato_id');
+    }
 }

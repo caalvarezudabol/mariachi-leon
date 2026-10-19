@@ -53,6 +53,18 @@ use App\Http\Controllers\Comercial\ClienteContratosPdfController;
 use App\Http\Controllers\Comercial\EventoComisionesPdfController;
 use App\Http\Controllers\Comercial\ClienteExcelController;
 
+// SPRINT 3: Gestión Financiera y Reportes
+use App\Livewire\Finanzas\DashboardFinanciero;
+use App\Livewire\Finanzas\GestionMovimientos;
+use App\Livewire\Finanzas\GestionFondoComun;
+use App\Livewire\Reportes\ReporteEventosContratos;
+use App\Livewire\Reportes\ReporteEstadosCuenta;
+use App\Livewire\Reportes\ReporteDistribucionEconomica;
+use App\Livewire\Reportes\ReporteFinanciero;
+use App\Http\Controllers\Finanzas\FinanzasPdfController;
+use App\Http\Controllers\Finanzas\FinanzasExcelController;
+use App\Http\Controllers\Reportes\ReportesPdfController;
+
 Route::get('/', PaginaInicio::class)->name('web.home');
 Route::get('/nosotros', PaginaNosotros::class)->name('web.nosotros');
 Route::get('/servicios', PaginaServicios::class)->name('web.servicios');
@@ -81,12 +93,14 @@ Route::get('/storage/{path}', function (string $path) {
 })->where('path', '.*')->name('storage.local');
 
 Route::get('/login', Login::class)->name('login')->middleware('guest');
-Route::post('/logout', function () {
-    Auth::logout();
+Route::match(['get', 'post'], '/logout', function () {
+    if (Auth::check()) {
+        Auth::logout();
+    }
     request()->session()->invalidate();
     request()->session()->regenerateToken();
     return redirect()->route('web.home');
-})->name('logout')->middleware('auth');
+})->name('logout');
 
 Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('admin.dashboard');
@@ -138,6 +152,34 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
         Route::get('/contratos', GestionContratos::class)->name('admin.contratos');
         Route::get('/contratos/pdf/{token}', [ContratoPdfController::class, 'exportarPdf'])->name('admin.contratos.pdf');
         Route::get('/pagos', GestionPagos::class)->name('admin.pagos');
+    });
+
+    // SPRINT 3: Módulo de Gestión Financiera
+    Route::prefix('finanzas')->group(function () {
+        Route::get('/dashboard', DashboardFinanciero::class)->name('admin.finanzas.dashboard');
+        Route::get('/movimientos', GestionMovimientos::class)->name('admin.finanzas.movimientos');
+        Route::get('/movimientos/exportar-excel', [FinanzasExcelController::class, 'exportarMovimientos'])->name('admin.finanzas.movimientos.excel');
+        Route::get('/fondo-comun', GestionFondoComun::class)->name('admin.finanzas.fondo-comun');
+    });
+
+    // SPRINT 3: Módulo de Informes y Reportes
+    Route::prefix('reportes')->group(function () {
+        Route::get('/eventos-contratos', ReporteEventosContratos::class)->name('admin.reportes.eventos-contratos');
+        Route::get('/eventos-contratos/pdf', [ReportesPdfController::class, 'exportarEventosContratos'])->name('admin.reportes.eventos-contratos.pdf');
+        Route::get('/eventos-contratos/excel', [FinanzasExcelController::class, 'exportarEventosContratos'])->name('admin.reportes.eventos-contratos.excel');
+
+        Route::get('/estados-cuenta', ReporteEstadosCuenta::class)->name('admin.reportes.estados-cuenta');
+
+        Route::get('/distribucion-economica', ReporteDistribucionEconomica::class)->name('admin.reportes.distribucion');
+        Route::get('/distribucion-economica/pdf', [ReportesPdfController::class, 'exportarDistribucion'])->name('admin.reportes.distribucion.pdf');
+        Route::get('/distribucion-economica/excel', [FinanzasExcelController::class, 'exportarDistribucion'])->name('admin.reportes.distribucion.excel');
+
+        Route::get('/financieros', ReporteFinanciero::class)->name('admin.reportes.financieros');
+        Route::get('/financieros/pdf', [FinanzasPdfController::class, 'exportarReporteFinanciero'])->name('admin.reportes.financieros.pdf');
+        Route::get('/financieros/excel', [FinanzasExcelController::class, 'exportarFinanciero'])->name('admin.reportes.financieros.excel');
+
+        Route::get('/gastos/pdf', [FinanzasPdfController::class, 'exportarGastos'])->name('admin.reportes.gastos.pdf');
+        Route::get('/fondo-comun/pdf', [FinanzasPdfController::class, 'exportarFondoComun'])->name('admin.reportes.fondo-comun.pdf');
     });
 });
 

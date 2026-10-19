@@ -83,6 +83,24 @@ class Evento extends Model
         return $this->hasMany(PagoParticipante::class, 'evento_id');
     }
 
+    public function gastos(): HasMany
+    {
+        return $this->hasMany(MovimientoFinanciero::class, 'evento_id');
+    }
+
+    public function gastosValidos(): HasMany
+    {
+        return $this->hasMany(MovimientoFinanciero::class, 'evento_id')->where('estado', 'Valido')->where('tipo', 'EGRESO');
+    }
+
+    public function getTotalGastosAttribute(): float
+    {
+        if ($this->relationLoaded('gastos')) {
+            return (float)$this->gastos->where('estado', 'Valido')->where('tipo', 'EGRESO')->sum('monto');
+        }
+        return (float)$this->gastosValidos()->sum('monto');
+    }
+
     public function getMontoContratadoAttribute(): float
     {
         if ($this->contrato) {

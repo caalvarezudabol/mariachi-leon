@@ -240,6 +240,65 @@
                     </div>
                 </div>
 
+                <!-- Grupo: Gestión Financiera (Sprint 3) -->
+                <div x-data="{ open: {{ request()->routeIs('admin.finanzas.*') ? 'true' : 'false' }} }" class="pt-2">
+                    <button @click="open = !open" type="button"
+                        class="w-full flex items-center justify-between px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-200 transition-colors">
+                        <span>Gestión Financiera</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] transition-transform"
+                            :class="open ? 'rotate-180' : ''"></i>
+                    </button>
+                    <div x-show="open" x-collapse class="space-y-1.5 mt-1">
+                        <a href="{{ route('admin.finanzas.dashboard') }}"
+                            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.finanzas.dashboard') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                            <i class="fa-solid fa-chart-line w-5 text-center"></i>
+                            <span>Dashboard Financiero</span>
+                        </a>
+                        <a href="{{ route('admin.finanzas.movimientos') }}"
+                            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.finanzas.movimientos') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                            <i class="fa-solid fa-money-bill-transfer w-5 text-center"></i>
+                            <span>Ingresos & Gastos</span>
+                        </a>
+                        <a href="{{ route('admin.finanzas.fondo-comun') }}"
+                            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.finanzas.fondo-comun') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                            <i class="fa-solid fa-vault w-5 text-center"></i>
+                            <span>Fondo Común</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Grupo: Informes y Reportes (Sprint 3) -->
+                <div x-data="{ open: {{ request()->routeIs('admin.reportes.*') ? 'true' : 'false' }} }" class="pt-2">
+                    <button @click="open = !open" type="button"
+                        class="w-full flex items-center justify-between px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-200 transition-colors">
+                        <span>Informes & Reportes</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] transition-transform"
+                            :class="open ? 'rotate-180' : ''"></i>
+                    </button>
+                    <div x-show="open" x-collapse class="space-y-1.5 mt-1">
+                        <a href="{{ route('admin.reportes.eventos-contratos') }}"
+                            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.reportes.eventos-contratos') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                            <i class="fa-solid fa-file-contract w-5 text-center"></i>
+                            <span>Eventos & Contratos</span>
+                        </a>
+                        <a href="{{ route('admin.reportes.estados-cuenta') }}"
+                            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.reportes.estados-cuenta') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                            <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+                            <span>Estados de Cuenta</span>
+                        </a>
+                        <a href="{{ route('admin.reportes.distribucion') }}"
+                            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.reportes.distribucion') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                            <i class="fa-solid fa-users-viewfinder w-5 text-center"></i>
+                            <span>Distribución a Músicos</span>
+                        </a>
+                        <a href="{{ route('admin.reportes.financieros') }}"
+                            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('admin.reportes.financieros') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
+                            <i class="fa-solid fa-scale-balanced w-5 text-center"></i>
+                            <span>Balances & Financiero</span>
+                        </a>
+                    </div>
+                </div>
+
                 <!-- Grupo: Gestión Operativa -->
                 <div x-data="{ open: {{ request()->routeIs('config.tipos-evento') || request()->routeIs('config.servicios') ? 'true' : 'false' }} }" class="pt-2">
                     <button @click="open = !open" type="button"
@@ -468,7 +527,7 @@
                 // Al llegar al tiempo de vida de la sesión, cierra sesión automáticamente
                 else if (this.idleSeconds >= this.sessionLifetime) {
                     clearInterval(this.timer);
-                    document.getElementById('logout-form').submit();
+                    window.location.href = "{{ route('logout') }}";
                 }
             }, 1000);
         }

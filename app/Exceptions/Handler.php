@@ -31,5 +31,19 @@ class Handler extends ExceptionHandler
         $this->renderable(function (NotFoundHttpException $e, $request) {
             return redirect()->route('web.home');
         });
+
+        $this->renderable(function (\Illuminate\Session\TokenMismatchException $e, $request) {
+            if ($request->is('logout') || !$request->expectsJson()) {
+                return redirect()->route('web.home');
+            }
+        });
+
+        $this->renderable(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, $request) {
+            if ($e->getStatusCode() === 419) {
+                if ($request->is('logout') || !$request->expectsJson()) {
+                    return redirect()->route('web.home');
+                }
+            }
+        });
     }
 }
