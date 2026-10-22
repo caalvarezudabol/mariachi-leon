@@ -16,6 +16,7 @@ use App\Livewire\Admin\GestionRoles;
 use App\Livewire\Admin\GestionAuditoria;
 use App\Livewire\Admin\GestionGaleria;
 use App\Livewire\Admin\GestionBanners;
+use App\Livewire\Admin\GestionSolicitudesWeb;
 use App\Livewire\Configuracion\GestionEmpresa;
 use App\Livewire\Configuracion\GestionParametros;
 use App\Livewire\Configuracion\GestionTiposEvento;
@@ -119,6 +120,7 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
     Route::prefix('sitio-web')->group(function () {
         Route::get('/banners', GestionBanners::class)->name('admin.sitio-web.banners');
         Route::get('/galeria', GestionGaleria::class)->name('admin.sitio-web.galeria');
+        Route::get('/solicitudes', GestionSolicitudesWeb::class)->name('admin.sitio-web.solicitudes');
     });
 
     Route::prefix('activos-fijos')->group(function () {
@@ -138,6 +140,7 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
 
     // SPRINT 2: Módulo Comercial
     Route::prefix('comercial')->group(function () {
+        Route::get('/solicitudes-web', GestionSolicitudesWeb::class)->name('admin.solicitudes-web');
         Route::get('/clientes', GestionClientes::class)->name('admin.clientes');
         Route::get('/clientes/exportar-excel', [ClienteExcelController::class, 'exportarExcel'])->name('admin.clientes.excel');
         Route::get('/clientes/{token}/estado-cuenta', EstadoCuentaCliente::class)->name('admin.clientes.estado-cuenta');

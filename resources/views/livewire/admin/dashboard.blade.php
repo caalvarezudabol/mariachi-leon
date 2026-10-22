@@ -77,19 +77,22 @@
             </div>
         </div>
 
-        <div
-            class="p-2.5 rounded-xl bg-brand-card border border-brand-border flex items-center gap-2.5 hover:border-gold-500/30 transition-all">
-            <div class="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-400 flex items-center justify-center flex-shrink-0">
+        <a href="{{ route('admin.solicitudes-web') }}"
+            class="p-2.5 rounded-xl bg-brand-card border border-brand-border flex items-center gap-2.5 hover:border-gold-500 hover:shadow-lg hover:shadow-gold-500/10 transition-all group">
+            <div class="w-8 h-8 rounded-lg bg-gold-500/10 text-gold-400 group-hover:bg-gold-500 group-hover:text-slate-950 flex items-center justify-center flex-shrink-0 transition-all">
                 <i class="fa-solid fa-envelope-open-text text-sm"></i>
             </div>
-            <div class="min-w-0">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">Consultas Web</p>
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">Consultas Web</p>
+                    <i class="fa-solid fa-arrow-right text-[10px] text-slate-500 group-hover:text-gold-400 group-hover:translate-x-0.5 transition-all"></i>
+                </div>
                 <div class="flex items-baseline gap-1">
                     <span class="text-lg font-extrabold text-white">{{ $contactosNuevos }}</span>
                     <span class="text-[10px] text-amber-400 font-semibold truncate">pendientes</span>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- Activity Log Preview -->
