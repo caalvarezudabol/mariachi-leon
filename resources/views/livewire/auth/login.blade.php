@@ -16,7 +16,7 @@
                         <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
                             <i class="fa-solid fa-envelope"></i>
                         </span>
-                        <input type="email" wire:model.defer="email" required placeholder="admin@mariachileon.com" class="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 transition-all text-sm">
+                        <input type="email" wire:model="email" required autocomplete="username" class="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 transition-all text-sm">
                     </div>
                     @error('email') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
                 </div>
@@ -27,7 +27,7 @@
                         <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
                             <i class="fa-solid fa-key"></i>
                         </span>
-                        <input type="password" wire:model.defer="password" required placeholder="••••••••" class="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 transition-all text-sm">
+                        <input type="password" wire:model="password" required autocomplete="current-password" class="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 transition-all text-sm">
                     </div>
                     @error('password') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
                 </div>
@@ -45,9 +45,5 @@
                 <span wire:loading><i class="fa-solid fa-spinner animate-spin"></i> Verificando...</span>
             </button>
         </form>
-
-        <div class="mt-6 pt-6 border-t border-slate-800/80 text-center">
-            <p class="text-xs text-slate-500">Credenciales por defecto: <code class="text-gold-400">admin@mariachileon.com</code> / <code class="text-gold-400">admin12345</code></p>
-        </div>
     </div>
 </div>
