@@ -84,12 +84,14 @@ class PaginaInicio extends Component
         $tiposEvento = TipoEvento::where('activo', true)->get();
         $serviciosDestacados = Servicio::where('activo', true)->take(3)->get();
         $paquetesDestacados = Paquete::where('activo', true)->where('destacado', true)->take(3)->get();
+        $empresa = \App\Models\Empresa::obtener();
 
         return view('livewire.web.pagina-inicio', [
             'banners' => $banners,
             'tiposEvento' => $tiposEvento,
             'serviciosDestacados' => $serviciosDestacados,
             'paquetesDestacados' => $paquetesDestacados,
-        ])->layout('components.layouts.web', ['title' => 'Mariachi León Guanajuato - Sitio Oficial']);
+            'empresa' => $empresa,
+        ])->layout('components.layouts.web', ['title' => ($empresa->nombre_comercial ?? 'Mariachi León Guanajuato') . ' - Sitio Oficial']);
     }
 }

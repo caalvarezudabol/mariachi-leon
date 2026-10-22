@@ -2,9 +2,9 @@
     <!-- Header -->
     <div class="text-center space-y-4 max-w-3xl mx-auto">
         <span class="px-4 py-1.5 rounded-full bg-gold-500/10 text-gold-400 font-bold text-xs uppercase tracking-widest border border-gold-500/20">Trayectoria & Pasión</span>
-        <h1 class="font-serif font-bold text-4xl sm:text-5xl text-white">Sobre Mariachi León Guanajuato</h1>
+        <h1 class="font-serif font-bold text-4xl sm:text-5xl text-white">Sobre {{ $empresa->nombre_comercial ?? 'Mariachi León Guanajuato' }}</h1>
         <p class="text-base text-slate-300 leading-relaxed">
-            Una agrupación dedicada a preservar y enaltecer la majestuosidad del mariachi mexicano con altos estándares de calidad musical y elegancia.
+            {{ $empresa->slogan ?? 'Una agrupación dedicada a preservar y enaltecer la majestuosidad del mariachi mexicano con altos estándares de calidad musical y elegancia.' }}
         </p>
     </div>
 

@@ -11,32 +11,68 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <!-- Direct Contact Cards -->
         <div class="space-y-6">
-            <div class="p-8 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
+            <div class="p-8 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 hover:border-gold-500/30 transition-all">
                 <div class="w-12 h-12 rounded-2xl bg-gold-500/10 text-gold-400 flex items-center justify-center text-xl font-bold">
                     <i class="fa-solid fa-phone"></i>
                 </div>
                 <h3 class="font-bold text-lg text-white">Llámanos o WhatsApp</h3>
-                <p class="text-xs text-slate-400">Respuesta rápida e inmediata.</p>
-                <p class="font-bold text-base text-gold-400">+52 477 123 4567</p>
+                <p class="text-xs text-slate-400">Respuesta rápida y asesoramiento inmediato.</p>
+                @if($empresa->telefono_principal)
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-phone text-gold-400 text-xs"></i>
+                        <a href="{{ $empresa->telefono_url }}" class="font-bold text-base text-gold-400 hover:text-gold-300 transition-colors">
+                            {{ $empresa->telefono_principal }}
+                        </a>
+                    </div>
+                @endif
+                @if($empresa->whatsapp_numero_limpio)
+                    <div class="pt-1">
+                        <a href="{{ $empresa->whatsapp_url }}" target="_blank" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all text-xs font-bold">
+                            <i class="fa-brands fa-whatsapp text-sm"></i>
+                            <span>Chatear por WhatsApp</span>
+                        </a>
+                    </div>
+                @endif
             </div>
 
-            <div class="p-8 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
+            <div class="p-8 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 hover:border-gold-500/30 transition-all">
                 <div class="w-12 h-12 rounded-2xl bg-gold-500/10 text-gold-400 flex items-center justify-center text-xl font-bold">
                     <i class="fa-solid fa-envelope"></i>
                 </div>
                 <h3 class="font-bold text-lg text-white">Correo Electrónico</h3>
-                <p class="text-xs text-slate-400">Atención comercial y cotizaciones en PDF.</p>
-                <p class="font-bold text-base text-gold-400">contacto@mariachileonguanajuato.com</p>
+                <p class="text-xs text-slate-400">Atención comercial y cotizaciones formales en PDF.</p>
+                <a href="mailto:{{ $empresa->email_contacto }}" class="font-bold text-base text-gold-400 hover:text-gold-300 transition-colors break-all block">
+                    {{ $empresa->email_contacto ?? 'contacto@mariachileonguanajuato.com' }}
+                </a>
             </div>
 
-            <div class="p-8 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
+            <div class="p-8 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 hover:border-gold-500/30 transition-all">
                 <div class="w-12 h-12 rounded-2xl bg-gold-500/10 text-gold-400 flex items-center justify-center text-xl font-bold">
                     <i class="fa-solid fa-location-dot"></i>
                 </div>
                 <h3 class="font-bold text-lg text-white">Ubicación Base</h3>
-                <p class="text-xs text-slate-400">Servicio en toda la ciudad y municipios aledaños.</p>
-                <p class="font-bold text-base text-gold-400">León, Guanajuato, México</p>
+                <p class="text-xs text-slate-400">Cobertura en eventos locales y viajes acordados.</p>
+                <p class="font-bold text-base text-gold-400 leading-snug">
+                    {{ $empresa->direccion_fisica ?? 'Santa Cruz, Bolivia' }}
+                    @if($empresa->ciudad_pais)
+                        <span class="block text-xs text-slate-400 font-normal mt-1">{{ $empresa->ciudad_pais }}</span>
+                    @endif
+                </p>
             </div>
+
+            @if($empresa->redes_linktree)
+            <div class="p-8 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 hover:border-emerald-500/40 transition-all">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-tree"></i>
+                </div>
+                <h3 class="font-bold text-lg text-white">Redes Sociales Oficiales</h3>
+                <p class="text-xs text-slate-400">Síguenos en nuestras plataformas y consulta contenido multimedia.</p>
+                <a href="{{ $empresa->redes_linktree }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all">
+                    <span>Visitar Linktree Oficial</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                </a>
+            </div>
+            @endif
         </div>
 
         <!-- Interactive Form -->

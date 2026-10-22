@@ -14,11 +14,13 @@ class PaginaServicios extends Component
         $servicios = Servicio::where('activo', true)->get();
         $paquetes = Paquete::with('servicios')->where('activo', true)->get();
         $tiposEvento = TipoEvento::where('activo', true)->get();
+        $empresa = \App\Models\Empresa::obtener();
 
         return view('livewire.web.pagina-servicios', [
             'servicios' => $servicios,
             'paquetes' => $paquetes,
             'tiposEvento' => $tiposEvento,
-        ])->layout('components.layouts.web', ['title' => 'Servicios y Paquetes - Mariachi León']);
+            'empresa' => $empresa,
+        ])->layout('components.layouts.web', ['title' => 'Servicios y Paquetes - ' . ($empresa->nombre_comercial ?? 'Mariachi León')]);
     }
 }

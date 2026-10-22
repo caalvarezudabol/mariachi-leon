@@ -8,7 +8,9 @@ class PaginaNosotros extends Component
 {
     public function render()
     {
-        return view('livewire.web.pagina-nosotros')
-            ->layout('components.layouts.web', ['title' => 'Sobre Nosotros - Mariachi León']);
+        $empresa = \App\Models\Empresa::obtener();
+        return view('livewire.web.pagina-nosotros', [
+            'empresa' => $empresa,
+        ])->layout('components.layouts.web', ['title' => 'Sobre Nosotros - ' . ($empresa->nombre_comercial ?? 'Mariachi León')]);
     }
 }

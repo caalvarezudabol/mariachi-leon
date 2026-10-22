@@ -173,9 +173,27 @@ class GestionEmpresa extends Component
         $this->activeTab = $tab;
     }
 
-    public function guardar(ImageOptimizerService $optimizer)
+    public function guardar(?ImageOptimizerService $optimizer = null)
     {
-        $this->validate();
+        $optimizer = $optimizer ?: app(ImageOptimizerService::class);
+
+        try {
+            $this->validate();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $failedFields = array_keys($e->validator->errors()->toArray());
+            if (array_intersect($failedFields, ['nombre_comercial', 'razon_social', 'nit_ruc', 'representante_legal', 'slogan'])) {
+                $this->activeTab = 'general';
+            } elseif (array_intersect($failedFields, ['telefono_principal', 'whatsapp_comercial', 'email_contacto', 'direccion_fisica', 'ciudad_pais'])) {
+                $this->activeTab = 'contacto';
+            } elseif (array_intersect($failedFields, ['redes_linktree', 'logo_file'])) {
+                $this->activeTab = 'marca';
+            } elseif (array_intersect($failedFields, ['moneda_nombre', 'moneda_simbolo', 'banco_nombre', 'banco_numero_cuenta', 'banco_titular', 'qr_file'])) {
+                $this->activeTab = 'banco';
+            } elseif (array_intersect($failedFields, ['terminos_contrato', 'observaciones'])) {
+                $this->activeTab = 'contratos';
+            }
+            throw $e;
+        }
 
         $empresa = Empresa::findOrFail($this->empresa_id);
 
@@ -255,11 +273,12 @@ class GestionEmpresa extends Component
         ];
 
         foreach ($syncKeys as $clave => $valor) {
-            Configuracion::where('clave', $clave)->update(['valor' => $valor]);
+            Configuracion::updateOrCreate(['clave' => $clave], ['valor' => $valor]);
         }
 
         $this->registrarAuditoria('Configuración', 'Actualizar Empresa', 'Se actualizaron los datos, logotipo e imagen QR de la empresa: ' . $empresa->nombre_comercial);
-        session()->flash('success', 'Datos de la empresa, logotipo e imagen QR de pagos guardados correctamente.');
+        $this->mount();
+        session()->flash('success', '¡Datos de la empresa guardados exitosamente! La información ya se encuentra actualizada y visible en el sitio web público.');
     }
 
     public function render()

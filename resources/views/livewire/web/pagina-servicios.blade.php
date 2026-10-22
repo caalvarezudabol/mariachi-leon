@@ -23,7 +23,7 @@
                     </div>
                     <div class="pt-4 border-t border-slate-800 flex items-center justify-between">
                         <span class="text-xs text-slate-400"><i class="fa-regular fa-clock text-gold-400 mr-1"></i>{{ $serv->duracion_minutos }} min</span>
-                        <span class="font-bold text-xl text-gold-400">Bs. {{ number_format($serv->precio_base, 2) }}</span>
+                        <span class="font-bold text-xl text-gold-400">{{ $empresa->moneda_simbolo ?? 'Bs.' }} {{ number_format($serv->precio_base, 2) }}</span>
                     </div>
                 </div>
             @endforeach
@@ -61,7 +61,7 @@
                     <div class="pt-6 border-t border-slate-800/80 flex items-center justify-between">
                         <div>
                             <span class="text-xs text-slate-400 block">Precio Total Paquete</span>
-                            <span class="font-bold text-2xl text-gold-400">Bs. {{ number_format($paq->precio_paquete, 2) }}</span>
+                            <span class="font-bold text-2xl text-gold-400">{{ $empresa->moneda_simbolo ?? 'Bs.' }} {{ number_format($paq->precio_paquete, 2) }}</span>
                         </div>
                         <a href="{{ route('web.contacto') }}" class="px-6 py-3 rounded-xl font-bold bg-gold-500 text-slate-950 hover:bg-gold-400 shadow-lg shadow-gold-500/20 text-sm transition-all">
                             Reservar Paquete

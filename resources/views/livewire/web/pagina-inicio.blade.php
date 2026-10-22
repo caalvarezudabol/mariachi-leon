@@ -31,7 +31,7 @@
         <!-- Hero Content Overlay -->
         <div class="max-w-5xl mx-auto text-center space-y-8 relative z-20 px-4 py-20">
             <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-500/10 border border-gold-500/30 text-gold-400 font-semibold text-xs tracking-wider uppercase backdrop-blur-md">
-                <i class="fa-solid fa-star"></i> Mariachi León Guanajuato &bull; Tradición & Gala
+                <i class="fa-solid fa-star"></i> {{ $empresa->nombre_comercial ?? 'Mariachi León Guanajuato' }} &bull; {{ $empresa->slogan ?? 'Tradición & Gala' }}
             </div>
 
             <h1 class="font-serif text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white leading-tight">
@@ -42,18 +42,26 @@
                 <span x-text="slides[activeSlide] ? slides[activeSlide].subtitulo : ''"></span>
             </p>
 
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                <a :href="slides[activeSlide] ? slides[activeSlide].boton_link : '#cotizar'" class="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-xl shadow-gold-500/25 transition-all text-base hover:scale-105 flex items-center justify-center gap-3">
+            <div class="flex flex-wrap items-center justify-center gap-4 pt-4">
+                <a :href="slides[activeSlide] ? slides[activeSlide].boton_link : '#cotizar'" class="px-8 py-4 rounded-2xl font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-xl shadow-gold-500/25 transition-all text-base hover:scale-105 flex items-center justify-center gap-3">
                     <i class="fa-solid fa-calculator"></i>
                     <span x-text="slides[activeSlide] ? slides[activeSlide].boton_texto : 'Cotizar Tu Evento'"></span>
                 </a>
+
+                @if($empresa->whatsapp_numero_limpio)
+                <a href="{{ $empresa->whatsapp_url }}" target="_blank" rel="noopener noreferrer" class="px-6 py-4 rounded-2xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/40 transition-all text-base flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/20 hover:scale-105">
+                    <i class="fa-brands fa-whatsapp text-xl"></i>
+                    <span>WhatsApp Directo</span>
+                </a>
+                @endif
                 
-                <!-- Linktree Direct Social Media Button -->
-                <a href="https://linktr.ee/mariachileonguanajuato" target="_blank" class="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold bg-emerald-600/90 hover:bg-emerald-500 text-white border border-emerald-400/40 transition-all text-base flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/20 hover:scale-105">
-                    <i class="fa-solid fa-tree"></i>
+                @if($empresa->redes_linktree)
+                <a href="{{ $empresa->redes_linktree }}" target="_blank" rel="noopener noreferrer" class="px-6 py-4 rounded-2xl font-bold bg-slate-900/90 hover:bg-slate-800 text-gold-400 border border-gold-500/40 transition-all text-base flex items-center justify-center gap-3 shadow-lg hover:scale-105">
+                    <i class="fa-solid fa-tree text-emerald-400"></i>
                     <span>Redes Sociales (Linktree)</span>
                     <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
                 </a>
+                @endif
             </div>
 
             <!-- Slide Indicators -->
@@ -119,7 +127,7 @@
                     </div>
                     <div class="pt-4 border-t border-slate-800 flex items-center justify-between">
                         <span class="text-xs text-slate-400"><i class="fa-regular fa-clock text-gold-400 mr-1"></i>{{ $serv->duracion_minutos }} min</span>
-                        <span class="font-bold text-lg text-gold-400">Bs. {{ number_format($serv->precio_base, 2) }}</span>
+                        <span class="font-bold text-lg text-gold-400">{{ $empresa->moneda_simbolo ?? 'Bs.' }} {{ number_format($serv->precio_base, 2) }}</span>
                     </div>
                 </div>
             @endforeach
@@ -131,7 +139,46 @@
         <div class="max-w-4xl mx-auto bg-slate-950 p-8 sm:p-12 rounded-3xl border border-slate-800 shadow-2xl space-y-8">
             <div class="text-center space-y-2">
                 <h3 class="font-serif font-bold text-2xl sm:text-3xl text-white">Solicita una Cotización Inmediata</h3>
-                <p class="text-xs sm:text-sm text-slate-400">Completa tus datos y nos pondremos en contacto contigo a la brevedad.</p>
+                <p class="text-xs sm:text-sm text-slate-400">Completa tus datos o comunícate directamente con nosotros.</p>
+            </div>
+
+            <!-- Dynamic Direct Contact Strip -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 rounded-2xl bg-slate-900 border border-slate-800 text-center sm:text-left">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-400 flex items-center justify-center text-lg flex-shrink-0">
+                        <i class="fa-brands fa-whatsapp"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <span class="block text-[11px] text-slate-400 font-medium">WhatsApp / Teléfono</span>
+                        <a href="{{ $empresa->whatsapp_url }}" target="_blank" class="text-sm font-bold text-white hover:text-emerald-400 transition-colors truncate block">
+                            {{ $empresa->whatsapp_comercial ?: $empresa->telefono_principal }}
+                        </a>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-400 flex items-center justify-center text-lg flex-shrink-0">
+                        <i class="fa-solid fa-envelope"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <span class="block text-[11px] text-slate-400 font-medium">Correo Electrónico</span>
+                        <a href="mailto:{{ $empresa->email_contacto }}" class="text-sm font-bold text-white hover:text-gold-400 transition-colors truncate block">
+                            {{ $empresa->email_contacto }}
+                        </a>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gold-500/10 text-gold-400 flex items-center justify-center text-lg flex-shrink-0">
+                        <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <span class="block text-[11px] text-slate-400 font-medium">Ubicación</span>
+                        <span class="text-sm font-bold text-white truncate block">
+                            {{ $empresa->ciudad_pais ?: $empresa->direccion_fisica }}
+                        </span>
+                    </div>
+                </div>
             </div>
 
             @if($enviadoExito)

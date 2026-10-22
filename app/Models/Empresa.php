@@ -85,4 +85,36 @@ class Empresa extends Model
 
         return null;
     }
+
+    public function getLogoPublicUrlAttribute(): ?string
+    {
+        if (!$this->logo_url) {
+            return null;
+        }
+        $url = ltrim($this->logo_url, '/');
+        return asset($url);
+    }
+
+    public function getWhatsappNumeroLimpioAttribute(): string
+    {
+        $tel = $this->whatsapp_comercial ?: $this->telefono_principal;
+        return preg_replace('/[^0-9]/', '', (string)$tel);
+    }
+
+    public function getWhatsappUrlAttribute(): string
+    {
+        $numero = $this->whatsapp_numero_limpio;
+        if (empty($numero)) {
+            return '#';
+        }
+        $nombre = $this->nombre_comercial ?? 'Mariachi León Guanajuato';
+        $mensaje = rawurlencode("Hola {$nombre}, me gustaría solicitar información y cotización para un evento musical.");
+        return "https://api.whatsapp.com/send?phone={$numero}&text={$mensaje}";
+    }
+
+    public function getTelefonoUrlAttribute(): string
+    {
+        $clean = preg_replace('/[^0-9+]/', '', (string)$this->telefono_principal);
+        return $clean ? "tel:{$clean}" : '#';
+    }
 }

@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $title ?? 'Mariachi León Guanajuato - Música y Mariachi Profesional' }}</title>
+    @php $empresaWeb = \App\Models\Empresa::obtener(); @endphp
+    <title>{{ $title ?? (($empresaWeb->nombre_comercial ?? 'Mariachi León Guanajuato') . ' - Música y Mariachi Profesional') }}</title>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -86,11 +87,17 @@
                 <a href="{{ route('web.contacto') }}" class="text-sm font-medium transition-colors {{ request()->routeIs('web.contacto') ? 'text-gold-400 font-semibold' : 'text-slate-300 hover:text-white' }}">Contacto</a>
             </nav>
 
-            <div class="hidden md:flex items-center gap-4">
-                <a href="{{ route('login') }}" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-900 border border-slate-800 transition-all">
+            <div class="hidden md:flex items-center gap-3">
+                @if($empresaWeb->whatsapp_numero_limpio)
+                    <a href="{{ $empresaWeb->whatsapp_url }}" target="_blank" title="Contactar por WhatsApp" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-white border border-emerald-500/30 transition-all flex items-center gap-2 shadow-sm">
+                        <i class="fa-brands fa-whatsapp text-base"></i>
+                        <span class="hidden lg:inline">{{ $empresaWeb->whatsapp_comercial ?: $empresaWeb->telefono_principal }}</span>
+                    </a>
+                @endif
+                <a href="{{ route('login') }}" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-900 border border-slate-800 transition-all">
                     Acceso Personal
                 </a>
-                <a href="{{ route('web.contacto') }}" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-lg shadow-gold-500/20 transition-all hover:scale-[1.02]">
+                <a href="{{ route('web.contacto') }}" class="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-lg shadow-gold-500/20 transition-all hover:scale-[1.02]">
                     Cotizar Evento
                 </a>
             </div>
@@ -110,6 +117,18 @@
             <a href="{{ route('web.galeria') }}" class="block text-base font-semibold text-slate-200">Galería</a>
             <a href="{{ route('web.contacto') }}" class="block text-base font-semibold text-slate-200">Contacto</a>
             <div class="pt-4 border-t border-slate-800 flex flex-col gap-3">
+                @if($empresaWeb->whatsapp_numero_limpio)
+                    <a href="{{ $empresaWeb->whatsapp_url }}" target="_blank" class="w-full text-center py-2.5 rounded-xl font-bold bg-emerald-600 text-white flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-brands fa-whatsapp text-lg"></i>
+                        <span>WhatsApp Directo: {{ $empresaWeb->whatsapp_comercial ?: $empresaWeb->telefono_principal }}</span>
+                    </a>
+                @endif
+                @if($empresaWeb->redes_linktree)
+                    <a href="{{ $empresaWeb->redes_linktree }}" target="_blank" class="w-full text-center py-2.5 rounded-xl font-bold bg-slate-800 text-gold-400 border border-gold-500/30 flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-tree"></i>
+                        <span>Redes Sociales (Linktree)</span>
+                    </a>
+                @endif
                 <a href="{{ route('web.contacto') }}" class="w-full text-center py-3 rounded-xl font-bold bg-gold-500 text-slate-950">Cotizar Evento</a>
                 <a href="{{ route('login') }}" class="w-full text-center py-3 rounded-xl font-semibold text-slate-300 border border-slate-700">Acceso Personal</a>
             </div>
@@ -161,27 +180,58 @@
                 <div>
                     <h4 class="font-bold text-sm text-gold-400 uppercase tracking-widest mb-4">Contacto Directo</h4>
                     <ul class="space-y-3 text-sm text-slate-400">
+                        @if($empresaWeb->telefono_principal)
                         <li class="flex items-center gap-3">
                             <i class="fa-solid fa-phone text-gold-500"></i>
-                            <span>{{ $empresaWeb->telefono_principal ?? '+591 70000000' }}</span>
+                            <a href="{{ $empresaWeb->telefono_url }}" class="hover:text-gold-400 transition-colors">{{ $empresaWeb->telefono_principal }}</a>
                         </li>
+                        @endif
+                        @if($empresaWeb->whatsapp_numero_limpio)
+                        <li class="flex items-center gap-3">
+                            <i class="fa-brands fa-whatsapp text-emerald-400"></i>
+                            <a href="{{ $empresaWeb->whatsapp_url }}" target="_blank" class="hover:text-emerald-400 transition-colors">WhatsApp: {{ $empresaWeb->whatsapp_comercial ?: $empresaWeb->telefono_principal }}</a>
+                        </li>
+                        @endif
+                        @if($empresaWeb->email_contacto)
                         <li class="flex items-center gap-3">
                             <i class="fa-solid fa-envelope text-gold-500"></i>
-                            <span>{{ $empresaWeb->email_contacto ?? 'contacto@mariachileonguanajuato.com' }}</span>
+                            <a href="mailto:{{ $empresaWeb->email_contacto }}" class="hover:text-gold-400 transition-colors break-all">{{ $empresaWeb->email_contacto }}</a>
                         </li>
+                        @endif
+                        @if($empresaWeb->direccion_fisica)
                         <li class="flex items-start gap-3">
                             <i class="fa-solid fa-location-dot text-gold-500 mt-1"></i>
-                            <span>{{ $empresaWeb->direccion_fisica ?? 'Santa Cruz, Bolivia' }}</span>
+                            <span>{{ $empresaWeb->direccion_fisica }} @if($empresaWeb->ciudad_pais) ({{ $empresaWeb->ciudad_pais }}) @endif</span>
                         </li>
+                        @endif
+                        @if($empresaWeb->redes_linktree)
+                        <li class="pt-2">
+                            <a href="{{ $empresaWeb->redes_linktree }}" target="_blank" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 hover:text-white hover:bg-emerald-900/60 text-xs font-semibold transition-all">
+                                <i class="fa-solid fa-tree text-emerald-400"></i>
+                                <span>Redes Sociales (Linktree)</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            </a>
+                        </li>
+                        @endif
                     </ul>
                 </div>
                 <div>
                     <h4 class="font-bold text-sm text-gold-400 uppercase tracking-widest mb-4">Atención al Cliente</h4>
                     <p class="text-sm text-slate-400 mb-4">Disponibles los 365 días del año para reservas y cotizaciones personalizadas.</p>
-                    <a href="{{ route('web.contacto') }}" class="inline-flex items-center gap-2 text-sm font-bold text-gold-400 hover:text-gold-300">
-                        <span>Enviar mensaje directo</span>
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </a>
+                    <div class="space-y-3">
+                        <a href="{{ route('web.contacto') }}" class="inline-flex items-center gap-2 text-sm font-bold text-gold-400 hover:text-gold-300">
+                            <span>Solicitar cotización online</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                        @if($empresaWeb->whatsapp_numero_limpio)
+                        <div>
+                            <a href="{{ $empresaWeb->whatsapp_url }}" target="_blank" class="inline-flex items-center gap-2 text-xs font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/20">
+                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                                <span>Atención Inmediata por WhatsApp</span>
+                            </a>
+                        </div>
+                        @endif
+                    </div>
                 </div>
             </div>
             <div class="mt-12 pt-8 border-t border-slate-900 text-center text-xs text-slate-500">
@@ -189,6 +239,21 @@
             </div>
         </div>
     </footer>
+
+    <!-- Botón Flotante de WhatsApp para Contacto Inmediato -->
+    @if($empresaWeb->whatsapp_numero_limpio)
+    <aside class="fixed bottom-6 right-6 z-50">
+        <a href="{{ $empresaWeb->whatsapp_url }}" target="_blank" rel="noopener noreferrer" 
+           class="group flex items-center gap-3 px-4 py-3 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white shadow-2xl shadow-emerald-500/50 hover:scale-105 active:scale-95 transition-all duration-300 border border-emerald-300/40"
+           title="Escríbenos directamente por WhatsApp">
+            <i class="fa-brands fa-whatsapp text-2xl animate-pulse"></i>
+            <div class="hidden sm:block text-left pr-1">
+                <span class="block text-[10px] uppercase font-bold tracking-wider text-emerald-100 leading-none">¿Cotización rápida?</span>
+                <span class="block text-xs font-extrabold text-white leading-tight mt-0.5">WhatsApp Directo</span>
+            </div>
+        </a>
+    </aside>
+    @endif
 
     @livewireScripts
 </body>

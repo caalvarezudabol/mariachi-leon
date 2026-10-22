@@ -78,9 +78,11 @@ class PaginaContacto extends Component
     public function render()
     {
         $tiposEvento = TipoEvento::where('activo', true)->get();
+        $empresa = \App\Models\Empresa::obtener();
 
         return view('livewire.web.pagina-contacto', [
             'tiposEvento' => $tiposEvento,
-        ])->layout('components.layouts.web', ['title' => 'Contacto - Mariachi León']);
+            'empresa' => $empresa,
+        ])->layout('components.layouts.web', ['title' => 'Contacto - ' . ($empresa->nombre_comercial ?? 'Mariachi León')]);
     }
 }
