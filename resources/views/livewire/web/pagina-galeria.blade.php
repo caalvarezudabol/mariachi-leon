@@ -7,12 +7,52 @@
             Revisa las últimas 15 publicaciones, interactúa con nuestros videos de Facebook o explora el histórico por calendario.
         </p>
         
-        <div class="pt-2 flex flex-wrap items-center justify-center gap-4">
-            <a href="https://linktr.ee/mariachileonguanajuato" target="_blank" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 text-sm transition-all">
-                <i class="fa-solid fa-tree text-lg"></i>
-                <span>Ver Redes Sociales Completas (Linktree)</span>
-                <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
-            </a>
+        <!-- Botones Individuales de Redes Sociales con Iconos Respectivos -->
+        <div class="pt-2">
+            <p class="text-xs uppercase font-bold tracking-widest text-slate-400 mb-3 text-center">
+                Síguenos y consulta más actuaciones en vivo:
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                @if($empresa->whatsapp_numero_limpio)
+                    <a href="{{ $empresa->whatsapp_url }}" target="_blank" rel="noopener noreferrer" 
+                       class="px-4 py-2.5 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/40 transition-all text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 hover:scale-105 group">
+                        <i class="fa-brands fa-whatsapp text-base group-hover:scale-110 transition-transform"></i>
+                        <span>WhatsApp</span>
+                    </a>
+                @endif
+
+                @if($empresa->redes_instagram)
+                    <a href="{{ $empresa->redes_instagram }}" target="_blank" rel="noopener noreferrer" 
+                       class="px-4 py-2.5 rounded-xl font-bold bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] hover:opacity-95 text-white border border-pink-400/40 transition-all text-xs flex items-center gap-2 shadow-lg shadow-pink-600/20 hover:scale-105 group">
+                        <i class="fa-brands fa-instagram text-base group-hover:scale-110 transition-transform"></i>
+                        <span>Instagram</span>
+                    </a>
+                @endif
+
+                @if($empresa->redes_tiktok)
+                    <a href="{{ $empresa->redes_tiktok }}" target="_blank" rel="noopener noreferrer" 
+                       class="px-4 py-2.5 rounded-xl font-bold bg-slate-900 hover:bg-black text-white border border-cyan-400/50 hover:border-pink-500/50 transition-all text-xs flex items-center gap-2 shadow-lg shadow-cyan-600/20 hover:scale-105 group">
+                        <i class="fa-brands fa-tiktok text-base text-cyan-400 group-hover:text-pink-400 group-hover:scale-110 transition-all"></i>
+                        <span>TikTok</span>
+                    </a>
+                @endif
+
+                @if($empresa->redes_youtube)
+                    <a href="{{ $empresa->redes_youtube }}" target="_blank" rel="noopener noreferrer" 
+                       class="px-4 py-2.5 rounded-xl font-bold bg-[#FF0000] hover:bg-[#e60000] text-white border border-red-400/40 transition-all text-xs flex items-center gap-2 shadow-lg shadow-red-600/20 hover:scale-105 group">
+                        <i class="fa-brands fa-youtube text-base group-hover:scale-110 transition-transform"></i>
+                        <span>YouTube</span>
+                    </a>
+                @endif
+
+                @if($empresa->redes_facebook)
+                    <a href="{{ $empresa->redes_facebook }}" target="_blank" rel="noopener noreferrer" 
+                       class="px-4 py-2.5 rounded-xl font-bold bg-[#1877F2] hover:bg-[#166fe5] text-white border border-blue-400/40 transition-all text-xs flex items-center gap-2 shadow-lg shadow-blue-600/20 hover:scale-105 group">
+                        <i class="fa-brands fa-facebook-f text-base group-hover:scale-110 transition-transform"></i>
+                        <span>Facebook</span>
+                    </a>
+                @endif
+            </div>
         </div>
     </div>
 

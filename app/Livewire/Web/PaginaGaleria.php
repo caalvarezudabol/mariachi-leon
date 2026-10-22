@@ -70,9 +70,12 @@ class PaginaGaleria extends Component
             ->orderBy('anio', 'desc')
             ->pluck('anio');
 
+        $empresa = \App\Models\Empresa::obtener();
+
         return view('livewire.web.pagina-galeria', [
             'items' => $items,
             'anios' => $anios,
-        ])->layout('components.layouts.web', ['title' => 'Galería de Fotos & Videos - Mariachi León']);
+            'empresa' => $empresa,
+        ])->layout('components.layouts.web', ['title' => 'Galería de Fotos & Videos - ' . ($empresa->nombre_comercial ?? 'Mariachi León')]);
     }
 }
