@@ -173,11 +173,25 @@ class GestionEventos extends Component
     public function abrirModal()
     {
         $this->reset([
-            'evento_id', 'codigo_evento', 'cliente_id', 'servicio_id',
-            'contacto_evento', 'telefono_contacto', 'fecha_evento', 'hora_evento',
-            'duracion_horas', 'direccion_evento', 'latitud', 'longitud', 'observaciones', 'isEdit',
-            'participantesSugeridos', 'servicio_anterior_id', 'modalCambioServicioOpen',
-            'servicioNuevoPendiente', 'mostrarModalAgregarParticipante'
+            'evento_id',
+            'codigo_evento',
+            'cliente_id',
+            'servicio_id',
+            'contacto_evento',
+            'telefono_contacto',
+            'fecha_evento',
+            'hora_evento',
+            'duracion_horas',
+            'direccion_evento',
+            'latitud',
+            'longitud',
+            'observaciones',
+            'isEdit',
+            'participantesSugeridos',
+            'servicio_anterior_id',
+            'modalCambioServicioOpen',
+            'servicioNuevoPendiente',
+            'mostrarModalAgregarParticipante'
         ]);
         $this->codigo_evento = $this->generarCodigoAutomatico();
         $this->fecha_evento = date('Y-m-d');
@@ -254,7 +268,7 @@ class GestionEventos extends Component
         $precioBase = (float)$srv->precio_base;
 
         if ($preservePaid) {
-            $preservados = array_filter($this->participantesSugeridos, function($item) {
+            $preservados = array_filter($this->participantesSugeridos, function ($item) {
                 return !empty($item['tiene_pagos']);
             });
             $preservadosPersonaIds = array_column($preservados, 'persona_id');
@@ -340,7 +354,9 @@ class GestionEventos extends Component
     public function abrirModalAgregarParticipante()
     {
         $this->reset([
-            'nuevo_part_persona_id', 'nuevo_part_valor', 'nuevo_part_observaciones'
+            'nuevo_part_persona_id',
+            'nuevo_part_valor',
+            'nuevo_part_observaciones'
         ]);
         $this->nuevo_part_funcion = 'Músico';
         $this->nuevo_part_concepto = 'Comisión por Evento';
@@ -669,9 +685,9 @@ class GestionEventos extends Component
                 $q->orWhere('contrato_id', $contrato->id);
             }
         })
-        ->with('user')
-        ->orderBy('fecha_pago', 'asc')
-        ->get();
+            ->with('user')
+            ->orderBy('fecha_pago', 'asc')
+            ->get();
 
         $totalAbonado = (float)$pagos->where('estado', 'Valido')->sum('monto');
         $saldoPendiente = max(0, $montoTotal - $totalAbonado);
@@ -708,7 +724,7 @@ class GestionEventos extends Component
     {
         $this->eventoComisiones = Evento::with(['cliente', 'servicio', 'contrato', 'participantes.persona', 'distribuciones'])->findOrFail($eventoId);
         $this->calcularResumenComisiones();
-        
+
         $this->registrarAuditoria(
             'Gestión Comercial',
             'Consultar Comisiones Evento',
@@ -722,8 +738,8 @@ class GestionEventos extends Component
     {
         if (!$this->eventoComisiones) return;
 
-        $montoEvento = $this->eventoComisiones->contrato 
-            ? (float)$this->eventoComisiones->contrato->monto_total 
+        $montoEvento = $this->eventoComisiones->contrato
+            ? (float)$this->eventoComisiones->contrato->monto_total
             : (float)($this->eventoComisiones->monto_total ?? 0);
 
         $participantes = $this->eventoComisiones->participantes;
@@ -804,8 +820,8 @@ class GestionEventos extends Component
 
             $personaNombre = $part->persona->nombre_completo ?? 'Participante';
             $eventoCodigo = $this->eventoComisiones->codigo_evento ?? 'Evento';
-            $contratoRef = $this->eventoComisiones->contrato?->numero_contrato 
-                ? " (Contrato: {$this->eventoComisiones->contrato->numero_contrato})" 
+            $contratoRef = $this->eventoComisiones->contrato?->numero_contrato
+                ? " (Contrato: {$this->eventoComisiones->contrato->numero_contrato})"
                 : '';
 
             $this->registrarAuditoria(
@@ -872,8 +888,8 @@ class GestionEventos extends Component
 
             $personaNombre = $part->persona->nombre_completo ?? 'Participante';
             $eventoCodigo = $this->eventoComisiones->codigo_evento ?? 'Evento';
-            $contratoRef = $this->eventoComisiones->contrato?->numero_contrato 
-                ? " (Contrato: {$this->eventoComisiones->contrato->numero_contrato})" 
+            $contratoRef = $this->eventoComisiones->contrato?->numero_contrato
+                ? " (Contrato: {$this->eventoComisiones->contrato->numero_contrato})"
                 : '';
 
             $this->registrarAuditoria(
@@ -915,14 +931,14 @@ class GestionEventos extends Component
         if ($this->search) {
             $query->where(function ($q) {
                 $q->where('codigo_evento', 'like', '%' . $this->search . '%')
-                  ->orWhere('contacto_evento', 'like', '%' . $this->search . '%')
-                  ->orWhere('direccion_evento', 'like', '%' . $this->search . '%')
-                  ->orWhereHas('cliente', function($c) {
-                      $c->where('nombre_completo', 'like', '%' . $this->search . '%');
-                  })
-                  ->orWhereHas('servicio', function($s) {
-                      $s->where('nombre', 'like', '%' . $this->search . '%');
-                  });
+                    ->orWhere('contacto_evento', 'like', '%' . $this->search . '%')
+                    ->orWhere('direccion_evento', 'like', '%' . $this->search . '%')
+                    ->orWhereHas('cliente', function ($c) {
+                        $c->where('nombre_completo', 'like', '%' . $this->search . '%');
+                    })
+                    ->orWhereHas('servicio', function ($s) {
+                        $s->where('nombre', 'like', '%' . $this->search . '%');
+                    });
             });
         }
 
@@ -945,5 +961,60 @@ class GestionEventos extends Component
             'servicios' => $servicios,
             'personasDisponibles' => $personasDisponibles,
         ])->layout('components.layouts.app', ['title' => 'Gestión de Eventos - Mariachi León Guanajuato']);
+    }
+
+    // Propiedades
+    public bool $modalClienteOpen = false;
+    public string $nc_nombre_completo = '';
+    public ?string $nc_ci_nit = null;
+    public ?string $nc_telefono = null;
+    public ?string $nc_whatsapp = null;
+    public ?string $nc_email = null;
+    public ?string $nc_direccion = null;
+
+    // Métodos
+    public function abrirModalNuevoCliente(): void
+    {
+        $this->reset(['nc_nombre_completo', 'nc_ci_nit', 'nc_telefono', 'nc_whatsapp', 'nc_email', 'nc_direccion']);
+        $this->resetValidation();
+        $this->modalClienteOpen = true;
+    }
+
+    public function cerrarModalNuevoCliente(): void
+    {
+        $this->resetValidation();
+        $this->modalClienteOpen = false;
+    }
+
+    public function guardarNuevoCliente(): void
+    {
+        $this->validate([
+            'nc_nombre_completo' => 'required|string|max:255',
+            'nc_ci_nit'          => 'nullable|string|max:30',
+            'nc_email'           => 'nullable|email|max:255',
+        ], [
+            'nc_nombre_completo.required' => 'El nombre del cliente es obligatorio.',
+        ]);
+
+        $cliente = \App\Models\Cliente::create([
+            'nombre_completo' => $this->nc_nombre_completo,
+            'ci_nit'          => $this->nc_ci_nit,
+            'telefono'        => $this->nc_telefono,
+            'whatsapp'        => $this->nc_whatsapp,
+            'email'           => $this->nc_email,
+            'direccion'       => $this->nc_direccion,
+            'estado'          => 'Activo',
+        ]);
+
+        $this->modalClienteOpen = false;
+        $this->seleccionarCliente($cliente->id);
+
+        $this->dispatch(
+            'cliente-creado',
+            id: $cliente->id,
+            nombre_completo: $cliente->nombre_completo,
+            ci_nit: $cliente->ci_nit,
+            telefono: $cliente->telefono,
+        );
     }
 }
