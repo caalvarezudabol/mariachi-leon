@@ -291,16 +291,91 @@
                     </div>
                 @endif
 
-                <!-- REDES SOCIALES Y LINKTREE -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Enlace Central de Redes Sociales (Linktree / Web)</label>
-                    <div class="relative">
-                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
-                            <i class="fa-solid fa-link"></i>
-                        </span>
-                        <input type="url" wire:model="redes_linktree" class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 font-mono" placeholder="https://linktr.ee/mariachileonguanajuato">
+                <!-- REDES SOCIALES OFICIALES (BOTONES INDIVIDUALES) -->
+                <div class="space-y-4 pt-4 border-t border-brand-border">
+                    <div>
+                        <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-share-nodes text-gold-400"></i>
+                            <span>Canales & Redes Sociales Oficiales</span>
+                        </h4>
+                        <p class="text-xs text-slate-400 mt-1">
+                            Configure las URLs oficiales para cada plataforma. Cada una contará con su propio botón e icono distintivo en el sitio web público.
+                        </p>
                     </div>
-                    @error('redes_linktree') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Instagram -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                <i class="fa-brands fa-instagram text-pink-400 text-sm"></i>
+                                <span>Instagram Oficial</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-pink-400 text-sm">
+                                    <i class="fa-brands fa-instagram"></i>
+                                </span>
+                                <input type="url" wire:model="redes_instagram" class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-pink-500 font-mono text-xs" placeholder="https://www.instagram.com/mariachileonguanajuato">
+                            </div>
+                            @error('redes_instagram') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- TikTok -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                <i class="fa-brands fa-tiktok text-cyan-400 text-sm"></i>
+                                <span>TikTok Oficial</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-cyan-400 text-sm">
+                                    <i class="fa-brands fa-tiktok"></i>
+                                </span>
+                                <input type="url" wire:model="redes_tiktok" class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-cyan-500 font-mono text-xs" placeholder="https://www.tiktok.com/@mariachileonguanajuato">
+                            </div>
+                            @error('redes_tiktok') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- YouTube -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                <i class="fa-brands fa-youtube text-red-500 text-sm"></i>
+                                <span>Canal de YouTube</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-red-500 text-sm">
+                                    <i class="fa-brands fa-youtube"></i>
+                                </span>
+                                <input type="url" wire:model="redes_youtube" class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-red-500 font-mono text-xs" placeholder="http://youtube.com/@mariachileonguanajuato">
+                            </div>
+                            @error('redes_youtube') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Facebook -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                <i class="fa-brands fa-facebook-f text-blue-500 text-sm"></i>
+                                <span>Página de Facebook</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-500 text-sm">
+                                    <i class="fa-brands fa-facebook-f"></i>
+                                </span>
+                                <input type="url" wire:model="redes_facebook" class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-blue-500 font-mono text-xs" placeholder="https://www.facebook.com/profile.php?id=...">
+                            </div>
+                            @error('redes_facebook') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <!-- Enlace Adicional Linktree (Opcional) -->
+                    <div class="pt-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Enlace Auxiliar (Linktree / Web Externa - Opcional)</label>
+                        <div class="relative">
+                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
+                                <i class="fa-solid fa-link"></i>
+                            </span>
+                            <input type="url" wire:model="redes_linktree" class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 font-mono text-xs" placeholder="https://linktr.ee/mariachileonguanajuato">
+                        </div>
+                        @error('redes_linktree') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
+                    </div>
                 </div>
             </div>
 

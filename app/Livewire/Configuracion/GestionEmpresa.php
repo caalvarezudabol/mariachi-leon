@@ -28,6 +28,10 @@ class GestionEmpresa extends Component
     public $moneda_nombre;
     public $moneda_simbolo;
     public $redes_linktree;
+    public $redes_facebook;
+    public $redes_instagram;
+    public $redes_tiktok;
+    public $redes_youtube;
     public $banco_nombre;
     public $banco_numero_cuenta;
     public $banco_titular;
@@ -65,7 +69,11 @@ class GestionEmpresa extends Component
             'qr_file' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'moneda_nombre' => 'required|string|max:50',
             'moneda_simbolo' => 'required|string|max:10',
-            'redes_linktree' => 'nullable|url|max:255',
+            'redes_linktree' => 'nullable|url|max:500',
+            'redes_facebook' => 'nullable|url|max:500',
+            'redes_instagram' => 'nullable|url|max:500',
+            'redes_tiktok' => 'nullable|url|max:500',
+            'redes_youtube' => 'nullable|url|max:500',
             'banco_nombre' => 'nullable|string|max:100',
             'banco_numero_cuenta' => 'nullable|string|max:100',
             'banco_titular' => 'nullable|string|max:100',
@@ -108,6 +116,10 @@ class GestionEmpresa extends Component
         $this->moneda_nombre = $empresa->moneda_nombre;
         $this->moneda_simbolo = $empresa->moneda_simbolo;
         $this->redes_linktree = $empresa->redes_linktree;
+        $this->redes_facebook = $empresa->redes_facebook;
+        $this->redes_instagram = $empresa->redes_instagram;
+        $this->redes_tiktok = $empresa->redes_tiktok;
+        $this->redes_youtube = $empresa->redes_youtube;
         $this->banco_nombre = $empresa->banco_nombre;
         $this->banco_numero_cuenta = $empresa->banco_numero_cuenta;
         $this->banco_titular = $empresa->banco_titular;
@@ -185,7 +197,7 @@ class GestionEmpresa extends Component
                 $this->activeTab = 'general';
             } elseif (array_intersect($failedFields, ['telefono_principal', 'whatsapp_comercial', 'email_contacto', 'direccion_fisica', 'ciudad_pais'])) {
                 $this->activeTab = 'contacto';
-            } elseif (array_intersect($failedFields, ['redes_linktree', 'logo_file'])) {
+            } elseif (array_intersect($failedFields, ['redes_linktree', 'redes_facebook', 'redes_instagram', 'redes_tiktok', 'redes_youtube', 'logo_file'])) {
                 $this->activeTab = 'marca';
             } elseif (array_intersect($failedFields, ['moneda_nombre', 'moneda_simbolo', 'banco_nombre', 'banco_numero_cuenta', 'banco_titular', 'qr_file'])) {
                 $this->activeTab = 'banco';
@@ -250,6 +262,10 @@ class GestionEmpresa extends Component
             'moneda_nombre' => trim($this->moneda_nombre),
             'moneda_simbolo' => trim($this->moneda_simbolo),
             'redes_linktree' => trim($this->redes_linktree),
+            'redes_facebook' => trim($this->redes_facebook),
+            'redes_instagram' => trim($this->redes_instagram),
+            'redes_tiktok' => trim($this->redes_tiktok),
+            'redes_youtube' => trim($this->redes_youtube),
             'banco_nombre' => trim($this->banco_nombre),
             'banco_numero_cuenta' => trim($this->banco_numero_cuenta),
             'banco_titular' => trim($this->banco_titular),
@@ -264,6 +280,10 @@ class GestionEmpresa extends Component
             'moneda_simbolo' => $this->moneda_simbolo,
             'moneda_nombre' => $this->moneda_nombre,
             'redes_linktree' => $this->redes_linktree,
+            'redes_facebook' => $this->redes_facebook,
+            'redes_instagram' => $this->redes_instagram,
+            'redes_tiktok' => $this->redes_tiktok,
+            'redes_youtube' => $this->redes_youtube,
             'telefono_contacto' => $this->telefono_principal,
             'email_contacto' => $this->email_contacto,
             'direccion_oficina' => $this->direccion_fisica,

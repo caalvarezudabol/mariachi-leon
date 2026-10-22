@@ -60,19 +60,71 @@
                 </p>
             </div>
 
-            @if($empresa->redes_linktree)
-            <div class="p-8 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 hover:border-emerald-500/40 transition-all">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl font-bold">
-                    <i class="fa-solid fa-tree"></i>
+            <!-- Tarjeta de Redes Sociales Oficiales con Botones Individuales -->
+            <div class="p-8 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 hover:border-gold-500/30 transition-all">
+                <div class="w-12 h-12 rounded-2xl bg-gold-500/10 text-gold-400 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-share-nodes"></i>
                 </div>
                 <h3 class="font-bold text-lg text-white">Redes Sociales Oficiales</h3>
-                <p class="text-xs text-slate-400">Síguenos en nuestras plataformas y consulta contenido multimedia.</p>
-                <a href="{{ $empresa->redes_linktree }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all">
-                    <span>Visitar Linktree Oficial</span>
-                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-                </a>
+                <p class="text-xs text-slate-400">Síguenos, conócenos e interactúa en nuestros canales oficiales:</p>
+                
+                <div class="space-y-2.5 pt-1">
+                    @if($empresa->whatsapp_numero_limpio)
+                    <a href="{{ $empresa->whatsapp_url }}" target="_blank" rel="noopener noreferrer" 
+                       class="w-full px-4 py-2.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-between shadow transition-all hover:scale-[1.02] group">
+                        <span class="flex items-center gap-2.5">
+                            <i class="fa-brands fa-whatsapp text-lg"></i>
+                            <span>WhatsApp Directo</span>
+                        </span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-75 group-hover:opacity-100"></i>
+                    </a>
+                    @endif
+
+                    @if($empresa->redes_instagram)
+                    <a href="{{ $empresa->redes_instagram }}" target="_blank" rel="noopener noreferrer" 
+                       class="w-full px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] hover:opacity-95 text-white font-bold text-xs flex items-center justify-between shadow transition-all hover:scale-[1.02] group">
+                        <span class="flex items-center gap-2.5">
+                            <i class="fa-brands fa-instagram text-lg"></i>
+                            <span>Instagram Oficial</span>
+                        </span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-75 group-hover:opacity-100"></i>
+                    </a>
+                    @endif
+
+                    @if($empresa->redes_tiktok)
+                    <a href="{{ $empresa->redes_tiktok }}" target="_blank" rel="noopener noreferrer" 
+                       class="w-full px-4 py-2.5 rounded-xl bg-slate-950 hover:bg-black text-white border border-cyan-400/40 hover:border-pink-500/50 font-bold text-xs flex items-center justify-between shadow transition-all hover:scale-[1.02] group">
+                        <span class="flex items-center gap-2.5">
+                            <i class="fa-brands fa-tiktok text-lg text-cyan-400 group-hover:text-pink-400"></i>
+                            <span>TikTok Oficial</span>
+                        </span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-75 group-hover:opacity-100"></i>
+                    </a>
+                    @endif
+
+                    @if($empresa->redes_youtube)
+                    <a href="{{ $empresa->redes_youtube }}" target="_blank" rel="noopener noreferrer" 
+                       class="w-full px-4 py-2.5 rounded-xl bg-[#FF0000] hover:bg-[#e60000] text-white font-bold text-xs flex items-center justify-between shadow transition-all hover:scale-[1.02] group">
+                        <span class="flex items-center gap-2.5">
+                            <i class="fa-brands fa-youtube text-lg"></i>
+                            <span>Canal de YouTube</span>
+                        </span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-75 group-hover:opacity-100"></i>
+                    </a>
+                    @endif
+
+                    @if($empresa->redes_facebook)
+                    <a href="{{ $empresa->redes_facebook }}" target="_blank" rel="noopener noreferrer" 
+                       class="w-full px-4 py-2.5 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold text-xs flex items-center justify-between shadow transition-all hover:scale-[1.02] group">
+                        <span class="flex items-center gap-2.5">
+                            <i class="fa-brands fa-facebook-f text-lg"></i>
+                            <span>Página de Facebook</span>
+                        </span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-75 group-hover:opacity-100"></i>
+                    </a>
+                    @endif
+                </div>
             </div>
-            @endif
         </div>
 
         <!-- Interactive Form -->

@@ -42,26 +42,57 @@
                 <span x-text="slides[activeSlide] ? slides[activeSlide].subtitulo : ''"></span>
             </p>
 
-            <div class="flex flex-wrap items-center justify-center gap-4 pt-4">
-                <a :href="slides[activeSlide] ? slides[activeSlide].boton_link : '#cotizar'" class="px-8 py-4 rounded-2xl font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-xl shadow-gold-500/25 transition-all text-base hover:scale-105 flex items-center justify-center gap-3">
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                <a :href="slides[activeSlide] ? slides[activeSlide].boton_link : '#cotizar'" class="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-xl shadow-gold-500/25 transition-all text-base hover:scale-105 flex items-center justify-center gap-3">
                     <i class="fa-solid fa-calculator"></i>
                     <span x-text="slides[activeSlide] ? slides[activeSlide].boton_texto : 'Cotizar Tu Evento'"></span>
                 </a>
+            </div>
 
-                @if($empresa->whatsapp_numero_limpio)
-                <a href="{{ $empresa->whatsapp_url }}" target="_blank" rel="noopener noreferrer" class="px-6 py-4 rounded-2xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/40 transition-all text-base flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/20 hover:scale-105">
-                    <i class="fa-brands fa-whatsapp text-xl"></i>
-                    <span>WhatsApp Directo</span>
-                </a>
-                @endif
-                
-                @if($empresa->redes_linktree)
-                <a href="{{ $empresa->redes_linktree }}" target="_blank" rel="noopener noreferrer" class="px-6 py-4 rounded-2xl font-bold bg-slate-900/90 hover:bg-slate-800 text-gold-400 border border-gold-500/40 transition-all text-base flex items-center justify-center gap-3 shadow-lg hover:scale-105">
-                    <i class="fa-solid fa-tree text-emerald-400"></i>
-                    <span>Redes Sociales (Linktree)</span>
-                    <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
-                </a>
-                @endif
+            <!-- Botones Individuales de Redes Sociales con Iconos Respectivos -->
+            <div class="pt-2">
+                <p class="text-xs uppercase font-bold tracking-widest text-slate-400 mb-3">Conéctate en Nuestras Redes Oficiales:</p>
+                <div class="flex flex-wrap items-center justify-center gap-3">
+                    @if($empresa->whatsapp_numero_limpio)
+                        <a href="{{ $empresa->whatsapp_url }}" target="_blank" rel="noopener noreferrer" 
+                           class="px-4 py-2.5 rounded-xl font-bold bg-emerald-600/90 hover:bg-emerald-500 text-white border border-emerald-400/40 transition-all text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 hover:scale-105 group">
+                            <i class="fa-brands fa-whatsapp text-base group-hover:scale-110 transition-transform"></i>
+                            <span>WhatsApp</span>
+                        </a>
+                    @endif
+
+                    @if($empresa->redes_instagram)
+                        <a href="{{ $empresa->redes_instagram }}" target="_blank" rel="noopener noreferrer" 
+                           class="px-4 py-2.5 rounded-xl font-bold bg-gradient-to-r from-[#f09433]/90 via-[#dc2743]/90 to-[#bc1888]/90 hover:opacity-100 text-white border border-pink-400/40 transition-all text-xs flex items-center gap-2 shadow-lg shadow-pink-600/20 hover:scale-105 group">
+                            <i class="fa-brands fa-instagram text-base group-hover:scale-110 transition-transform"></i>
+                            <span>Instagram</span>
+                        </a>
+                    @endif
+
+                    @if($empresa->redes_tiktok)
+                        <a href="{{ $empresa->redes_tiktok }}" target="_blank" rel="noopener noreferrer" 
+                           class="px-4 py-2.5 rounded-xl font-bold bg-slate-900/90 hover:bg-black text-white border border-cyan-400/50 hover:border-pink-500/50 transition-all text-xs flex items-center gap-2 shadow-lg shadow-cyan-600/20 hover:scale-105 group">
+                            <i class="fa-brands fa-tiktok text-base text-cyan-400 group-hover:text-pink-400 group-hover:scale-110 transition-all"></i>
+                            <span>TikTok</span>
+                        </a>
+                    @endif
+
+                    @if($empresa->redes_youtube)
+                        <a href="{{ $empresa->redes_youtube }}" target="_blank" rel="noopener noreferrer" 
+                           class="px-4 py-2.5 rounded-xl font-bold bg-[#FF0000]/90 hover:bg-[#FF0000] text-white border border-red-400/40 transition-all text-xs flex items-center gap-2 shadow-lg shadow-red-600/20 hover:scale-105 group">
+                            <i class="fa-brands fa-youtube text-base group-hover:scale-110 transition-transform"></i>
+                            <span>YouTube</span>
+                        </a>
+                    @endif
+
+                    @if($empresa->redes_facebook)
+                        <a href="{{ $empresa->redes_facebook }}" target="_blank" rel="noopener noreferrer" 
+                           class="px-4 py-2.5 rounded-xl font-bold bg-[#1877F2]/90 hover:bg-[#1877F2] text-white border border-blue-400/40 transition-all text-xs flex items-center gap-2 shadow-lg shadow-blue-600/20 hover:scale-105 group">
+                            <i class="fa-brands fa-facebook-f text-base group-hover:scale-110 transition-transform"></i>
+                            <span>Facebook</span>
+                        </a>
+                    @endif
+                </div>
             </div>
 
             <!-- Slide Indicators -->
@@ -179,6 +210,35 @@
                         </span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Redes Sociales Oficiales en Sección Cotizar -->
+            <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
+                <span class="text-xs text-slate-400 font-medium mr-1">Conócenos en nuestras redes:</span>
+                @if($empresa->redes_instagram)
+                    <a href="{{ $empresa->redes_instagram }}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-gradient-to-tr hover:from-amber-500 hover:via-rose-500 hover:to-purple-600 hover:text-white border border-pink-500/20 text-xs font-bold flex items-center gap-1.5 transition-all">
+                        <i class="fa-brands fa-instagram"></i>
+                        <span>Instagram</span>
+                    </a>
+                @endif
+                @if($empresa->redes_tiktok)
+                    <a href="{{ $empresa->redes_tiktok }}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-slate-900 text-cyan-400 hover:bg-black hover:text-pink-400 border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all">
+                        <i class="fa-brands fa-tiktok"></i>
+                        <span>TikTok</span>
+                    </a>
+                @endif
+                @if($empresa->redes_youtube)
+                    <a href="{{ $empresa->redes_youtube }}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/20 text-xs font-bold flex items-center gap-1.5 transition-all">
+                        <i class="fa-brands fa-youtube"></i>
+                        <span>YouTube</span>
+                    </a>
+                @endif
+                @if($empresa->redes_facebook)
+                    <a href="{{ $empresa->redes_facebook }}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-[#1877F2] hover:text-white border border-blue-500/20 text-xs font-bold flex items-center gap-1.5 transition-all">
+                        <i class="fa-brands fa-facebook-f"></i>
+                        <span>Facebook</span>
+                    </a>
+                @endif
             </div>
 
             @if($enviadoExito)
