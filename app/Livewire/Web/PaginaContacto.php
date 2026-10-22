@@ -4,7 +4,10 @@ namespace App\Livewire\Web;
 
 use Livewire\Component;
 use App\Models\TipoEvento;
+use App\Models\Servicio;
+use App\Models\Paquete;
 use App\Models\ContactoWeb;
+use App\Models\Empresa;
 
 class PaginaContacto extends Component
 {
@@ -16,6 +19,13 @@ class PaginaContacto extends Component
     public $mensaje = '';
     public $enviadoExito = false;
 
+    // Selección de Servicio / Paquete para Cotización
+    public $servicio_id = null;
+    public $paquete_id = null;
+    public $servicioSeleccionado = null;
+    public $paqueteSeleccionado = null;
+    public $item_id = ''; // "servicio_X" o "paquete_Y"
+
     // CAPTCHA anti-bot
     public $captcha_num1;
     public $captcha_num2;
@@ -24,6 +34,79 @@ class PaginaContacto extends Component
     public function mount()
     {
         $this->generarCaptcha();
+
+        $servicioQuery = request()->query('servicio_id') ?? request()->query('servicio');
+        $paqueteQuery = request()->query('paquete_id') ?? request()->query('paquete');
+
+        if ($servicioQuery) {
+            $this->seleccionarServicio($servicioQuery);
+        } elseif ($paqueteQuery) {
+            $this->seleccionarPaquete($paqueteQuery);
+        }
+    }
+
+    public function seleccionarServicio($id)
+    {
+        $servicio = Servicio::find($id);
+        if ($servicio) {
+            $this->servicio_id = $servicio->id;
+            $this->servicioSeleccionado = $servicio;
+            $this->paquete_id = null;
+            $this->paqueteSeleccionado = null;
+            $this->item_id = 'servicio_' . $servicio->id;
+
+            $empresa = Empresa::obtener();
+            $moneda = $empresa->moneda_simbolo ?? 'Bs.';
+
+            // Sugerir mensaje pre-llenado si está vacío o si era otro mensaje por defecto
+            if (empty($this->mensaje) || str_starts_with($this->mensaje, 'Hola Mariachi León')) {
+                $this->mensaje = "Hola Mariachi León Guanajuato, deseo solicitar una cotización formal para el servicio: {$servicio->nombre} ({$moneda} " . number_format($servicio->precio_base, 2) . ", Duración: {$servicio->duracion_minutos} min). Por favor confirmen disponibilidad de fecha y detalles.";
+            }
+        }
+    }
+
+    public function seleccionarPaquete($id)
+    {
+        $paquete = Paquete::with('servicios')->find($id);
+        if ($paquete) {
+            $this->paquete_id = $paquete->id;
+            $this->paqueteSeleccionado = $paquete;
+            $this->servicio_id = null;
+            $this->servicioSeleccionado = null;
+            $this->item_id = 'paquete_' . $paquete->id;
+
+            $empresa = Empresa::obtener();
+            $moneda = $empresa->moneda_simbolo ?? 'Bs.';
+
+            if (empty($this->mensaje) || str_starts_with($this->mensaje, 'Hola Mariachi León')) {
+                $this->mensaje = "Hola Mariachi León Guanajuato, deseo solicitar una cotización/reserva para el paquete: {$paquete->nombre} ({$moneda} " . number_format($paquete->precio_paquete, 2) . "). Por favor confirmen disponibilidad de fecha y detalles.";
+            }
+        }
+    }
+
+    public function updatedItemId($val)
+    {
+        if (str_starts_with($val, 'servicio_')) {
+            $sId = (int)str_replace('servicio_', '', $val);
+            $this->seleccionarServicio($sId);
+        } elseif (str_starts_with($val, 'paquete_')) {
+            $pId = (int)str_replace('paquete_', '', $val);
+            $this->seleccionarPaquete($pId);
+        } else {
+            $this->quitarSeleccion();
+        }
+    }
+
+    public function quitarSeleccion()
+    {
+        $this->servicio_id = null;
+        $this->servicioSeleccionado = null;
+        $this->paquete_id = null;
+        $this->paqueteSeleccionado = null;
+        $this->item_id = '';
+        if (str_starts_with($this->mensaje, 'Hola Mariachi León')) {
+            $this->mensaje = '';
+        }
     }
 
     public function generarCaptcha()
@@ -37,6 +120,10 @@ class PaginaContacto extends Component
         'nombre' => 'required|string|max:255',
         'telefono' => 'required|string|max:20',
         'email' => 'nullable|email',
+        'tipo_evento_id' => 'nullable|exists:tipos_evento,id',
+        'servicio_id' => 'nullable|exists:servicios,id',
+        'paquete_id' => 'nullable|exists:paquetes,id',
+        'fecha_estimada' => 'nullable|date',
         'mensaje' => 'required|string',
         'captcha_respuesta' => 'required|numeric',
     ];
@@ -65,12 +152,14 @@ class PaginaContacto extends Component
             'telefono' => $this->telefono,
             'email' => $this->email,
             'tipo_evento_id' => $this->tipo_evento_id ?: null,
+            'servicio_id' => $this->servicio_id ?: null,
+            'paquete_id' => $this->paquete_id ?: null,
             'fecha_estimada' => $this->fecha_estimada ?: null,
             'mensaje' => $this->mensaje,
             'estado' => 'nuevo',
         ]);
 
-        $this->reset(['nombre', 'telefono', 'email', 'tipo_evento_id', 'fecha_estimada', 'mensaje']);
+        $this->reset(['nombre', 'telefono', 'email', 'tipo_evento_id', 'servicio_id', 'paquete_id', 'servicioSeleccionado', 'paqueteSeleccionado', 'item_id', 'fecha_estimada', 'mensaje']);
         $this->generarCaptcha();
         $this->enviadoExito = true;
     }
@@ -78,11 +167,15 @@ class PaginaContacto extends Component
     public function render()
     {
         $tiposEvento = TipoEvento::where('activo', true)->get();
-        $empresa = \App\Models\Empresa::obtener();
+        $servicios = Servicio::where('activo', true)->orderBy('nombre')->get();
+        $paquetes = Paquete::where('activo', true)->orderBy('nombre')->get();
+        $empresa = Empresa::obtener();
 
         return view('livewire.web.pagina-contacto', [
             'tiposEvento' => $tiposEvento,
+            'servicios' => $servicios,
+            'paquetes' => $paquetes,
             'empresa' => $empresa,
-        ])->layout('components.layouts.web', ['title' => 'Contacto - ' . ($empresa->nombre_comercial ?? 'Mariachi León')]);
+        ])->layout('components.layouts.web', ['title' => 'Cotización y Contacto - ' . ($empresa->nombre_comercial ?? 'Mariachi León')]);
     }
 }

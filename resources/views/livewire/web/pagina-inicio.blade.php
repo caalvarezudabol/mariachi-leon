@@ -156,9 +156,17 @@
                         <h3 class="font-bold text-xl text-white">{{ $serv->nombre }}</h3>
                         <p class="text-xs text-slate-400 leading-relaxed">{{ $serv->descripcion }}</p>
                     </div>
-                    <div class="pt-4 border-t border-slate-800 flex items-center justify-between">
-                        <span class="text-xs text-slate-400"><i class="fa-regular fa-clock text-gold-400 mr-1"></i>{{ $serv->duracion_minutos }} min</span>
-                        <span class="font-bold text-lg text-gold-400">{{ $empresa->moneda_simbolo ?? 'Bs.' }} {{ number_format($serv->precio_base, 2) }}</span>
+                    <div class="pt-4 border-t border-slate-800 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-400"><i class="fa-regular fa-clock text-gold-400 mr-1"></i>{{ $serv->duracion_minutos }} min</span>
+                            <span class="font-bold text-lg text-gold-400">{{ $empresa->moneda_simbolo ?? 'Bs.' }} {{ number_format($serv->precio_base, 2) }}</span>
+                        </div>
+                        <a href="{{ route('web.contacto', ['servicio_id' => $serv->id]) }}" 
+                           class="w-full py-2.5 px-3 rounded-xl font-bold bg-gold-500/15 text-gold-400 hover:bg-gradient-to-r hover:from-gold-500 hover:to-gold-600 hover:text-slate-950 border border-gold-500/30 text-xs text-center flex items-center justify-center gap-2 transition-all hover:scale-[1.02]">
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                            <span>Cotizar este Servicio</span>
+                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </a>
                     </div>
                 </div>
             @endforeach
