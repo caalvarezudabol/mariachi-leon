@@ -8,6 +8,8 @@ use App\Models\EventoParticipante;
 use App\Models\MusicoPersonal;
 use App\Models\DistribucionEconomica;
 use App\Models\PagoParticipante;
+use App\Models\Servicio;
+use App\Models\ServicioParticipante;
 use App\Traits\Auditable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -23,8 +25,14 @@ class GestionParticipantesEvento extends Component
     public $persona_id = '';
     public $funcion = 'Músico';
     public $concepto_pago = 'Comisión por Evento';
+    public $tipo_calculo = 'monto_fijo';
+    public $valor_sugerido = 0.00;
     public $monto_asignado = 0.00;
     public $observaciones = '';
+
+    // Modal Aplicar Plantilla del Servicio
+    public $mostrarModalAplicarPlantilla = false;
+    public $participantesPlantillaSugeridos = [];
 
     // Sugerencias inteligentes
     public $personasSugeridas = [];
@@ -114,7 +122,19 @@ class GestionParticipantesEvento extends Component
 
         $yaAsignadosIds = $this->evento->participantes->pluck('persona_id')->toArray();
 
-        // Buscar personas que participaron en otros eventos con el mismo servicio
+        // 1. Prioridad: Participantes configurados en la plantilla activa del servicio
+        $plantillaQuery = ServicioParticipante::where('servicio_id', $this->evento->servicio_id)
+            ->where('activo', true)
+            ->whereNotIn('persona_id', $yaAsignadosIds)
+            ->with('persona')
+            ->get();
+
+        if ($plantillaQuery->count() > 0) {
+            $this->personasSugeridas = $plantillaQuery->pluck('persona')->filter()->values();
+            return;
+        }
+
+        // 2. Si no hay en plantilla, sugerir por frecuencia en este servicio
         $sugeridosQuery = EventoParticipante::query()
             ->join('eventos', 'evento_participantes.evento_id', '=', 'eventos.id')
             ->where('eventos.servicio_id', $this->evento->servicio_id)
@@ -133,7 +153,7 @@ class GestionParticipantesEvento extends Component
                 ->where('estado', 'Activo')
                 ->get();
         } else {
-            // Si no hay historial suficiente, sugerir las primeras 5 personas activas
+            // 3. Fallback: Primeras 5 personas activas no asignadas
             $this->personasSugeridas = MusicoPersonal::where('estado', 'Activo')
                 ->whereNotIn('id', $yaAsignadosIds)
                 ->take(5)
@@ -148,6 +168,167 @@ class GestionParticipantesEvento extends Component
         if ($persona) {
             $this->funcion = $persona->tipo ?? 'Músico';
         }
+
+        // Si esta persona está configurada en la plantilla del servicio, precargar sus valores
+        if ($this->evento && $this->evento->servicio_id) {
+            $sp = ServicioParticipante::where('servicio_id', $this->evento->servicio_id)
+                ->where('persona_id', $personaId)
+                ->first();
+
+            if ($sp) {
+                $precioBase = $this->evento->contrato 
+                    ? (float)$this->evento->contrato->monto_total 
+                    : (float)optional($this->evento->servicio)->precio_base;
+
+                $this->funcion = $sp->funcion;
+                $this->concepto_pago = $sp->concepto_pago;
+                $this->tipo_calculo = $sp->tipo_calculo;
+                $this->valor_sugerido = (float)$sp->valor;
+                $this->monto_asignado = $sp->calcularMontoSugerido($precioBase);
+            }
+        }
+    }
+
+    public function abrirModalAplicarPlantilla()
+    {
+        if (!$this->evento || !$this->evento->servicio_id) {
+            session()->flash('error', 'Este evento no tiene un servicio asociado.');
+            return;
+        }
+
+        $srv = Servicio::with(['plantillaParticipantes.persona'])->find($this->evento->servicio_id);
+        if (!$srv || $srv->plantillaParticipantes->where('activo', true)->count() === 0) {
+            session()->flash('error', "El servicio '{$this->evento->servicio->nombre}' no tiene participantes configurados en su plantilla económica.");
+            return;
+        }
+
+        $precioBase = $this->evento->contrato 
+            ? (float)$this->evento->contrato->monto_total 
+            : (float)$srv->precio_base;
+
+        $existentes = $this->evento->participantes->keyBy('persona_id');
+        $this->participantesPlantillaSugeridos = [];
+
+        foreach ($srv->plantillaParticipantes->where('activo', true) as $sp) {
+            $montoSugerido = $sp->calcularMontoSugerido($precioBase);
+            $ep = $existentes->get($sp->persona_id);
+            $yaAsignado = !empty($ep);
+            $tienePagos = $yaAsignado ? ($ep->total_pagado > 0) : false;
+            $totalPagado = $yaAsignado ? $ep->total_pagado : 0.0;
+            $montoFinal = $yaAsignado ? (float)$ep->monto_asignado : $montoSugerido;
+
+            $this->participantesPlantillaSugeridos[] = [
+                'persona_id' => $sp->persona_id,
+                'nombre_completo' => $sp->persona->nombre_completo ?? 'N/A',
+                'ci_nit' => $sp->persona->ci_nit ?? '',
+                'funcion' => $yaAsignado ? $ep->funcion : $sp->funcion,
+                'concepto_pago' => $yaAsignado ? $ep->concepto_pago : $sp->concepto_pago,
+                'tipo_calculo' => $sp->tipo_calculo,
+                'valor_sugerido' => (float)$sp->valor,
+                'monto_sugerido' => $montoSugerido,
+                'monto_asignado' => $montoFinal,
+                'incluido' => true,
+                'ya_asignado' => $yaAsignado,
+                'tiene_pagos' => $tienePagos,
+                'total_pagado' => $totalPagado,
+            ];
+        }
+
+        $this->mostrarModalAplicarPlantilla = true;
+    }
+
+    public function cerrarModalAplicarPlantilla()
+    {
+        $this->mostrarModalAplicarPlantilla = false;
+        $this->participantesPlantillaSugeridos = [];
+    }
+
+    public function toggleIncluidoPlantillaSugerida($index)
+    {
+        if (!isset($this->participantesPlantillaSugeridos[$index])) return;
+        $item = $this->participantesPlantillaSugeridos[$index];
+        if ($item['incluido'] && !empty($item['tiene_pagos'])) {
+            session()->flash('error', "No se puede excluir a {$item['nombre_completo']} porque ya cuenta con pagos registrados.");
+            return;
+        }
+        $this->participantesPlantillaSugeridos[$index]['incluido'] = !$this->participantesPlantillaSugeridos[$index]['incluido'];
+    }
+
+    public function confirmarAplicarPlantilla()
+    {
+        // Validar montos en el servidor
+        foreach ($this->participantesPlantillaSugeridos as $p) {
+            if (!empty($p['incluido'])) {
+                if (!is_numeric($p['monto_asignado']) || (float)$p['monto_asignado'] < 0) {
+                    session()->flash('error', "El monto asignado a {$p['nombre_completo']} no puede ser negativo.");
+                    return;
+                }
+                if (!empty($p['tiene_pagos']) && (float)$p['monto_asignado'] < (float)$p['total_pagado']) {
+                    session()->flash('error', "El monto asignado a {$p['nombre_completo']} no puede ser inferior a lo ya pagado (Mínimo: Bs. " . number_format($p['total_pagado'], 2) . ").");
+                    return;
+                }
+            }
+        }
+
+        DB::transaction(function () {
+            $aplicados = 0;
+            foreach ($this->participantesPlantillaSugeridos as $item) {
+                if (!empty($item['incluido'])) {
+                    $montoFinal = (float)$item['monto_asignado'];
+                    $estadoCalculado = 'Pendiente';
+                    if (!empty($item['tiene_pagos'])) {
+                        $saldo = max(0.0, $montoFinal - (float)$item['total_pagado']);
+                        $estadoCalculado = ($saldo <= 0.001) ? 'Distribuido' : 'Pago Parcial';
+                    }
+
+                    $ep = EventoParticipante::updateOrCreate(
+                        [
+                            'evento_id' => $this->eventoId,
+                            'persona_id' => $item['persona_id'],
+                        ],
+                        [
+                            'funcion' => $item['funcion'],
+                            'concepto_pago' => $item['concepto_pago'],
+                            'tipo_calculo' => $item['tipo_calculo'],
+                            'valor_sugerido' => $item['valor_sugerido'],
+                            'monto_asignado' => $montoFinal,
+                            'estado_distribucion' => $estadoCalculado,
+                            'user_id' => Auth::id(),
+                        ]
+                    );
+
+                    DistribucionEconomica::updateOrCreate(
+                        [
+                            'evento_id' => $this->eventoId,
+                            'persona_id' => $item['persona_id'],
+                        ],
+                        [
+                            'contrato_id' => optional($this->evento->contrato)->id,
+                            'evento_participante_id' => $ep->id,
+                            'funcion' => $item['funcion'],
+                            'concepto' => $item['concepto_pago'],
+                            'monto' => $montoFinal,
+                            'fecha_distribucion' => now(),
+                            'estado' => $estadoCalculado,
+                            'user_id' => Auth::id(),
+                        ]
+                    );
+                    $aplicados++;
+                }
+            }
+
+            $this->registrarAuditoria(
+                'Gestión Comercial',
+                'Aplicar Plantilla Servicio en Evento',
+                "Se aplicaron {$aplicados} participantes de la plantilla del servicio '{$this->evento->servicio->nombre}' al evento {$this->evento->codigo_evento}."
+            );
+        });
+
+        $this->mostrarModalAplicarPlantilla = false;
+        $this->cargarEvento();
+        $this->cargarSugerencias();
+
+        session()->flash('message', 'Plantilla económica del servicio aplicada con éxito.');
     }
 
     public function agregarParticipante()
@@ -170,6 +351,8 @@ class GestionParticipantesEvento extends Component
                 'persona_id' => $this->persona_id,
                 'funcion' => $this->funcion,
                 'concepto_pago' => $this->concepto_pago,
+                'tipo_calculo' => $this->tipo_calculo ?: 'monto_fijo',
+                'valor_sugerido' => $this->valor_sugerido ?: $this->monto_asignado,
                 'monto_asignado' => $this->monto_asignado,
                 'estado_distribucion' => 'Pendiente',
                 'observaciones' => $this->observaciones,
@@ -198,9 +381,10 @@ class GestionParticipantesEvento extends Component
             );
         });
 
-        $this->reset(['persona_id', 'monto_asignado', 'observaciones']);
+        $this->reset(['persona_id', 'monto_asignado', 'observaciones', 'valor_sugerido']);
         $this->funcion = 'Músico';
         $this->concepto_pago = 'Comisión por Evento';
+        $this->tipo_calculo = 'monto_fijo';
 
         $this->cargarEvento();
         $this->cargarSugerencias();

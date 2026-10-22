@@ -15,6 +15,8 @@ class EventoParticipante extends Model
         'persona_id',
         'funcion',
         'concepto_pago',
+        'tipo_calculo',
+        'valor_sugerido',
         'monto_asignado',
         'estado_distribucion',
         'observaciones',
@@ -22,6 +24,7 @@ class EventoParticipante extends Model
     ];
 
     protected $casts = [
+        'valor_sugerido' => 'decimal:2',
         'monto_asignado' => 'decimal:2',
     ];
 

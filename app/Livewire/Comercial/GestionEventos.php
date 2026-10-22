@@ -9,8 +9,13 @@ use App\Models\Evento;
 use App\Models\Cliente;
 use App\Models\Servicio;
 use App\Models\Pago;
+use App\Models\ServicioParticipante;
+use App\Models\MusicoPersonal;
+use App\Models\EventoParticipante;
+use App\Models\DistribucionEconomica;
 use App\Traits\Auditable;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class GestionEventos extends Component
 {
@@ -58,6 +63,23 @@ class GestionEventos extends Component
     public $desmarcarParticipanteId = null;
     public $desmarcarParticipante = null;
     public $observacionDesmarcar = '';
+
+    // =========================================================================
+    // PLANTILLA Y SUGERENCIAS DE PARTICIPANTES EN EVENTOS
+    // =========================================================================
+    public $participantesSugeridos = [];
+    public $servicio_anterior_id = null;
+    public $modalCambioServicioOpen = false;
+    public $servicioNuevoPendiente = null;
+
+    // Sub-modal para agregar participantes adicionales (fuera de la plantilla)
+    public $mostrarModalAgregarParticipante = false;
+    public $nuevo_part_persona_id = '';
+    public $nuevo_part_funcion = 'Músico';
+    public $nuevo_part_concepto = 'Comisión por Evento';
+    public $nuevo_part_tipo_calculo = 'monto_fijo';
+    public $nuevo_part_valor = 0.00;
+    public $nuevo_part_observaciones = '';
 
     public function mount()
     {
@@ -122,7 +144,9 @@ class GestionEventos extends Component
         $this->reset([
             'evento_id', 'codigo_evento', 'cliente_id', 'servicio_id',
             'contacto_evento', 'telefono_contacto', 'fecha_evento', 'hora_evento',
-            'duracion_horas', 'direccion_evento', 'latitud', 'longitud', 'observaciones', 'isEdit'
+            'duracion_horas', 'direccion_evento', 'latitud', 'longitud', 'observaciones', 'isEdit',
+            'participantesSugeridos', 'servicio_anterior_id', 'modalCambioServicioOpen',
+            'servicioNuevoPendiente', 'mostrarModalAgregarParticipante'
         ]);
         $this->codigo_evento = $this->generarCodigoAutomatico();
         $this->fecha_evento = date('Y-m-d');
@@ -153,6 +177,223 @@ class GestionEventos extends Component
         }
     }
 
+    public function updatedServicioId($value)
+    {
+        if (empty($value)) {
+            $this->participantesSugeridos = [];
+            $this->servicio_anterior_id = null;
+            return;
+        }
+
+        // Si ya teníamos un servicio y lista de participantes y el nuevo servicio es diferente:
+        if ($this->servicio_anterior_id && $this->servicio_anterior_id != $value && count($this->participantesSugeridos) > 0) {
+            $this->servicioNuevoPendiente = $value;
+            $this->modalCambioServicioOpen = true;
+        } else {
+            $this->servicio_anterior_id = $value;
+            $this->cargarPlantillaServicio($value);
+        }
+    }
+
+    public function confirmarCambioServicio()
+    {
+        $this->servicio_id = $this->servicioNuevoPendiente;
+        $this->servicio_anterior_id = $this->servicioNuevoPendiente;
+        $this->cargarPlantillaServicio($this->servicio_id, true); // true = preserva los que ya tengan pagos
+        $this->modalCambioServicioOpen = false;
+        $this->servicioNuevoPendiente = null;
+        session()->flash('participante_success', 'Plantilla del nuevo servicio cargada exitosamente.');
+    }
+
+    public function cancelarCambioServicio()
+    {
+        $this->servicio_id = $this->servicio_anterior_id;
+        $this->modalCambioServicioOpen = false;
+        $this->servicioNuevoPendiente = null;
+    }
+
+    public function cargarPlantillaServicio($servicioId, $preservePaid = false)
+    {
+        $srv = Servicio::with(['participantesActivos.persona'])->find($servicioId);
+        if (!$srv) {
+            if (!$preservePaid) $this->participantesSugeridos = [];
+            return;
+        }
+
+        $precioBase = (float)$srv->precio_base;
+
+        if ($preservePaid) {
+            $preservados = array_filter($this->participantesSugeridos, function($item) {
+                return !empty($item['tiene_pagos']);
+            });
+            $preservadosPersonaIds = array_column($preservados, 'persona_id');
+            $nuevaLista = array_values($preservados);
+
+            foreach ($srv->participantesActivos as $sp) {
+                if (in_array($sp->persona_id, $preservadosPersonaIds)) {
+                    continue;
+                }
+                $montoSugerido = $sp->calcularMontoSugerido($precioBase);
+                $nuevaLista[] = [
+                    'persona_id' => $sp->persona_id,
+                    'nombre_completo' => $sp->persona->nombre_completo ?? 'N/A',
+                    'ci_nit' => $sp->persona->ci_nit ?? '',
+                    'funcion' => $sp->funcion,
+                    'concepto_pago' => $sp->concepto_pago,
+                    'tipo_calculo' => $sp->tipo_calculo,
+                    'valor_sugerido' => (float)$sp->valor,
+                    'monto_sugerido' => $montoSugerido,
+                    'monto_asignado' => $montoSugerido,
+                    'incluido' => true,
+                    'origen' => 'plantilla',
+                    'tiene_pagos' => false,
+                    'total_pagado' => 0.0,
+                    'evento_participante_id' => null,
+                ];
+            }
+            $this->participantesSugeridos = $nuevaLista;
+        } else {
+            $this->participantesSugeridos = [];
+            foreach ($srv->participantesActivos as $sp) {
+                $montoSugerido = $sp->calcularMontoSugerido($precioBase);
+                $this->participantesSugeridos[] = [
+                    'persona_id' => $sp->persona_id,
+                    'nombre_completo' => $sp->persona->nombre_completo ?? 'N/A',
+                    'ci_nit' => $sp->persona->ci_nit ?? '',
+                    'funcion' => $sp->funcion,
+                    'concepto_pago' => $sp->concepto_pago,
+                    'tipo_calculo' => $sp->tipo_calculo,
+                    'valor_sugerido' => (float)$sp->valor,
+                    'monto_sugerido' => $montoSugerido,
+                    'monto_asignado' => $montoSugerido,
+                    'incluido' => true,
+                    'origen' => 'plantilla',
+                    'tiene_pagos' => false,
+                    'total_pagado' => 0.0,
+                    'evento_participante_id' => null,
+                ];
+            }
+        }
+    }
+
+    public function toggleIncluidoParticipante($index)
+    {
+        if (!isset($this->participantesSugeridos[$index])) return;
+
+        $item = $this->participantesSugeridos[$index];
+        if ($item['incluido'] && !empty($item['tiene_pagos'])) {
+            session()->flash('participante_error', "No se puede excluir a {$item['nombre_completo']} porque ya registra pagos confirmados en este evento (Pagado: Bs. " . number_format($item['total_pagado'], 2) . ").");
+            return;
+        }
+
+        $this->participantesSugeridos[$index]['incluido'] = !$this->participantesSugeridos[$index]['incluido'];
+    }
+
+    public function quitarParticipante($index)
+    {
+        if (!isset($this->participantesSugeridos[$index])) return;
+
+        $item = $this->participantesSugeridos[$index];
+        if (!empty($item['tiene_pagos'])) {
+            session()->flash('participante_error', "No se puede quitar a {$item['nombre_completo']} porque ya registra pagos confirmados en este evento.");
+            return;
+        }
+
+        if ($item['origen'] === 'adicional' && empty($item['evento_participante_id'])) {
+            array_splice($this->participantesSugeridos, $index, 1);
+        } else {
+            $this->participantesSugeridos[$index]['incluido'] = false;
+        }
+    }
+
+    public function abrirModalAgregarParticipante()
+    {
+        $this->reset([
+            'nuevo_part_persona_id', 'nuevo_part_valor', 'nuevo_part_observaciones'
+        ]);
+        $this->nuevo_part_funcion = 'Músico';
+        $this->nuevo_part_concepto = 'Comisión por Evento';
+        $this->nuevo_part_tipo_calculo = 'monto_fijo';
+        $this->nuevo_part_valor = 0.00;
+        $this->mostrarModalAgregarParticipante = true;
+    }
+
+    public function cerrarModalAgregarParticipante()
+    {
+        $this->mostrarModalAgregarParticipante = false;
+    }
+
+    public function updatedNuevoPartPersonaId($value)
+    {
+        if ($value) {
+            $persona = MusicoPersonal::find($value);
+            if ($persona && $persona->tipo) {
+                $this->nuevo_part_funcion = $persona->tipo;
+            }
+        }
+    }
+
+    public function agregarParticipanteAdicional()
+    {
+        $this->validate([
+            'nuevo_part_persona_id' => 'required|exists:musicos_personal,id',
+            'nuevo_part_funcion' => 'required|string|max:100',
+            'nuevo_part_concepto' => 'required|string|max:100',
+            'nuevo_part_tipo_calculo' => 'required|in:monto_fijo,porcentaje',
+            'nuevo_part_valor' => 'required|numeric|min:0' . ($this->nuevo_part_tipo_calculo === 'porcentaje' ? '|max:100' : ''),
+        ], [
+            'nuevo_part_persona_id.required' => 'Seleccione una persona del catálogo.',
+            'nuevo_part_valor.min' => 'El monto o porcentaje no puede ser negativo.',
+        ]);
+
+        $persona = MusicoPersonal::findOrFail($this->nuevo_part_persona_id);
+
+        // Verificar si ya existe en la lista
+        foreach ($this->participantesSugeridos as $idx => $item) {
+            if ($item['persona_id'] == $persona->id) {
+                if (!$item['incluido']) {
+                    $this->participantesSugeridos[$idx]['incluido'] = true;
+                    $this->participantesSugeridos[$idx]['funcion'] = $this->nuevo_part_funcion;
+                    $this->participantesSugeridos[$idx]['concepto_pago'] = $this->nuevo_part_concepto;
+                    $this->participantesSugeridos[$idx]['tipo_calculo'] = $this->nuevo_part_tipo_calculo;
+                    $this->participantesSugeridos[$idx]['valor_sugerido'] = (float)$this->nuevo_part_valor;
+                    $this->mostrarModalAgregarParticipante = false;
+                    session()->flash('participante_success', "Se reincorporó a {$persona->nombre_completo} a la distribución.");
+                    return;
+                } else {
+                    session()->flash('participante_error', "{$persona->nombre_completo} ya está incluido en la lista de participantes.");
+                    return;
+                }
+            }
+        }
+
+        $srv = Servicio::find($this->servicio_id);
+        $base = (float)($srv ? $srv->precio_base : 0);
+        $monto = ($this->nuevo_part_tipo_calculo === 'porcentaje')
+            ? round(($base * (float)$this->nuevo_part_valor) / 100, 2)
+            : (float)$this->nuevo_part_valor;
+
+        $this->participantesSugeridos[] = [
+            'persona_id' => $persona->id,
+            'nombre_completo' => $persona->nombre_completo,
+            'ci_nit' => $persona->ci_nit ?? '',
+            'funcion' => trim($this->nuevo_part_funcion),
+            'concepto_pago' => trim($this->nuevo_part_concepto),
+            'tipo_calculo' => $this->nuevo_part_tipo_calculo,
+            'valor_sugerido' => (float)$this->nuevo_part_valor,
+            'monto_sugerido' => $monto,
+            'monto_asignado' => $monto,
+            'incluido' => true,
+            'origen' => 'adicional',
+            'tiene_pagos' => false,
+            'total_pagado' => 0.0,
+            'evento_participante_id' => null,
+        ];
+
+        $this->mostrarModalAgregarParticipante = false;
+        session()->flash('participante_success', "{$persona->nombre_completo} agregado a la distribución del evento.");
+    }
+
     public function editar($id)
     {
         $e = Evento::findOrFail($id);
@@ -160,6 +401,7 @@ class GestionEventos extends Component
         $this->codigo_evento = $e->codigo_evento;
         $this->cliente_id = $e->cliente_id;
         $this->servicio_id = $e->servicio_id;
+        $this->servicio_anterior_id = $e->servicio_id;
         $this->contacto_evento = $e->contacto_evento;
         $this->telefono_contacto = $e->telefono_contacto;
         $this->fecha_evento = $e->fecha_evento ? $e->fecha_evento->format('Y-m-d') : '';
@@ -171,6 +413,39 @@ class GestionEventos extends Component
         $this->estado = $e->estado;
         $this->observaciones = $e->observaciones;
         $this->isEdit = true;
+        $this->participantesSugeridos = [];
+
+        // Cargar participantes existentes si ya fueron asignados previamente
+        $participantesExistentes = EventoParticipante::with(['persona', 'pagosValidos'])
+            ->where('evento_id', $e->id)
+            ->get();
+
+        if ($participantesExistentes->count() > 0) {
+            foreach ($participantesExistentes as $ep) {
+                $pagado = (float)$ep->pagosValidos->sum('monto');
+                $tienePagos = $pagado > 0;
+                $this->participantesSugeridos[] = [
+                    'persona_id' => $ep->persona_id,
+                    'nombre_completo' => $ep->persona->nombre_completo ?? 'N/A',
+                    'ci_nit' => $ep->persona->ci_nit ?? '',
+                    'funcion' => $ep->funcion,
+                    'concepto_pago' => $ep->concepto_pago,
+                    'tipo_calculo' => $ep->tipo_calculo ?: 'monto_fijo',
+                    'valor_sugerido' => (float)($ep->valor_sugerido ?? $ep->monto_asignado),
+                    'monto_sugerido' => (float)($ep->valor_sugerido ?? $ep->monto_asignado),
+                    'monto_asignado' => (float)$ep->monto_asignado,
+                    'incluido' => true,
+                    'origen' => 'existente',
+                    'tiene_pagos' => $tienePagos,
+                    'total_pagado' => $pagado,
+                    'evento_participante_id' => $ep->id,
+                ];
+            }
+        } else if ($e->servicio_id) {
+            // Si no tenía participantes guardados, sugerir los de la plantilla del servicio
+            $this->cargarPlantillaServicio($e->servicio_id);
+        }
+
         $this->modalOpen = true;
     }
 
@@ -184,45 +459,132 @@ class GestionEventos extends Component
     {
         $this->validate();
 
-        if ($this->isEdit) {
-            $e = Evento::findOrFail($this->evento_id);
-            $e->update([
-                'codigo_evento' => strtoupper(trim($this->codigo_evento)),
-                'cliente_id' => $this->cliente_id,
-                'servicio_id' => $this->servicio_id,
-                'contacto_evento' => trim($this->contacto_evento),
-                'telefono_contacto' => trim($this->telefono_contacto),
-                'fecha_evento' => $this->fecha_evento,
-                'hora_evento' => $this->hora_evento,
-                'duracion_horas' => $this->duracion_horas,
-                'direccion_evento' => trim($this->direccion_evento),
-                'latitud' => $this->latitud ?: null,
-                'longitud' => $this->longitud ?: null,
-                'estado' => $this->estado,
-                'observaciones' => trim($this->observaciones),
-            ]);
-            $this->registrarAuditoria('Gestión Comercial', 'Editar Evento', 'Se actualizó el evento ' . $e->codigo_evento);
-            session()->flash('success', 'Evento actualizado correctamente.');
-        } else {
-            $e = Evento::create([
-                'codigo_evento' => strtoupper(trim($this->codigo_evento)),
-                'cliente_id' => $this->cliente_id,
-                'servicio_id' => $this->servicio_id,
-                'contacto_evento' => trim($this->contacto_evento),
-                'telefono_contacto' => trim($this->telefono_contacto),
-                'fecha_evento' => $this->fecha_evento,
-                'hora_evento' => $this->hora_evento,
-                'duracion_horas' => $this->duracion_horas,
-                'direccion_evento' => trim($this->direccion_evento),
-                'latitud' => $this->latitud ?: null,
-                'longitud' => $this->longitud ?: null,
-                'estado' => $this->estado,
-                'observaciones' => trim($this->observaciones),
-                'user_id' => Auth::id(),
-            ]);
-            $this->registrarAuditoria('Gestión Comercial', 'Crear Evento', 'Se registró el evento ' . $e->codigo_evento);
-            session()->flash('success', 'Evento registrado exitosamente.');
+        // Validaciones financieras de participantes en el servidor
+        foreach ($this->participantesSugeridos as $p) {
+            if (!empty($p['incluido'])) {
+                if (!is_numeric($p['monto_asignado']) || (float)$p['monto_asignado'] < 0) {
+                    session()->flash('participante_error', "El monto asignado a {$p['nombre_completo']} no puede ser negativo.");
+                    return;
+                }
+                if (!empty($p['tiene_pagos']) && (float)$p['monto_asignado'] < (float)$p['total_pagado']) {
+                    session()->flash('participante_error', "El monto asignado a {$p['nombre_completo']} no puede ser inferior al total ya pagado (Mínimo: Bs. " . number_format($p['total_pagado'], 2) . ").");
+                    return;
+                }
+            }
         }
+
+        DB::transaction(function () {
+            if ($this->isEdit) {
+                $e = Evento::findOrFail($this->evento_id);
+                $e->update([
+                    'codigo_evento' => strtoupper(trim($this->codigo_evento)),
+                    'cliente_id' => $this->cliente_id,
+                    'servicio_id' => $this->servicio_id,
+                    'contacto_evento' => trim($this->contacto_evento),
+                    'telefono_contacto' => trim($this->telefono_contacto),
+                    'fecha_evento' => $this->fecha_evento,
+                    'hora_evento' => $this->hora_evento,
+                    'duracion_horas' => $this->duracion_horas,
+                    'direccion_evento' => trim($this->direccion_evento),
+                    'latitud' => $this->latitud ?: null,
+                    'longitud' => $this->longitud ?: null,
+                    'estado' => $this->estado,
+                    'observaciones' => trim($this->observaciones),
+                ]);
+                $this->registrarAuditoria('Gestión Comercial', 'Editar Evento', 'Se actualizó el evento ' . $e->codigo_evento);
+                session()->flash('success', 'Evento actualizado correctamente.');
+            } else {
+                $e = Evento::create([
+                    'codigo_evento' => strtoupper(trim($this->codigo_evento)),
+                    'cliente_id' => $this->cliente_id,
+                    'servicio_id' => $this->servicio_id,
+                    'contacto_evento' => trim($this->contacto_evento),
+                    'telefono_contacto' => trim($this->telefono_contacto),
+                    'fecha_evento' => $this->fecha_evento,
+                    'hora_evento' => $this->hora_evento,
+                    'duracion_horas' => $this->duracion_horas,
+                    'direccion_evento' => trim($this->direccion_evento),
+                    'latitud' => $this->latitud ?: null,
+                    'longitud' => $this->longitud ?: null,
+                    'estado' => $this->estado,
+                    'observaciones' => trim($this->observaciones),
+                    'user_id' => Auth::id(),
+                ]);
+                $this->registrarAuditoria('Gestión Comercial', 'Crear Evento', 'Se registró el evento ' . $e->codigo_evento);
+                session()->flash('success', 'Evento registrado exitosamente.');
+            }
+
+            // Sincronizar participantes definitivos y distribución económica
+            $totalDistribucion = 0;
+            $countConfirmados = 0;
+
+            foreach ($this->participantesSugeridos as $item) {
+                if (!empty($item['incluido'])) {
+                    $montoFinal = (float)$item['monto_asignado'];
+                    $totalDistribucion += $montoFinal;
+                    $countConfirmados++;
+
+                    $estadoCalculado = 'Pendiente';
+                    if (!empty($item['tiene_pagos'])) {
+                        $saldo = max(0.0, $montoFinal - (float)$item['total_pagado']);
+                        $estadoCalculado = ($saldo <= 0.001) ? 'Distribuido' : 'Pago Parcial';
+                    }
+
+                    $ep = EventoParticipante::updateOrCreate(
+                        [
+                            'evento_id' => $e->id,
+                            'persona_id' => $item['persona_id'],
+                        ],
+                        [
+                            'funcion' => $item['funcion'],
+                            'concepto_pago' => $item['concepto_pago'],
+                            'tipo_calculo' => $item['tipo_calculo'],
+                            'valor_sugerido' => $item['valor_sugerido'],
+                            'monto_asignado' => $montoFinal,
+                            'estado_distribucion' => $estadoCalculado,
+                            'user_id' => Auth::id(),
+                        ]
+                    );
+
+                    DistribucionEconomica::updateOrCreate(
+                        [
+                            'evento_id' => $e->id,
+                            'persona_id' => $item['persona_id'],
+                        ],
+                        [
+                            'contrato_id' => optional($e->contrato)->id,
+                            'evento_participante_id' => $ep->id,
+                            'funcion' => $item['funcion'],
+                            'concepto' => $item['concepto_pago'],
+                            'monto' => $montoFinal,
+                            'fecha_distribucion' => now(),
+                            'estado' => $estadoCalculado,
+                            'user_id' => Auth::id(),
+                        ]
+                    );
+                } else {
+                    // Si no está incluido y ya existía en la BD para este evento:
+                    if (!empty($item['evento_participante_id'])) {
+                        $ep = EventoParticipante::find($item['evento_participante_id']);
+                        if ($ep) {
+                            if ($ep->total_pagado > 0) {
+                                throw new \Exception("No se puede excluir a {$item['nombre_completo']} porque ya registra pagos confirmados en este evento.");
+                            }
+                            DistribucionEconomica::where('evento_participante_id', $ep->id)->delete();
+                            $ep->delete();
+                        }
+                    }
+                }
+            }
+
+            if ($countConfirmados > 0) {
+                $this->registrarAuditoria(
+                    'Gestión Comercial',
+                    'Confirmar Distribución Económica Evento',
+                    "Se confirmó la distribución económica del evento {$e->codigo_evento} con {$countConfirmados} participantes por un total de Bs. " . number_format($totalDistribucion, 2)
+                );
+            }
+        });
 
         $this->modalOpen = false;
     }
@@ -516,11 +878,13 @@ class GestionEventos extends Component
         $eventos = $query->orderBy('fecha_evento', 'desc')->orderBy('hora_evento', 'asc')->paginate(10);
         $clientes = Cliente::where('estado', 'Activo')->orderBy('nombre_completo', 'asc')->get();
         $servicios = Servicio::where('activo', true)->orderBy('nombre', 'asc')->get();
+        $personasDisponibles = MusicoPersonal::where('estado', 'Activo')->orderBy('nombre_completo', 'asc')->get();
 
         return view('livewire.comercial.gestion-eventos', [
             'eventos' => $eventos,
             'clientes' => $clientes,
             'servicios' => $servicios,
+            'personasDisponibles' => $personasDisponibles,
         ])->layout('components.layouts.app', ['title' => 'Gestión de Eventos - Mariachi León Guanajuato']);
     }
 }

@@ -377,7 +377,7 @@
                             <label
                                 class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Servicio
                                 Contratado *</label>
-                            <select wire:model="servicio_id"
+                            <select wire:model.live="servicio_id"
                                 class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
                                 <option value="">Seleccione Servicio</option>
                                 @foreach ($servicios as $srv)
@@ -658,6 +658,189 @@
                                 placeholder="Indicaciones especiales para la llegada del mariachi, vestimenta, canciones requeridas..."
                                 class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500"></textarea>
                         </div>
+                    </div>
+
+                    <!-- SECCIÓN: Participantes sugeridos y distribución económica -->
+                    <div class="pt-4 border-t border-brand-border space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/70 p-4 border border-gold-500/30 rounded-2xl">
+                            <div>
+                                <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-users-gear text-gold-400"></i>
+                                    <span>Participantes sugeridos y distribución económica</span>
+                                </h4>
+                                <p class="text-xs text-slate-400 mt-0.5">
+                                    Integrantes sugeridos según la plantilla del servicio seleccionado. Puedes marcar/desmarcar, ajustar montos o agregar personas adicionales.
+                                </p>
+                            </div>
+                            @if($servicio_id)
+                                <button type="button" wire:click="abrirModalAgregarParticipante" class="px-4 py-2 rounded-xl text-xs font-bold bg-gold-500/20 text-gold-400 border border-gold-500/30 hover:bg-gold-500/30 transition-all flex items-center gap-1.5 shrink-0">
+                                    <i class="fa-solid fa-user-plus text-xs"></i>
+                                    <span>Agregar otro participante</span>
+                                </button>
+                            @endif
+                        </div>
+
+                        @if (session()->has('participante_success'))
+                            <div class="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs flex items-center gap-2">
+                                <i class="fa-solid fa-circle-check text-sm"></i>
+                                <span>{{ session('participante_success') }}</span>
+                            </div>
+                        @endif
+
+                        @if (session()->has('participante_error'))
+                            <div class="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-xs flex items-center gap-2">
+                                <i class="fa-solid fa-circle-exclamation text-sm"></i>
+                                <span>{{ session('participante_error') }}</span>
+                            </div>
+                        @endif
+
+                        @error('participantes')
+                            <div class="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-xs flex items-center gap-2">
+                                <i class="fa-solid fa-circle-exclamation text-sm"></i>
+                                <span>{{ $message }}</span>
+                            </div>
+                        @enderror
+
+                        @if($servicio_id)
+                            @if(count($participantesSugeridos) > 0)
+                                <div class="bg-slate-950/80 rounded-2xl border border-brand-border overflow-hidden">
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-left border-collapse text-xs">
+                                            <thead>
+                                                <tr class="bg-slate-900 border-b border-brand-border text-slate-400 uppercase tracking-wider text-[11px]">
+                                                    <th class="py-2.5 px-3 text-center w-12 font-bold">Incluir</th>
+                                                    <th class="py-2.5 px-3 font-bold">Participante</th>
+                                                    <th class="py-2.5 px-3 font-bold">Función</th>
+                                                    <th class="py-2.5 px-3 font-bold">Concepto</th>
+                                                    <th class="py-2.5 px-3 font-bold text-center">Tipo / Sugerido</th>
+                                                    <th class="py-2.5 px-3 font-bold text-right w-36">Monto Asignado (Bs)</th>
+                                                    <th class="py-2.5 px-3 text-right font-bold">Acción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-brand-border/40 text-slate-300">
+                                                @php
+                                                    $totalFijos = 0;
+                                                    $totalPorcentajes = 0;
+                                                    $totalGeneral = 0;
+                                                    $countSeleccionados = 0;
+                                                @endphp
+                                                @foreach($participantesSugeridos as $idx => $p)
+                                                    @php
+                                                        $monto = (float)($p['monto_asignado'] ?? 0);
+                                                        $isIncluido = !empty($p['incluido']);
+                                                        if ($isIncluido) {
+                                                            $countSeleccionados++;
+                                                            $totalGeneral += $monto;
+                                                            if (($p['tipo_calculo'] ?? '') === 'porcentaje') {
+                                                                $totalPorcentajes += $monto;
+                                                            } else {
+                                                                $totalFijos += $monto;
+                                                            }
+                                                        }
+                                                    @endphp
+                                                    <tr class="hover:bg-slate-800/30 transition-all {{ !$isIncluido ? 'opacity-40 bg-slate-950/40' : '' }}">
+                                                        <td class="py-2.5 px-3 text-center">
+                                                            <input type="checkbox" wire:click="toggleIncluidoParticipante({{ $idx }})" {{ $isIncluido ? 'checked' : '' }} class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-gold-500 focus:ring-gold-500 cursor-pointer">
+                                                        </td>
+                                                        <td class="py-2.5 px-3">
+                                                            <div class="font-bold text-white flex items-center gap-1.5">
+                                                                <span>{{ $p['nombre_completo'] }}</span>
+                                                                @if(($p['origen'] ?? '') === 'adicional')
+                                                                    <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Adicional</span>
+                                                                @endif
+                                                            </div>
+                                                            @if(!empty($p['ci_nit']))
+                                                                <div class="text-[10px] text-slate-400 font-mono">CI: {{ $p['ci_nit'] }}</div>
+                                                            @endif
+                                                            @if(!empty($p['tiene_pagos']))
+                                                                <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                                                                    Pagado: Bs {{ number_format($p['total_pagado'], 2) }}
+                                                                </span>
+                                                            @endif
+                                                        </td>
+                                                        <td class="py-2.5 px-3">
+                                                            <input type="text" wire:model.defer="participantesSugeridos.{{ $idx }}.funcion" class="w-28 px-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-white text-xs focus:border-gold-500">
+                                                        </td>
+                                                        <td class="py-2.5 px-3">
+                                                            <input type="text" wire:model.defer="participantesSugeridos.{{ $idx }}.concepto_pago" class="w-32 px-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-white text-xs focus:border-gold-500">
+                                                        </td>
+                                                        <td class="py-2.5 px-3 text-center">
+                                                            @if(($p['tipo_calculo'] ?? '') === 'porcentaje')
+                                                                <div class="font-mono text-[11px] text-amber-400 font-bold">
+                                                                    {{ number_format($p['valor_sugerido'], 2) }}%
+                                                                </div>
+                                                                <div class="text-[10px] text-slate-400">
+                                                                    (Sugerido: Bs {{ number_format($p['monto_sugerido'], 2) }})
+                                                                </div>
+                                                            @else
+                                                                <div class="font-mono text-[11px] text-sky-400 font-bold">
+                                                                    Fijo
+                                                                </div>
+                                                                <div class="text-[10px] text-slate-400 font-mono">
+                                                                    Bs {{ number_format($p['valor_sugerido'], 2) }}
+                                                                </div>
+                                                            @endif
+                                                        </td>
+                                                        <td class="py-2.5 px-3 text-right">
+                                                            <div class="relative">
+                                                                <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-mono">Bs</span>
+                                                                <input type="number" step="0.50" wire:model.live.debounce.300ms="participantesSugeridos.{{ $idx }}.monto_asignado" class="w-full pl-8 pr-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-white font-mono font-bold text-xs text-right focus:border-gold-500 {{ abs((float)$p['monto_asignado'] - (float)$p['monto_sugerido']) > 0.01 ? 'border-amber-500/50 text-amber-300' : '' }}">
+                                                            </div>
+                                                            @if(abs((float)$p['monto_asignado'] - (float)$p['monto_sugerido']) > 0.01)
+                                                                <div class="text-[10px] text-amber-400 mt-0.5">Monto modificado</div>
+                                                            @endif
+                                                        </td>
+                                                        <td class="py-2.5 px-3 text-right">
+                                                            @if($isIncluido)
+                                                                <button type="button" wire:click="quitarParticipante({{ $idx }})" class="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 rounded-lg transition-all" title="Excluir de este evento">
+                                                                    <i class="fa-solid fa-user-minus"></i>
+                                                                </button>
+                                                            @else
+                                                                <button type="button" wire:click="toggleIncluidoParticipante({{ $idx }})" class="p-1.5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40 rounded-lg transition-all" title="Reincorporar al evento">
+                                                                    <i class="fa-solid fa-user-check"></i>
+                                                                </button>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <!-- Resumen de totales de distribución -->
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 bg-slate-900/90 border-t border-brand-border text-xs">
+                                        <div>
+                                            <span class="text-slate-400 block text-[11px] font-bold uppercase">Seleccionados</span>
+                                            <span class="text-white font-bold text-sm">{{ $countSeleccionados }} de {{ count($participantesSugeridos) }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-slate-400 block text-[11px] font-bold uppercase">Total Fijos</span>
+                                            <span class="text-sky-400 font-mono font-bold text-sm">Bs {{ number_format($totalFijos, 2) }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-slate-400 block text-[11px] font-bold uppercase">Total Porcentajes</span>
+                                            <span class="text-amber-400 font-mono font-bold text-sm">Bs {{ number_format($totalPorcentajes, 2) }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-slate-400 block text-[11px] font-bold uppercase">Total Asignado Evento</span>
+                                            <span class="text-emerald-400 font-mono font-bold text-base">Bs {{ number_format($totalGeneral, 2) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="p-6 bg-slate-950/60 border border-dashed border-slate-800 rounded-2xl text-center space-y-2">
+                                    <i class="fa-solid fa-users-slash text-2xl text-slate-600"></i>
+                                    <div class="text-xs text-slate-400">Este servicio no tiene integrantes predeterminados en su plantilla económica.</div>
+                                    <button type="button" wire:click="abrirModalAgregarParticipante" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-gold-400 text-xs font-bold rounded-xl transition-all">
+                                        + Agregar participante manualmente
+                                    </button>
+                                </div>
+                            @endif
+                        @else
+                            <div class="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl text-center text-xs text-slate-500">
+                                <i class="fa-solid fa-arrow-up mr-1 text-gold-400"></i> Seleccione un servicio contratado para cargar automáticamente los participantes sugeridos.
+                            </div>
+                        @endif
                     </div>
                 </div>
 
@@ -1227,6 +1410,112 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal Advertencia Cambio de Servicio -->
+    @if ($modalCambioServicioOpen)
+        <div class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+            <div class="bg-brand-card border border-brand-border rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4">
+                <div class="flex items-center gap-3 text-amber-400">
+                    <div class="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-white">Cambio de Servicio Detectado</h4>
+                        <p class="text-[11px] text-slate-400">Ha seleccionado un servicio diferente para este evento.</p>
+                    </div>
+                </div>
+
+                <div class="text-xs text-slate-300 space-y-2 bg-slate-950/70 p-3.5 rounded-xl border border-slate-800">
+                    <p>
+                        ¿Desea cargar la plantilla de participantes predeterminada del nuevo servicio seleccionado o conservar los participantes y montos actuales?
+                    </p>
+                    <p class="text-slate-400 text-[11px]">
+                        <i class="fa-solid fa-shield-halved text-emerald-400 mr-1"></i> Los participantes con pagos ya registrados en este evento serán preservados automáticamente.
+                    </p>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2 border-t border-brand-border">
+                    <button type="button" wire:click="cancelarCambioServicio" class="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">
+                        Conservar Actuales
+                    </button>
+                    <button type="button" wire:click="confirmarCambioServicio" class="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-md shadow-gold-500/20">
+                        Cargar Nueva Plantilla
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal Agregar Participante Adicional al Evento -->
+    @if ($mostrarModalAgregarParticipante)
+        <div class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+            <div class="bg-brand-card border border-brand-border rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl p-6 space-y-4">
+                <div class="flex items-center justify-between border-b border-brand-border pb-3">
+                    <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus text-gold-400"></i>
+                        <span>Incorporar Participante al Evento</span>
+                    </h4>
+                    <button wire:click="cerrarModalAgregarParticipante" class="text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-300 uppercase mb-1">Participante (Persona) *</label>
+                        <select wire:model.live="nuevo_part_persona_id" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-gold-500">
+                            <option value="">-- Seleccionar Persona del Catálogo --</option>
+                            @foreach($personasDisponibles as $persona)
+                                <option value="{{ $persona->id }}">
+                                    {{ $persona->nombre_completo }} {{ $persona->ci_nit ? '(' . $persona->ci_nit . ')' : '' }} - {{ $persona->tipo ?: 'Músico' }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('nuevo_part_persona_id') <span class="text-rose-400">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold text-slate-300 uppercase mb-1">Función en el Evento *</label>
+                            <input type="text" wire:model="nuevo_part_funcion" placeholder="ej. Músico" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-gold-500">
+                            @error('nuevo_part_funcion') <span class="text-rose-400">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-300 uppercase mb-1">Concepto Económico *</label>
+                            <input type="text" wire:model="nuevo_part_concepto" placeholder="ej. Comisión por Evento" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-gold-500">
+                            @error('nuevo_part_concepto') <span class="text-rose-400">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold text-slate-300 uppercase mb-1">Tipo de Cálculo *</label>
+                            <select wire:model.live="nuevo_part_tipo_calculo" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-gold-500">
+                                <option value="monto_fijo">Monto Fijo (Bs)</option>
+                                <option value="porcentaje">Porcentaje (%)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-300 uppercase mb-1">
+                                {{ $nuevo_part_tipo_calculo === 'porcentaje' ? 'Porcentaje (%) *' : 'Monto (Bs) *' }}
+                            </label>
+                            <input type="number" step="0.50" wire:model="nuevo_part_valor" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono font-bold focus:border-gold-500">
+                            @error('nuevo_part_valor') <span class="text-rose-400">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-brand-border">
+                    <button type="button" wire:click="cerrarModalAgregarParticipante" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">
+                        Cancelar
+                    </button>
+                    <button type="button" wire:click="agregarParticipanteAdicional" class="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-md shadow-gold-500/20">
+                        Incorporar al Evento
+                    </button>
+                </div>
             </div>
         </div>
     @endif

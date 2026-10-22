@@ -20,6 +20,12 @@
             </div>
         </div>
         <div class="flex items-center gap-3 flex-wrap">
+            @if($evento->servicio_id)
+                <button wire:click="abrirModalAplicarPlantilla" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-gold-400 text-sm font-bold border border-gold-500/40 transition-all flex items-center gap-2 shadow-lg hover:shadow-gold-500/10" title="Cargar y aplicar la plantilla económica predeterminada de este servicio">
+                    <i class="fa-solid fa-users-gear text-base text-gold-400"></i>
+                    <span>Cargar Plantilla del Servicio</span>
+                </button>
+            @endif
             @php
                 $tokenEventoPart = \App\Services\Security\DocumentToken::encodeId($evento->id, 'evento');
             @endphp
@@ -904,6 +910,186 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal Aplicar Plantilla del Servicio -->
+    @if ($mostrarModalAplicarPlantilla)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+            <div class="bg-brand-card border border-brand-border rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+                <!-- Header -->
+                <div class="flex items-center justify-between border-b border-brand-border px-6 py-4 shrink-0 bg-slate-950/60">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 text-lg">
+                            <i class="fa-solid fa-users-gear"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base sm:text-lg font-bold text-white">Cargar Plantilla Económica del Servicio</h3>
+                            <p class="text-xs text-slate-400">
+                                Servicio: <strong class="text-white">{{ $evento->servicio->nombre ?? 'N/A' }}</strong> &bull; Evento: <strong class="text-gold-400">{{ $evento->codigo_evento }}</strong>
+                            </p>
+                        </div>
+                    </div>
+                    <button wire:click="cerrarModalAplicarPlantilla" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-all">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Info Alert -->
+                <div class="px-6 pt-4 shrink-0">
+                    <div class="p-3 bg-slate-950/70 border border-slate-800 rounded-xl text-xs text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-gold-400 text-sm shrink-0"></i>
+                        <span>
+                            Selecciona los participantes de la plantilla que deseas aplicar o sincronizar en este evento. Los participantes con pagos ya registrados mantendrán sus importes protegidos.
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Body / Table -->
+                <div class="overflow-y-auto px-6 py-4 flex-1">
+                    <div class="bg-slate-950/90 rounded-2xl border border-brand-border overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-900 border-b border-brand-border text-slate-400 uppercase tracking-wider text-[11px]">
+                                        <th class="py-2.5 px-3 text-center w-12 font-bold">Aplicar</th>
+                                        <th class="py-2.5 px-3 font-bold">Participante</th>
+                                        <th class="py-2.5 px-3 font-bold">Función</th>
+                                        <th class="py-2.5 px-3 font-bold">Concepto</th>
+                                        <th class="py-2.5 px-3 font-bold text-center">Tipo / Sugerido</th>
+                                        <th class="py-2.5 px-3 font-bold text-right w-36">Monto Asignado (Bs)</th>
+                                        <th class="py-2.5 px-3 font-bold text-center">Estado Asignación</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-brand-border/40 text-slate-300">
+                                    @php
+                                        $totalGeneral = 0;
+                                        $totalFijos = 0;
+                                        $totalPorcentajes = 0;
+                                        $countSeleccionados = 0;
+                                    @endphp
+                                    @foreach($participantesPlantillaSugeridos as $idx => $p)
+                                        @php
+                                            $monto = (float)($p['monto_asignado'] ?? 0);
+                                            $isIncluido = !empty($p['incluido']);
+                                            if ($isIncluido) {
+                                                $countSeleccionados++;
+                                                $totalGeneral += $monto;
+                                                if (($p['tipo_calculo'] ?? '') === 'porcentaje') {
+                                                    $totalPorcentajes += $monto;
+                                                } else {
+                                                    $totalFijos += $monto;
+                                                }
+                                            }
+                                        @endphp
+                                        <tr class="hover:bg-slate-800/30 transition-all {{ !$isIncluido ? 'opacity-40 bg-slate-950/40' : '' }}">
+                                            <td class="py-2.5 px-3 text-center">
+                                                <input type="checkbox" wire:click="toggleIncluidoPlantillaSugerida({{ $idx }})" {{ $isIncluido ? 'checked' : '' }} class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-gold-500 focus:ring-gold-500 cursor-pointer">
+                                            </td>
+                                            <td class="py-2.5 px-3">
+                                                <div class="font-bold text-white flex items-center gap-1.5">
+                                                    <span>{{ $p['nombre_completo'] }}</span>
+                                                    @if(!empty($p['ya_asignado']))
+                                                        <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">Ya en evento</span>
+                                                    @else
+                                                        <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Nuevo</span>
+                                                    @endif
+                                                </div>
+                                                @if(!empty($p['ci_nit']))
+                                                    <div class="text-[10px] text-slate-400 font-mono">CI: {{ $p['ci_nit'] }}</div>
+                                                @endif
+                                                @if(!empty($p['tiene_pagos']))
+                                                    <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                                                        Pagado: Bs {{ number_format($p['total_pagado'], 2) }}
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td class="py-2.5 px-3">
+                                                <input type="text" wire:model.defer="participantesPlantillaSugeridos.{{ $idx }}.funcion" class="w-28 px-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-white text-xs focus:border-gold-500">
+                                            </td>
+                                            <td class="py-2.5 px-3">
+                                                <input type="text" wire:model.defer="participantesPlantillaSugeridos.{{ $idx }}.concepto_pago" class="w-32 px-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-white text-xs focus:border-gold-500">
+                                            </td>
+                                            <td class="py-2.5 px-3 text-center">
+                                                @if(($p['tipo_calculo'] ?? '') === 'porcentaje')
+                                                    <div class="font-mono text-[11px] text-amber-400 font-bold">
+                                                        {{ number_format($p['valor_sugerido'], 2) }}%
+                                                    </div>
+                                                    <div class="text-[10px] text-slate-400 font-mono">
+                                                        Bs {{ number_format($p['monto_sugerido'], 2) }}
+                                                    </div>
+                                                @else
+                                                    <div class="font-mono text-[11px] text-sky-400 font-bold">
+                                                        Fijo
+                                                    </div>
+                                                    <div class="text-[10px] text-slate-400 font-mono">
+                                                        Bs {{ number_format($p['valor_sugerido'], 2) }}
+                                                    </div>
+                                                @endif
+                                            </td>
+                                            <td class="py-2.5 px-3 text-right">
+                                                <div class="relative">
+                                                    <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-mono">Bs</span>
+                                                    <input type="number" step="0.50" wire:model.live.debounce.300ms="participantesPlantillaSugeridos.{{ $idx }}.monto_asignado" class="w-full pl-8 pr-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-white font-mono font-bold text-xs text-right focus:border-gold-500 {{ abs((float)$p['monto_asignado'] - (float)$p['monto_sugerido']) > 0.01 ? 'border-amber-500/50 text-amber-300' : '' }}">
+                                                </div>
+                                                @if(abs((float)$p['monto_asignado'] - (float)$p['monto_sugerido']) > 0.01)
+                                                    <div class="text-[10px] text-amber-400 mt-0.5">Monto modificado</div>
+                                                @endif
+                                            </td>
+                                            <td class="py-2.5 px-3 text-center">
+                                                @if(!empty($p['tiene_pagos']))
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                                                        Con Pagos
+                                                    </span>
+                                                @elseif(!empty($p['ya_asignado']))
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/30">
+                                                        Actualizar
+                                                    </span>
+                                                @else
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                                        Nuevo Registro
+                                                    </span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Resumen Inferior -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 bg-slate-900 border-t border-brand-border text-xs">
+                            <div>
+                                <span class="text-slate-400 block text-[11px] font-bold uppercase">Seleccionados</span>
+                                <span class="text-white font-bold text-sm">{{ $countSeleccionados }} de {{ count($participantesPlantillaSugeridos) }}</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block text-[11px] font-bold uppercase">Total Fijos</span>
+                                <span class="text-sky-400 font-mono font-bold text-sm">Bs {{ number_format($totalFijos, 2) }}</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block text-[11px] font-bold uppercase">Total Porcentajes</span>
+                                <span class="text-amber-400 font-mono font-bold text-sm">Bs {{ number_format($totalPorcentajes, 2) }}</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block text-[11px] font-bold uppercase">Total Aplicado</span>
+                                <span class="text-emerald-400 font-mono font-bold text-base">Bs {{ number_format($totalGeneral, 2) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="flex items-center justify-end gap-3 border-t border-brand-border px-6 py-4 shrink-0 bg-slate-950/60">
+                    <button type="button" wire:click="cerrarModalAplicarPlantilla" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">
+                        Cancelar
+                    </button>
+                    <button type="button" wire:click="confirmarAplicarPlantilla" class="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-md shadow-gold-500/20 flex items-center gap-2">
+                        <i class="fa-solid fa-check"></i>
+                        <span>Confirmar y Aplicar Plantilla al Evento</span>
+                    </button>
+                </div>
             </div>
         </div>
     @endif

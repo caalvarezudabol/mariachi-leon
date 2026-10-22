@@ -48,4 +48,14 @@ class Servicio extends Model
     {
         return $this->hasMany(Contrato::class, 'servicio_id');
     }
+
+    public function plantillaParticipantes(): HasMany
+    {
+        return $this->hasMany(ServicioParticipante::class, 'servicio_id');
+    }
+
+    public function participantesActivos(): HasMany
+    {
+        return $this->hasMany(ServicioParticipante::class, 'servicio_id')->where('activo', true);
+    }
 }

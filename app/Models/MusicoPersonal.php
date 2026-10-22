@@ -51,4 +51,9 @@ class MusicoPersonal extends Model
     {
         return $this->hasMany(DistribucionEconomica::class, 'persona_id');
     }
+
+    public function plantillasServicios(): HasMany
+    {
+        return $this->hasMany(ServicioParticipante::class, 'persona_id');
+    }
 }
