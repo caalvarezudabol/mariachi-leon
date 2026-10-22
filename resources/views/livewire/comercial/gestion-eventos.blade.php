@@ -256,21 +256,47 @@
 
     <!-- Modal Crear/Editar Evento -->
     @if ($modalOpen)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-            <div
-                class="bg-brand-card border border-brand-border rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl">
-                <div class="flex items-center justify-between border-b border-brand-border px-6 py-4 shrink-0">
-                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-calendar-days text-gold-400"></i>
-                        <span>{{ $isEdit ? 'Editar Evento ' . $codigo_evento : 'Nuevo Evento' }}</span>
-                    </h3>
-                    <button wire:click="$set('modalOpen', false)" class="text-slate-400 hover:text-white text-lg">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+             x-data
+             x-on:evento-error-validacion.window="document.getElementById('modalEventoBody')?.scrollTo({top: 0, behavior: 'smooth'})">
+            <div class="bg-brand-card border border-brand-border rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+                <form wire:submit.prevent="guardar" id="formEvento" class="flex flex-col flex-1 overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-brand-border px-6 py-4 shrink-0 bg-slate-900/60">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-days text-gold-400"></i>
+                            <span>{{ $isEdit ? 'Editar Evento ' . $codigo_evento : 'Nuevo Evento' }}</span>
+                        </h3>
+                        <button type="button" wire:click="$set('modalOpen', false)" class="text-slate-400 hover:text-white text-lg">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
 
-                <div class="overflow-y-auto px-6 py-6 space-y-6">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="overflow-y-auto px-6 py-6 space-y-6 flex-1" id="modalEventoBody">
+                        
+                        <!-- Banner Alerta Superior de Errores de Validación -->
+                        @if ($errors->any() || session()->has('modal_error') || session()->has('participante_error'))
+                            <div class="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-300 space-y-2 animate-fade-in shadow-lg">
+                                <div class="flex items-center gap-2 font-bold text-sm text-rose-400">
+                                    <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                                    <span>Por favor revise los siguientes datos requeridos:</span>
+                                </div>
+                                @if (session()->has('modal_error'))
+                                    <div class="text-xs text-rose-200">{{ session('modal_error') }}</div>
+                                @endif
+                                @if (session()->has('participante_error'))
+                                    <div class="text-xs text-rose-200">{{ session('participante_error') }}</div>
+                                @endif
+                                @if ($errors->any())
+                                    <ul class="list-disc list-inside text-xs space-y-1 text-rose-200/90 pl-1">
+                                        @foreach ($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                @endif
+                            </div>
+                        @endif
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Código
                                 Evento *</label>
@@ -609,9 +635,9 @@
                                 del Evento (Lugar Exacto) *</label>
                             <input type="text" wire:model="direccion_evento"
                                 placeholder="ej. Salón de Eventos Las Palmas, Av. Banzer 4to Anillo"
-                                class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
+                                class="w-full px-4 py-2 bg-slate-950 border @error('direccion_evento') border-rose-500 ring-1 ring-rose-500 @else border-slate-800 @enderror rounded-xl text-white text-sm focus:border-gold-500">
                             @error('direccion_evento')
-                                <span class="text-xs text-rose-400 mt-1">{{ $message }}</span>
+                                <span class="text-xs text-rose-400 mt-1 block font-semibold">{{ $message }}</span>
                             @enderror
                         </div>
 
@@ -759,10 +785,10 @@
                                                             @endif
                                                         </td>
                                                         <td class="py-2.5 px-3">
-                                                            <input type="text" wire:model.defer="participantesSugeridos.{{ $idx }}.funcion" class="w-28 px-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-white text-xs focus:border-gold-500">
+                                                            <input type="text" wire:model="participantesSugeridos.{{ $idx }}.funcion" class="w-28 px-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-white text-xs focus:border-gold-500">
                                                         </td>
                                                         <td class="py-2.5 px-3">
-                                                            <input type="text" wire:model.defer="participantesSugeridos.{{ $idx }}.concepto_pago" class="w-32 px-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-white text-xs focus:border-gold-500">
+                                                            <input type="text" wire:model="participantesSugeridos.{{ $idx }}.concepto_pago" class="w-32 px-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-white text-xs focus:border-gold-500">
                                                         </td>
                                                         <td class="py-2.5 px-3 text-center">
                                                             @if(($p['tipo_calculo'] ?? '') === 'porcentaje')
@@ -782,11 +808,11 @@
                                                             @endif
                                                         </td>
                                                         <td class="py-2.5 px-3 text-right">
-                                                            <div class="relative">
-                                                                <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-mono">Bs</span>
-                                                                <input type="number" step="0.50" wire:model.live.debounce.300ms="participantesSugeridos.{{ $idx }}.monto_asignado" class="w-full pl-8 pr-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-white font-mono font-bold text-xs text-right focus:border-gold-500 {{ abs((float)$p['monto_asignado'] - (float)$p['monto_sugerido']) > 0.01 ? 'border-amber-500/50 text-amber-300' : '' }}">
+                                                            <div class="relative min-w-[125px]">
+                                                                <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-mono font-bold">Bs</span>
+                                                                <input type="number" step="0.50" min="0" wire:model.live.debounce.300ms="participantesSugeridos.{{ $idx }}.monto_asignado" class="w-full pl-8 pr-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-white font-mono font-bold text-xs text-right focus:border-gold-500 {{ abs((float)($p['monto_asignado'] ?? 0) - (float)($p['monto_sugerido'] ?? 0)) > 0.01 ? 'border-amber-500/50 text-amber-300' : '' }}">
                                                             </div>
-                                                            @if(abs((float)$p['monto_asignado'] - (float)$p['monto_sugerido']) > 0.01)
+                                                            @if(abs((float)($p['monto_asignado'] ?? 0) - (float)($p['monto_sugerido'] ?? 0)) > 0.01)
                                                                 <div class="text-[10px] text-amber-400 mt-0.5">Monto modificado</div>
                                                             @endif
                                                         </td>
@@ -844,16 +870,46 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-3 border-t border-brand-border px-6 py-4 shrink-0">
-                    <button wire:click="$set('modalOpen', false)"
-                        class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">
-                        Cancelar
-                    </button>
-                    <button wire:click="guardar"
-                        class="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500">
-                        {{ $isEdit ? 'Actualizar Evento' : 'Guardar Evento' }}
-                    </button>
-                </div>
+                    <!-- Banner Inferior de Advertencia Visible cuando se está abajo -->
+                    @if ($errors->any() || session()->has('participante_error') || session()->has('modal_error'))
+                        <div class="px-6 py-3 bg-rose-950/80 border-t border-rose-500/40 flex items-center justify-between text-xs text-rose-300 shrink-0">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-circle-exclamation text-rose-400 text-sm shrink-0"></i>
+                                <span class="font-medium">
+                                    @if(session()->has('participante_error'))
+                                        {{ session('participante_error') }}
+                                    @elseif(session()->has('modal_error'))
+                                        {{ session('modal_error') }}
+                                    @else
+                                        Existen datos obligatorios incompletos o inválidos en el formulario.
+                                    @endif
+                                </span>
+                            </div>
+                            <button type="button" @click="document.getElementById('modalEventoBody')?.scrollTo({top: 0, behavior: 'smooth'})" class="text-xs text-gold-400 hover:text-gold-300 hover:underline font-bold shrink-0 ml-3 flex items-center gap-1">
+                                <span>Ver campos faltantes</span>
+                                <i class="fa-solid fa-arrow-up"></i>
+                            </button>
+                        </div>
+                    @endif
+
+                    <!-- Footer Buttons -->
+                    <div class="flex items-center justify-end gap-3 border-t border-brand-border px-6 py-4 shrink-0 bg-slate-900/60">
+                        <button type="button" wire:click="$set('modalOpen', false)"
+                            class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">
+                            Cancelar
+                        </button>
+                        <button type="submit" wire:loading.attr="disabled"
+                            class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-lg shadow-gold-500/20 transition-all flex items-center gap-2 disabled:opacity-50">
+                            <span wire:loading wire:target="guardar">
+                                <i class="fa-solid fa-spinner animate-spin"></i>
+                                <span>Guardando...</span>
+                            </span>
+                            <span wire:loading.remove wire:target="guardar">
+                                {{ $isEdit ? 'Actualizar Evento' : 'Guardar Evento' }}
+                            </span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     @endif

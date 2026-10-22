@@ -16,6 +16,7 @@ use App\Models\DistribucionEconomica;
 use App\Traits\Auditable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class GestionEventos extends Component
 {
@@ -93,7 +94,14 @@ class GestionEventos extends Component
     protected function rules()
     {
         return [
-            'codigo_evento' => 'required|string|max:50|unique:eventos,codigo_evento,' . ($this->evento_id ?? 'NULL') . ',id',
+            'codigo_evento' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('eventos', 'codigo_evento')
+                    ->ignore($this->evento_id)
+                    ->whereNull('deleted_at'),
+            ],
             'cliente_id' => 'required|exists:clientes,id',
             'servicio_id' => 'required|exists:servicios,id',
             'contacto_evento' => 'nullable|string|max:255',
@@ -110,11 +118,20 @@ class GestionEventos extends Component
     }
 
     protected $messages = [
-        'cliente_id.required' => 'Seleccione un cliente para el evento.',
-        'servicio_id.required' => 'Seleccione el servicio a contratar.',
+        'codigo_evento.required' => 'El código del evento es obligatorio.',
+        'codigo_evento.unique' => 'El código de evento generado ya está en uso. Genere o guarde nuevamente.',
+        'cliente_id.required' => 'Debe seleccionar un cliente para el evento.',
+        'cliente_id.exists' => 'El cliente seleccionado no es válido.',
+        'servicio_id.required' => 'Debe seleccionar el servicio a contratar.',
+        'servicio_id.exists' => 'El servicio seleccionado no es válido.',
         'fecha_evento.required' => 'La fecha del evento es obligatoria.',
+        'fecha_evento.date' => 'La fecha del evento debe tener un formato válido.',
         'hora_evento.required' => 'La hora del evento es obligatoria.',
-        'direccion_evento.required' => 'Ingrese la dirección completa del evento.',
+        'duracion_horas.required' => 'La duración en horas es obligatoria.',
+        'duracion_horas.min' => 'La duración mínima debe ser de al menos 0.5 horas (30 minutos).',
+        'duracion_horas.numeric' => 'La duración debe ser un valor numérico.',
+        'direccion_evento.required' => 'Debe ingresar la dirección completa o lugar exacto del evento.',
+        'estado.required' => 'El estado del evento es obligatorio.',
     ];
 
     public function updatingSearch()
@@ -134,9 +151,23 @@ class GestionEventos extends Component
 
     public function generarCodigoAutomatico()
     {
-        $last = Evento::orderBy('id', 'desc')->first();
-        $nextNum = $last ? ($last->id + 1) : 1;
-        return 'EVT-' . str_pad($nextNum, 5, '0', STR_PAD_LEFT);
+        $maxNum = 0;
+        $codigos = Evento::withTrashed()->pluck('codigo_evento');
+        foreach ($codigos as $codigo) {
+            if (preg_match('/EVT-(\d+)/', (string)$codigo, $matches)) {
+                $num = (int)$matches[1];
+                if ($num > $maxNum) {
+                    $maxNum = $num;
+                }
+            }
+        }
+        $nextNum = $maxNum + 1;
+        do {
+            $candidate = 'EVT-' . str_pad($nextNum, 5, '0', STR_PAD_LEFT);
+            $nextNum++;
+        } while (Evento::withTrashed()->where('codigo_evento', $candidate)->exists());
+
+        return $candidate;
     }
 
     public function abrirModal()
@@ -457,134 +488,162 @@ class GestionEventos extends Component
 
     public function guardar()
     {
-        $this->validate();
+        if (!$this->isEdit) {
+            if (empty($this->codigo_evento) || Evento::where('codigo_evento', $this->codigo_evento)->exists()) {
+                $this->codigo_evento = $this->generarCodigoAutomatico();
+            }
+        }
+
+        try {
+            $this->validate();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errores = $e->validator->errors()->all();
+            session()->flash('modal_error', 'Por favor complete todos los campos obligatorios del evento: ' . implode(', ', $errores));
+            $this->dispatch('evento-error-validacion');
+            throw $e;
+        }
 
         // Validaciones financieras de participantes en el servidor
         foreach ($this->participantesSugeridos as $p) {
             if (!empty($p['incluido'])) {
-                if (!is_numeric($p['monto_asignado']) || (float)$p['monto_asignado'] < 0) {
-                    session()->flash('participante_error', "El monto asignado a {$p['nombre_completo']} no puede ser negativo.");
+                $monto = $p['monto_asignado'] ?? '';
+                if ($monto === '' || !is_numeric($monto) || (float)$monto < 0) {
+                    $msg = "El monto asignado a {$p['nombre_completo']} debe ser un número válido mayor o igual a 0.";
+                    $this->addError('participantes', $msg);
+                    session()->flash('participante_error', $msg);
+                    $this->dispatch('evento-error-validacion');
                     return;
                 }
-                if (!empty($p['tiene_pagos']) && (float)$p['monto_asignado'] < (float)$p['total_pagado']) {
-                    session()->flash('participante_error', "El monto asignado a {$p['nombre_completo']} no puede ser inferior al total ya pagado (Mínimo: Bs. " . number_format($p['total_pagado'], 2) . ").");
+                if (!empty($p['tiene_pagos']) && (float)$monto < (float)$p['total_pagado']) {
+                    $msg = "El monto asignado a {$p['nombre_completo']} no puede ser inferior al total ya pagado (Mínimo: Bs. " . number_format($p['total_pagado'], 2) . ").";
+                    $this->addError('participantes', $msg);
+                    session()->flash('participante_error', $msg);
+                    $this->dispatch('evento-error-validacion');
                     return;
                 }
             }
         }
 
-        DB::transaction(function () {
-            if ($this->isEdit) {
-                $e = Evento::findOrFail($this->evento_id);
-                $e->update([
-                    'codigo_evento' => strtoupper(trim($this->codigo_evento)),
-                    'cliente_id' => $this->cliente_id,
-                    'servicio_id' => $this->servicio_id,
-                    'contacto_evento' => trim($this->contacto_evento),
-                    'telefono_contacto' => trim($this->telefono_contacto),
-                    'fecha_evento' => $this->fecha_evento,
-                    'hora_evento' => $this->hora_evento,
-                    'duracion_horas' => $this->duracion_horas,
-                    'direccion_evento' => trim($this->direccion_evento),
-                    'latitud' => $this->latitud ?: null,
-                    'longitud' => $this->longitud ?: null,
-                    'estado' => $this->estado,
-                    'observaciones' => trim($this->observaciones),
-                ]);
-                $this->registrarAuditoria('Gestión Comercial', 'Editar Evento', 'Se actualizó el evento ' . $e->codigo_evento);
-                session()->flash('success', 'Evento actualizado correctamente.');
-            } else {
-                $e = Evento::create([
-                    'codigo_evento' => strtoupper(trim($this->codigo_evento)),
-                    'cliente_id' => $this->cliente_id,
-                    'servicio_id' => $this->servicio_id,
-                    'contacto_evento' => trim($this->contacto_evento),
-                    'telefono_contacto' => trim($this->telefono_contacto),
-                    'fecha_evento' => $this->fecha_evento,
-                    'hora_evento' => $this->hora_evento,
-                    'duracion_horas' => $this->duracion_horas,
-                    'direccion_evento' => trim($this->direccion_evento),
-                    'latitud' => $this->latitud ?: null,
-                    'longitud' => $this->longitud ?: null,
-                    'estado' => $this->estado,
-                    'observaciones' => trim($this->observaciones),
-                    'user_id' => Auth::id(),
-                ]);
-                $this->registrarAuditoria('Gestión Comercial', 'Crear Evento', 'Se registró el evento ' . $e->codigo_evento);
-                session()->flash('success', 'Evento registrado exitosamente.');
-            }
-
-            // Sincronizar participantes definitivos y distribución económica
-            $totalDistribucion = 0;
-            $countConfirmados = 0;
-
-            foreach ($this->participantesSugeridos as $item) {
-                if (!empty($item['incluido'])) {
-                    $montoFinal = (float)$item['monto_asignado'];
-                    $totalDistribucion += $montoFinal;
-                    $countConfirmados++;
-
-                    $estadoCalculado = 'Pendiente';
-                    if (!empty($item['tiene_pagos'])) {
-                        $saldo = max(0.0, $montoFinal - (float)$item['total_pagado']);
-                        $estadoCalculado = ($saldo <= 0.001) ? 'Distribuido' : 'Pago Parcial';
-                    }
-
-                    $ep = EventoParticipante::updateOrCreate(
-                        [
-                            'evento_id' => $e->id,
-                            'persona_id' => $item['persona_id'],
-                        ],
-                        [
-                            'funcion' => $item['funcion'],
-                            'concepto_pago' => $item['concepto_pago'],
-                            'tipo_calculo' => $item['tipo_calculo'],
-                            'valor_sugerido' => $item['valor_sugerido'],
-                            'monto_asignado' => $montoFinal,
-                            'estado_distribucion' => $estadoCalculado,
-                            'user_id' => Auth::id(),
-                        ]
-                    );
-
-                    DistribucionEconomica::updateOrCreate(
-                        [
-                            'evento_id' => $e->id,
-                            'persona_id' => $item['persona_id'],
-                        ],
-                        [
-                            'contrato_id' => optional($e->contrato)->id,
-                            'evento_participante_id' => $ep->id,
-                            'funcion' => $item['funcion'],
-                            'concepto' => $item['concepto_pago'],
-                            'monto' => $montoFinal,
-                            'fecha_distribucion' => now(),
-                            'estado' => $estadoCalculado,
-                            'user_id' => Auth::id(),
-                        ]
-                    );
+        try {
+            DB::transaction(function () {
+                if ($this->isEdit) {
+                    $e = Evento::findOrFail($this->evento_id);
+                    $e->update([
+                        'codigo_evento' => strtoupper(trim($this->codigo_evento)),
+                        'cliente_id' => $this->cliente_id,
+                        'servicio_id' => $this->servicio_id,
+                        'contacto_evento' => trim($this->contacto_evento),
+                        'telefono_contacto' => trim($this->telefono_contacto),
+                        'fecha_evento' => $this->fecha_evento,
+                        'hora_evento' => $this->hora_evento,
+                        'duracion_horas' => $this->duracion_horas,
+                        'direccion_evento' => trim($this->direccion_evento),
+                        'latitud' => $this->latitud ?: null,
+                        'longitud' => $this->longitud ?: null,
+                        'estado' => $this->estado,
+                        'observaciones' => trim($this->observaciones),
+                    ]);
+                    $this->registrarAuditoria('Gestión Comercial', 'Editar Evento', 'Se actualizó el evento ' . $e->codigo_evento);
+                    session()->flash('success', 'Evento actualizado correctamente.');
                 } else {
-                    // Si no está incluido y ya existía en la BD para este evento:
-                    if (!empty($item['evento_participante_id'])) {
-                        $ep = EventoParticipante::find($item['evento_participante_id']);
-                        if ($ep) {
-                            if ($ep->total_pagado > 0) {
-                                throw new \Exception("No se puede excluir a {$item['nombre_completo']} porque ya registra pagos confirmados en este evento.");
+                    $e = Evento::create([
+                        'codigo_evento' => strtoupper(trim($this->codigo_evento)),
+                        'cliente_id' => $this->cliente_id,
+                        'servicio_id' => $this->servicio_id,
+                        'contacto_evento' => trim($this->contacto_evento),
+                        'telefono_contacto' => trim($this->telefono_contacto),
+                        'fecha_evento' => $this->fecha_evento,
+                        'hora_evento' => $this->hora_evento,
+                        'duracion_horas' => $this->duracion_horas,
+                        'direccion_evento' => trim($this->direccion_evento),
+                        'latitud' => $this->latitud ?: null,
+                        'longitud' => $this->longitud ?: null,
+                        'estado' => $this->estado,
+                        'observaciones' => trim($this->observaciones),
+                        'user_id' => Auth::id(),
+                    ]);
+                    $this->registrarAuditoria('Gestión Comercial', 'Crear Evento', 'Se registró el evento ' . $e->codigo_evento);
+                    session()->flash('success', 'Evento registrado exitosamente.');
+                }
+
+                // Sincronizar participantes definitivos y distribución económica
+                $totalDistribucion = 0;
+                $countConfirmados = 0;
+
+                foreach ($this->participantesSugeridos as $item) {
+                    if (!empty($item['incluido'])) {
+                        $montoFinal = (float)($item['monto_asignado'] ?? 0);
+                        $totalDistribucion += $montoFinal;
+                        $countConfirmados++;
+
+                        $estadoCalculado = 'Pendiente';
+                        if (!empty($item['tiene_pagos'])) {
+                            $saldo = max(0.0, $montoFinal - (float)$item['total_pagado']);
+                            $estadoCalculado = ($saldo <= 0.001) ? 'Distribuido' : 'Pago Parcial';
+                        }
+
+                        $ep = EventoParticipante::updateOrCreate(
+                            [
+                                'evento_id' => $e->id,
+                                'persona_id' => $item['persona_id'],
+                            ],
+                            [
+                                'funcion' => $item['funcion'] ?? 'Músico',
+                                'concepto_pago' => $item['concepto_pago'] ?? 'Comisión por Evento',
+                                'tipo_calculo' => $item['tipo_calculo'] ?? 'monto_fijo',
+                                'valor_sugerido' => $item['valor_sugerido'] ?? $montoFinal,
+                                'monto_asignado' => $montoFinal,
+                                'estado_distribucion' => $estadoCalculado,
+                                'user_id' => Auth::id(),
+                            ]
+                        );
+
+                        DistribucionEconomica::updateOrCreate(
+                            [
+                                'evento_id' => $e->id,
+                                'persona_id' => $item['persona_id'],
+                            ],
+                            [
+                                'contrato_id' => optional($e->contrato)->id,
+                                'evento_participante_id' => $ep->id,
+                                'funcion' => $item['funcion'] ?? 'Músico',
+                                'concepto' => $item['concepto_pago'] ?? 'Comisión por Evento',
+                                'monto' => $montoFinal,
+                                'fecha_distribucion' => now(),
+                                'estado' => $estadoCalculado,
+                                'user_id' => Auth::id(),
+                            ]
+                        );
+                    } else {
+                        // Si no está incluido y ya existía en la BD para este evento:
+                        if (!empty($item['evento_participante_id'])) {
+                            $ep = EventoParticipante::find($item['evento_participante_id']);
+                            if ($ep) {
+                                if ($ep->total_pagado > 0) {
+                                    throw new \Exception("No se puede excluir a {$item['nombre_completo']} porque ya registra pagos confirmados en este evento.");
+                                }
+                                DistribucionEconomica::where('evento_participante_id', $ep->id)->delete();
+                                $ep->delete();
                             }
-                            DistribucionEconomica::where('evento_participante_id', $ep->id)->delete();
-                            $ep->delete();
                         }
                     }
                 }
-            }
 
-            if ($countConfirmados > 0) {
-                $this->registrarAuditoria(
-                    'Gestión Comercial',
-                    'Confirmar Distribución Económica Evento',
-                    "Se confirmó la distribución económica del evento {$e->codigo_evento} con {$countConfirmados} participantes por un total de Bs. " . number_format($totalDistribucion, 2)
-                );
-            }
-        });
+                if ($countConfirmados > 0) {
+                    $this->registrarAuditoria(
+                        'Gestión Comercial',
+                        'Confirmar Distribución Económica Evento',
+                        "Se confirmó la distribución económica del evento {$e->codigo_evento} con {$countConfirmados} participantes por un total de Bs. " . number_format($totalDistribucion, 2)
+                    );
+                }
+            });
+        } catch (\Throwable $ex) {
+            \Illuminate\Support\Facades\Log::error('Error al guardar evento: ' . $ex->getMessage(), ['trace' => $ex->getTraceAsString()]);
+            session()->flash('modal_error', 'Error al guardar evento: ' . $ex->getMessage());
+            $this->addError('general', $ex->getMessage());
+            $this->dispatch('evento-error-validacion');
+            return;
+        }
 
         $this->modalOpen = false;
     }
