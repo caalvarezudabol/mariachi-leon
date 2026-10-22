@@ -162,6 +162,10 @@ class PaginaContacto extends Component
         $this->reset(['nombre', 'telefono', 'email', 'tipo_evento_id', 'servicio_id', 'paquete_id', 'servicioSeleccionado', 'paqueteSeleccionado', 'item_id', 'fecha_estimada', 'mensaje']);
         $this->generarCaptcha();
         $this->enviadoExito = true;
+
+        session()->flash('mensaje_exito', '¡Solicitud de Cotización enviada correctamente! Hemos recibido tus datos con éxito y te contactaremos a la brevedad.');
+
+        return redirect()->route('web.home');
     }
 
     public function render()

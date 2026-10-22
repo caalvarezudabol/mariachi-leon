@@ -184,6 +184,35 @@
         </div>
     </header>
 
+    <!-- Notificación Flotante de Éxito / Flash Messages -->
+    @if(session()->has('mensaje_exito') || session()->has('success'))
+        <div x-data="{ show: true }" 
+             x-init="setTimeout(() => show = false, 8000)" 
+             x-show="show" 
+             x-transition:enter="transition ease-out duration-500" 
+             x-transition:enter-start="opacity-0 -translate-y-6 scale-95" 
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+             x-transition:leave="transition ease-in duration-300" 
+             x-transition:leave-start="opacity-100 translate-y-0 scale-100" 
+             x-transition:leave-end="opacity-0 -translate-y-6 scale-95" 
+             class="fixed top-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-lg px-4 pointer-events-none">
+            <div class="p-5 rounded-2xl bg-slate-900/95 border-2 border-emerald-500/80 text-white shadow-2xl shadow-emerald-500/25 flex items-start gap-4 backdrop-blur-xl pointer-events-auto">
+                <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl flex-shrink-0 shadow-inner">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <div class="flex-1 min-w-0 pt-0.5">
+                    <h4 class="font-bold text-base text-emerald-400">¡Solicitud Enviada con Éxito!</h4>
+                    <p class="text-xs text-slate-200 mt-1 leading-relaxed">
+                        {{ session('mensaje_exito') ?? session('success') }}
+                    </p>
+                </div>
+                <button type="button" @click="show = false" class="text-slate-400 hover:text-white transition-colors p-1 text-sm">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+    @endif
+
     <!-- Main Content -->
     <main class="pt-20">
         {{ $slot }}
