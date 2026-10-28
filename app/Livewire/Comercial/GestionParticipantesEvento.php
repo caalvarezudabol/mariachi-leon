@@ -86,7 +86,84 @@ class GestionParticipantesEvento extends Component
     {
         $this->eventoId = is_numeric($evento) ? $evento : $evento->id;
         $this->cargarEvento();
+
+        // Si el evento tiene servicio y aún no registra participantes, obtener y asignar automáticamente los de la plantilla
+        if ($this->evento && $this->evento->servicio_id && $this->evento->participantes->count() === 0) {
+            $this->autoAsignarPlantillaServicio();
+        } else {
+            $this->cargarSugerencias();
+        }
+    }
+
+    public function autoAsignarPlantillaServicio()
+    {
+        if (!$this->evento || !$this->evento->servicio_id) {
+            return;
+        }
+
+        $srv = Servicio::with(['plantillaParticipantes.persona'])->find($this->evento->servicio_id);
+        if (!$srv) {
+            return;
+        }
+
+        $plantillaActiva = $srv->plantillaParticipantes->where('activo', true);
+        if ($plantillaActiva->count() === 0) {
+            return;
+        }
+
+        $precioBase = $this->evento->contrato 
+            ? (float)$this->evento->contrato->monto_total 
+            : (float)$srv->precio_base;
+
+        $existentesPersonaIds = $this->evento->participantes->pluck('persona_id')->toArray();
+
+        DB::transaction(function () use ($plantillaActiva, $precioBase, $existentesPersonaIds) {
+            $asignados = 0;
+            foreach ($plantillaActiva as $sp) {
+                if (in_array($sp->persona_id, $existentesPersonaIds)) {
+                    continue;
+                }
+
+                $montoSugerido = $sp->calcularMontoSugerido($precioBase);
+                $ep = EventoParticipante::create([
+                    'evento_id' => $this->eventoId,
+                    'persona_id' => $sp->persona_id,
+                    'funcion' => $sp->funcion,
+                    'concepto_pago' => $sp->concepto_pago,
+                    'tipo_calculo' => $sp->tipo_calculo,
+                    'valor_sugerido' => (float)$sp->valor,
+                    'monto_asignado' => $montoSugerido,
+                    'estado_distribucion' => 'Pendiente',
+                    'user_id' => Auth::id(),
+                ]);
+
+                DistribucionEconomica::create([
+                    'evento_id' => $this->eventoId,
+                    'contrato_id' => optional($this->evento->contrato)->id,
+                    'persona_id' => $sp->persona_id,
+                    'evento_participante_id' => $ep->id,
+                    'funcion' => $sp->funcion,
+                    'concepto' => $sp->concepto_pago,
+                    'monto' => $montoSugerido,
+                    'fecha_distribucion' => now(),
+                    'estado' => 'Pendiente',
+                    'user_id' => Auth::id(),
+                ]);
+                $asignados++;
+            }
+
+            if ($asignados > 0) {
+                $this->registrarAuditoria(
+                    'Gestión Comercial',
+                    'Autoasignar Plantilla Servicio',
+                    "Se asignaron automáticamente {$asignados} participantes del servicio al evento {$this->evento->codigo_evento}."
+                );
+            }
+        });
+
+        $this->cargarEvento();
         $this->cargarSugerencias();
+        session()->flash('message', 'Participantes de la plantilla del servicio sincronizados y asignados al evento.');
     }
 
     public function cargarEvento()

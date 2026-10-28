@@ -297,11 +297,19 @@
         <div class="lg:col-span-2 space-y-6">
             <!-- 1. Lista de Participantes Asignados -->
             <div class="p-6 rounded-2xl bg-brand-card border border-brand-border space-y-4 shadow-xl">
-                <div class="flex items-center justify-between border-b border-brand-border/60 pb-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border/60 pb-3">
                     <h3 class="text-lg font-bold text-white flex items-center gap-2">
                         <i class="fa-solid fa-users text-gold-400"></i>
                         <span>Lista de Participantes Asignados ({{ $evento->participantes->count() }})</span>
                     </h3>
+                    @if($evento->servicio_id)
+                        <button type="button" wire:click="autoAsignarPlantillaServicio"
+                            class="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-gold-400 text-xs font-bold border border-gold-500/30 transition-all flex items-center gap-1.5 shadow-sm"
+                            title="Recargar o sincronizar los integrantes según la plantilla económica de este servicio">
+                            <i class="fa-solid fa-rotate text-xs text-gold-400"></i>
+                            <span>Sincronizar Plantilla del Servicio</span>
+                        </button>
+                    @endif
                 </div>
 
                 <div class="overflow-x-auto">
@@ -363,9 +371,18 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="p-6 text-center text-slate-500">
-                                        <i class="fa-solid fa-user-slash text-2xl mb-2"></i>
-                                        <div>No se han asignado participantes a este evento aún.</div>
+                                    <td colspan="6" class="p-8 text-center text-slate-500 space-y-3">
+                                        <i class="fa-solid fa-user-slash text-3xl mb-1 text-slate-600 block"></i>
+                                        <div class="text-sm">No se han asignado participantes a este evento aún.</div>
+                                        @if($evento->servicio_id)
+                                            <div class="pt-2">
+                                                <button type="button" wire:click="autoAsignarPlantillaServicio"
+                                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gold-500/20 text-gold-400 border border-gold-500/40 hover:bg-gold-500/30 text-xs font-bold transition-all shadow-md">
+                                                    <i class="fa-solid fa-users-gear text-sm"></i>
+                                                    <span>Cargar Integrantes del Servicio</span>
+                                                </button>
+                                            </div>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforelse
