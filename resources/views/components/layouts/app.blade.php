@@ -313,7 +313,7 @@
                 </div>
 
                 <!-- Grupo: Gestión Operativa -->
-                <div x-data="{ open: {{ request()->routeIs('config.tipos-evento') || request()->routeIs('config.servicios') ? 'true' : 'false' }} }" class="pt-2">
+                <div x-data="{ open: {{ request()->routeIs('config.servicios') ? 'true' : 'false' }} }" class="pt-2">
                     <button @click="open = !open" type="button"
                         class="w-full flex items-center justify-between px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-200 transition-colors">
                         <span>Gestión Operativa</span>
@@ -321,11 +321,6 @@
                             :class="open ? 'rotate-180' : ''"></i>
                     </button>
                     <div x-show="open" x-collapse class="space-y-1.5 mt-1">
-                        <a href="{{ route('config.tipos-evento') }}"
-                            class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('config.tipos-evento') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
-                            <i class="fa-solid fa-calendar-day w-5 text-center"></i>
-                            <span>Tipos de Evento</span>
-                        </a>
                         <a href="{{ route('config.servicios') }}"
                             class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all {{ request()->routeIs('config.servicios') ? 'bg-gold-500 text-slate-950 font-semibold shadow-lg shadow-gold-500/20' : 'text-slate-300 hover:bg-brand-hover hover:text-white' }}">
                             <i class="fa-solid fa-music w-5 text-center"></i>

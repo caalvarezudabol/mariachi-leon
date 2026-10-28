@@ -31,7 +31,7 @@
     </div>
 
     <!-- Stat Cards Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
         <div
             class="p-2.5 rounded-xl bg-brand-card border border-brand-border flex items-center gap-2.5 hover:border-gold-500/30 transition-all">
             <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center flex-shrink-0">
@@ -43,21 +43,6 @@
                 <div class="flex items-baseline gap-1">
                     <span class="text-lg font-extrabold text-white">{{ $totalUsuarios }}</span>
                     <span class="text-[10px] text-slate-400">en sistema</span>
-                </div>
-            </div>
-        </div>
-
-        <div
-            class="p-2.5 rounded-xl bg-brand-card border border-brand-border flex items-center gap-2.5 hover:border-gold-500/30 transition-all">
-            <div
-                class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center flex-shrink-0">
-                <i class="fa-solid fa-calendar-days text-sm"></i>
-            </div>
-            <div class="min-w-0">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">Tipos de Eventos</p>
-                <div class="flex items-baseline gap-1">
-                    <span class="text-lg font-extrabold text-white">{{ $totalTiposEvento }}</span>
-                    <span class="text-[10px] text-slate-400">configurados</span>
                 </div>
             </div>
         </div>
