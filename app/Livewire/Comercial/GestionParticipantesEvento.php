@@ -192,59 +192,40 @@ class GestionParticipantesEvento extends Component
 
     public function cargarSugerencias()
     {
-        if (!$this->evento || !$this->evento->servicio_id) {
+        if (!$this->evento) {
             $this->personasSugeridas = [];
             return;
         }
 
         $yaAsignadosIds = $this->evento->participantes->pluck('persona_id')->toArray();
 
-        // 1. Prioridad: Participantes configurados en la plantilla activa del servicio
-        $plantillaQuery = ServicioParticipante::where('servicio_id', $this->evento->servicio_id)
-            ->where('activo', true)
-            ->whereNotIn('persona_id', $yaAsignadosIds)
-            ->with('persona')
+        // Listar todos los participantes activos que NO están en la lista de participantes asignados
+        $this->personasSugeridas = MusicoPersonal::where('estado', 'Activo')
+            ->whereNotIn('id', $yaAsignadosIds)
+            ->orderBy('nombre')
+            ->orderBy('apellido')
             ->get();
-
-        if ($plantillaQuery->count() > 0) {
-            $this->personasSugeridas = $plantillaQuery->pluck('persona')->filter()->values();
-            return;
-        }
-
-        // 2. Si no hay en plantilla, sugerir por frecuencia en este servicio
-        $sugeridosQuery = EventoParticipante::query()
-            ->join('eventos', 'evento_participantes.evento_id', '=', 'eventos.id')
-            ->where('eventos.servicio_id', $this->evento->servicio_id)
-            ->where('eventos.id', '!=', $this->eventoId)
-            ->whereNotIn('evento_participantes.persona_id', $yaAsignadosIds)
-            ->select('evento_participantes.persona_id', DB::raw('count(*) as frecuencia'))
-            ->groupBy('evento_participantes.persona_id')
-            ->orderByDesc('frecuencia')
-            ->take(6)
-            ->get();
-
-        $personaIds = $sugeridosQuery->pluck('persona_id')->toArray();
-
-        if (!empty($personaIds)) {
-            $this->personasSugeridas = MusicoPersonal::whereIn('id', $personaIds)
-                ->where('estado', 'Activo')
-                ->get();
-        } else {
-            // 3. Fallback: Primeras 5 personas activas no asignadas
-            $this->personasSugeridas = MusicoPersonal::where('estado', 'Activo')
-                ->whereNotIn('id', $yaAsignadosIds)
-                ->take(5)
-                ->get();
-        }
     }
 
     public function seleccionarSugerido($personaId)
     {
-        $this->persona_id = $personaId;
-        $persona = MusicoPersonal::find($personaId);
-        if ($persona) {
-            $this->funcion = $persona->tipo ?? 'Músico';
+        $persona = MusicoPersonal::findOrFail($personaId);
+
+        // Validar que no esté ya asignado
+        $existe = EventoParticipante::where('evento_id', $this->eventoId)
+            ->where('persona_id', $personaId)
+            ->exists();
+
+        if ($existe) {
+            session()->flash('error', "{$persona->nombre_completo} ya está asignado a este evento.");
+            return;
         }
+
+        $funcion = $persona->tipo ?? 'Músico';
+        $conceptoPago = 'Comisión por Evento';
+        $tipoCalculo = 'monto_fijo';
+        $valorSugerido = 0.00;
+        $montoAsignado = 0.00;
 
         // Si esta persona está configurada en la plantilla del servicio, precargar sus valores
         if ($this->evento && $this->evento->servicio_id) {
@@ -257,13 +238,51 @@ class GestionParticipantesEvento extends Component
                     ? (float)$this->evento->contrato->monto_total 
                     : (float)optional($this->evento->servicio)->precio_base;
 
-                $this->funcion = $sp->funcion;
-                $this->concepto_pago = $sp->concepto_pago;
-                $this->tipo_calculo = $sp->tipo_calculo;
-                $this->valor_sugerido = (float)$sp->valor;
-                $this->monto_asignado = $sp->calcularMontoSugerido($precioBase);
+                $funcion = $sp->funcion;
+                $conceptoPago = $sp->concepto_pago;
+                $tipoCalculo = $sp->tipo_calculo;
+                $valorSugerido = (float)$sp->valor;
+                $montoAsignado = $sp->calcularMontoSugerido($precioBase);
             }
         }
+
+        DB::transaction(function () use ($persona, $funcion, $conceptoPago, $tipoCalculo, $valorSugerido, $montoAsignado) {
+            $ep = EventoParticipante::create([
+                'evento_id' => $this->eventoId,
+                'persona_id' => $persona->id,
+                'funcion' => $funcion,
+                'concepto_pago' => $conceptoPago,
+                'tipo_calculo' => $tipoCalculo,
+                'valor_sugerido' => $valorSugerido ?: $montoAsignado,
+                'monto_asignado' => $montoAsignado,
+                'estado_distribucion' => 'Pendiente',
+                'user_id' => Auth::id(),
+            ]);
+
+            DistribucionEconomica::create([
+                'evento_id' => $this->eventoId,
+                'contrato_id' => optional($this->evento->contrato)->id,
+                'persona_id' => $persona->id,
+                'evento_participante_id' => $ep->id,
+                'funcion' => $funcion,
+                'concepto' => $conceptoPago,
+                'monto' => $montoAsignado,
+                'fecha_distribucion' => now(),
+                'estado' => 'Pendiente',
+                'user_id' => Auth::id(),
+            ]);
+
+            $this->registrarAuditoria(
+                'Gestión Comercial',
+                'Asignar Integrante Evento',
+                "Se asignó a {$persona->nombre_completo} ({$funcion}) con monto de Bs. " . number_format($montoAsignado, 2) . " al evento {$this->evento->codigo_evento}."
+            );
+        });
+
+        $this->cargarEvento();
+        $this->cargarSugerencias();
+
+        session()->flash('message', "Se asignó a {$persona->nombre_completo} ({$funcion}) al evento correctamente.");
     }
 
     public function abrirModalAplicarPlantilla()

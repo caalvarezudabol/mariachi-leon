@@ -197,104 +197,48 @@
         </div>
     </div>
 
-    <!-- Smart Suggestions Bar -->
-    @if (!empty($personasSugeridas) && count($personasSugeridas) > 0)
-        <div class="p-5 rounded-2xl bg-slate-900/90 border border-gold-500/30 space-y-3 shadow-lg">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2 text-gold-400 text-sm font-bold">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    <span>Sugerencias Inteligentes (Basado en historial para "{{ $evento->servicio->nombre ?? 'Servicio' }}")</span>
-                </div>
-                <span class="text-xs text-slate-400">Haz clic en una persona para cargarla rápido</span>
+    <!-- Smart Suggestions Bar: Participantes no asignados -->
+    <div class="p-5 rounded-2xl bg-slate-900/90 border border-gold-500/30 space-y-3 shadow-lg">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2 text-gold-400 text-sm font-bold">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>Sugerencias Inteligentes (Participantes disponibles para asignar)</span>
+                @if(count($personasSugeridas) > 0)
+                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-gold-500/20 text-gold-300 border border-gold-500/30">
+                        {{ count($personasSugeridas) }} disponibles
+                    </span>
+                @endif
             </div>
-            <div class="flex flex-wrap gap-2">
-                @foreach ($personasSugeridas as $sug)
-                    <button type="button" wire:click="seleccionarSugerido({{ $sug->id }})" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-gold-500/20 hover:border-gold-500/50 border border-slate-700 text-xs font-medium text-slate-200 hover:text-gold-300 transition-all flex items-center gap-2">
-                        <i class="fa-solid fa-plus-circle text-gold-400"></i>
-                        <span>{{ $sug->nombre_completo ?? ($sug->nombre . ' ' . $sug->apellido) }}</span>
-                        <span class="px-1.5 py-0.5 rounded-md bg-slate-900 text-[10px] text-slate-400">{{ $sug->tipo }}</span>
-                    </button>
-                @endforeach
-            </div>
-        </div>
-    @endif
-
-    <!-- Main Content Grid: Form + List -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Form Column: Add Participant -->
-        <div class="lg:col-span-1 p-6 rounded-2xl bg-brand-card border border-brand-border space-y-4 shadow-xl h-fit">
-            <div class="flex items-center justify-between border-b border-brand-border/60 pb-3">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-user-plus text-gold-400"></i>
-                    <span>Asignar Integrante</span>
-                </h3>
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-slate-400 hidden md:inline">Haz clic en un integrante para asignarlo directamente al evento</span>
                 <button type="button" wire:click="abrirModalPersona" class="text-xs font-bold text-gold-400 hover:text-gold-300 underline flex items-center gap-1">
                     <i class="fa-solid fa-circle-plus"></i> Nueva Persona
                 </button>
             </div>
-
-            <form wire:submit.prevent="agregarParticipante" class="space-y-4">
-                <!-- Persona Dropdown -->
-                <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Persona / Músico / Personal</label>
-                    <select wire:model.live="persona_id" class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-brand-border text-white text-sm focus:border-gold-500 focus:outline-none transition-all">
-                        <option value="">-- Seleccionar Persona --</option>
-                        @foreach ($todasPersonas as $per)
-                            <option value="{{ $per->id }}">{{ $per->nombre_completo ?? ($per->nombre . ' ' . $per->apellido) }} ({{ $per->tipo }})</option>
-                        @endforeach
-                    </select>
-                    @error('persona_id') <span class="text-xs text-rose-400">{{ $message }}</span> @enderror
-                </div>
-
-                <!-- Función/Rol -->
-                <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Función en este Evento</label>
-                    <select wire:model="funcion" class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-brand-border text-white text-sm focus:border-gold-500 focus:outline-none transition-all">
-                        <option value="Músico">Músico</option>
-                        <option value="Técnico">Técnico de Sonido</option>
-                        <option value="Chofer">Chofer / Transporte</option>
-                        <option value="Personal de apoyo">Personal de apoyo</option>
-                        <option value="Coordinador">Coordinador de Evento</option>
-                    </select>
-                    @error('funcion') <span class="text-xs text-rose-400">{{ $message }}</span> @enderror
-                </div>
-
-                <!-- Concepto Pago -->
-                <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Concepto de Pago</label>
-                    <select wire:model="concepto_pago" class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-brand-border text-white text-sm focus:border-gold-500 focus:outline-none transition-all">
-                        <option value="Comisión por Evento">Comisión por Evento</option>
-                        <option value="Pago Fijo">Pago Fijo</option>
-                        <option value="Viáticos">Viáticos / Alimentación</option>
-                        <option value="Bono Especial">Bono Especial</option>
-                        <option value="Apoyo Logístico">Apoyo Logístico</option>
-                    </select>
-                    @error('concepto_pago') <span class="text-xs text-rose-400">{{ $message }}</span> @enderror
-                </div>
-
-                <!-- Monto Asignado -->
-                <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Monto Asignado (Bs.)</label>
-                    <input type="number" step="0.01" wire:model="monto_asignado" placeholder="0.00" class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-brand-border text-white text-sm focus:border-gold-500 focus:outline-none transition-all">
-                    @error('monto_asignado') <span class="text-xs text-rose-400">{{ $message }}</span> @enderror
-                </div>
-
-                <!-- Observaciones -->
-                <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Observaciones (Opcional)</label>
-                    <textarea wire:model="observaciones" rows="2" placeholder="Notas sobre instrumentos, transporte, etc..." class="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-brand-border text-white text-sm focus:border-gold-500 focus:outline-none transition-all"></textarea>
-                    @error('observaciones') <span class="text-xs text-rose-400">{{ $message }}</span> @enderror
-                </div>
-
-                <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-slate-950 font-bold text-sm shadow-lg hover:shadow-gold-500/20 transition-all flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-plus-circle text-base"></i>
-                    <span>Asignar al Evento</span>
-                </button>
-            </form>
         </div>
+        @if (!empty($personasSugeridas) && count($personasSugeridas) > 0)
+            <div class="flex flex-wrap gap-2 pt-1">
+                @foreach ($personasSugeridas as $sug)
+                    <button type="button" wire:click="seleccionarSugerido({{ $sug->id }})"
+                        wire:loading.attr="disabled"
+                        class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-gold-500/20 hover:border-gold-500/50 border border-slate-700 text-xs font-medium text-slate-200 hover:text-gold-300 transition-all flex items-center gap-2 group shadow-sm disabled:opacity-50"
+                        title="Asignar a {{ $sug->nombre_completo ?? ($sug->nombre . ' ' . $sug->apellido) }} al evento con 1 clic">
+                        <i class="fa-solid fa-user-plus text-gold-400 group-hover:scale-110 transition-transform"></i>
+                        <span class="font-bold">{{ $sug->nombre_completo ?? ($sug->nombre . ' ' . $sug->apellido) }}</span>
+                        <span class="px-1.5 py-0.5 rounded-md bg-slate-900 text-[10px] text-slate-400 border border-slate-800 font-mono">{{ $sug->tipo }}</span>
+                    </button>
+                @endforeach
+            </div>
+        @else
+            <div class="text-xs text-slate-400 italic py-1 flex items-center gap-2">
+                <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                <span>Todos los integrantes activos del catálogo ya han sido asignados a este evento.</span>
+            </div>
+        @endif
+    </div>
 
-        <!-- Right Column: Tables -->
-        <div class="lg:col-span-2 space-y-6">
+    <!-- Tables: Participantes Asignados y Distribución Económica -->
+    <div class="space-y-6">
             <!-- 1. Lista de Participantes Asignados -->
             <div class="p-6 rounded-2xl bg-brand-card border border-brand-border space-y-4 shadow-xl">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border/60 pb-3">
@@ -498,7 +442,6 @@
                 </div>
             </div>
         </div>
-    </div>
 
     <!-- MODAL 1: Registrar Pago a Participante -->
     @if ($mostrarModalPago && $pago_participante)
