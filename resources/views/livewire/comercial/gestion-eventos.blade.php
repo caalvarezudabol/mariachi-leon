@@ -837,11 +837,20 @@
                                     </p>
                                 </div>
                                 @if ($servicio_id)
-                                    <button type="button" wire:click="abrirModalAgregarParticipante"
-                                        class="px-4 py-2 rounded-xl text-xs font-bold bg-gold-500/20 text-gold-400 border border-gold-500/30 hover:bg-gold-500/30 transition-all flex items-center gap-1.5 shrink-0">
-                                        <i class="fa-solid fa-user-plus text-xs"></i>
-                                        <span>Agregar otro participante</span>
-                                    </button>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" wire:click="recargarPlantillaServicio"
+                                            wire:loading.attr="disabled"
+                                            class="px-3 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-300 border border-slate-700 hover:bg-slate-800 hover:text-white transition-all flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+                                            title="Obtener o actualizar integrantes desde la plantilla del servicio seleccionado">
+                                            <i class="fa-solid fa-rotate text-xs text-gold-400" wire:loading.class="fa-spin"></i>
+                                            <span>Obtener integrantes</span>
+                                        </button>
+                                        <button type="button" wire:click="abrirModalAgregarParticipante"
+                                            class="px-3.5 py-2 rounded-xl text-xs font-bold bg-gold-500/20 text-gold-400 border border-gold-500/30 hover:bg-gold-500/30 transition-all flex items-center gap-1.5 shrink-0">
+                                            <i class="fa-solid fa-user-plus text-xs"></i>
+                                            <span>Agregar otro</span>
+                                        </button>
+                                    </div>
                                 @endif
                             </div>
 
@@ -1040,14 +1049,21 @@
                                     </div>
                                 @else
                                     <div
-                                        class="p-6 bg-slate-950/60 border border-dashed border-slate-800 rounded-2xl text-center space-y-2">
+                                        class="p-6 bg-slate-950/60 border border-dashed border-slate-800 rounded-2xl text-center space-y-3">
                                         <i class="fa-solid fa-users-slash text-2xl text-slate-600"></i>
                                         <div class="text-xs text-slate-400">Este servicio no tiene integrantes
-                                            predeterminados en su plantilla económica.</div>
-                                        <button type="button" wire:click="abrirModalAgregarParticipante"
-                                            class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-gold-400 text-xs font-bold rounded-xl transition-all">
-                                            + Agregar participante manualmente
-                                        </button>
+                                            predeterminados en su plantilla económica o aún no han sido cargados.</div>
+                                        <div class="flex items-center justify-center gap-2 pt-1">
+                                            <button type="button" wire:click="recargarPlantillaServicio"
+                                                class="px-3.5 py-1.5 bg-gold-500/20 text-gold-400 border border-gold-500/30 hover:bg-gold-500/30 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5">
+                                                <i class="fa-solid fa-rotate"></i>
+                                                <span>Obtener integrantes del servicio</span>
+                                            </button>
+                                            <button type="button" wire:click="abrirModalAgregarParticipante"
+                                                class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all">
+                                                + Agregar participante manualmente
+                                            </button>
+                                        </div>
                                     </div>
                                 @endif
                             @else
