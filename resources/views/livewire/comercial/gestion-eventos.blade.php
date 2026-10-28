@@ -116,7 +116,6 @@
                         <th class="py-3.5 px-4 font-bold">Cliente / Contacto</th>
                         <th class="py-3.5 px-4 font-bold">Fecha & Hora</th>
                         <th class="py-3.5 px-4 font-bold">Servicio</th>
-                        <th class="py-3.5 px-4 font-bold">Ubicación</th>
                         <th class="py-3.5 px-3 font-bold text-right whitespace-nowrap">Monto Contratado</th>
                         <th class="py-3.5 px-3 font-bold text-right whitespace-nowrap">A Cuenta</th>
                         <th class="py-3.5 px-3 font-bold text-right whitespace-nowrap">Saldo</th>
@@ -149,13 +148,6 @@
                                     class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-200 border border-slate-700">
                                     {{ $ev->servicio->nombre ?? 'N/A' }}
                                 </span>
-                            </td>
-                            <td class="py-3.5 px-4">
-                                <div class="text-xs text-slate-300 max-w-xs truncate"
-                                    title="{{ $ev->direccion_evento }}">
-                                    <i class="fa-solid fa-location-dot text-rose-400"></i>
-                                    <span>{{ $ev->direccion_evento }}</span>
-                                </div>
                             </td>
                             <td class="py-3.5 px-3 text-right font-mono font-bold whitespace-nowrap">
                                 @if ($ev->contrato)
@@ -255,7 +247,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="text-center py-8 text-slate-500 text-sm">
+                            <td colspan="9" class="text-center py-8 text-slate-500 text-sm">
                                 No se encontraron eventos registrados.
                             </td>
                         </tr>
