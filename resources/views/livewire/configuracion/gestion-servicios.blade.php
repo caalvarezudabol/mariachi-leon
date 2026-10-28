@@ -168,12 +168,8 @@
 
                         <div class="sm:col-span-2">
                             <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Descripción del Servicio</label>
-                            <textarea wire:model="descripcion" rows="2" placeholder="Detalles de repertorio, número de canciones o equipamiento incluido..." class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500"></textarea>
-                        </div>
-
-                        <div class="sm:col-span-2">
-                            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Observaciones</label>
-                            <textarea wire:model="observaciones" rows="2" class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500"></textarea>
+                            <textarea wire:model="descripcion" rows="3" placeholder="Detalles de repertorio, número de canciones o equipamiento incluido..." class="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500"></textarea>
+                            @error('descripcion') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- Sección: Configuración de participantes y distribución económica -->

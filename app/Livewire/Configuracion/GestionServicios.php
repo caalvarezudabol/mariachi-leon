@@ -21,7 +21,6 @@ class GestionServicios extends Component
     public $precio_base = 0.00;
     public $duracion_minutos = 60;
     public $activo = true;
-    public $observaciones = '';
 
     public $search = '';
     public $tipo_filtro = '';
@@ -58,7 +57,6 @@ class GestionServicios extends Component
         'descripcion' => 'nullable|string',
         'precio_base' => 'required|numeric|min:0',
         'duracion_minutos' => 'required|integer|min:15',
-        'observaciones' => 'nullable|string',
     ];
 
     public function updatingSearch()
@@ -73,7 +71,7 @@ class GestionServicios extends Component
 
     public function abrirModal()
     {
-        $this->reset(['servicio_id', 'nombre', 'descripcion', 'precio_base', 'duracion_minutos', 'observaciones', 'isEdit']);
+        $this->reset(['servicio_id', 'nombre', 'descripcion', 'precio_base', 'duracion_minutos', 'isEdit']);
         $this->tipo_servicio = 'Musical';
         $this->activo = true;
         $this->modalOpen = true;
@@ -89,7 +87,6 @@ class GestionServicios extends Component
         $this->precio_base = $s->precio_base;
         $this->duracion_minutos = $s->duracion_minutos;
         $this->activo = $s->activo;
-        $this->observaciones = $s->observaciones;
         $this->isEdit = true;
         $this->modalOpen = true;
     }
@@ -107,7 +104,7 @@ class GestionServicios extends Component
                 'precio_base' => $this->precio_base,
                 'duracion_minutos' => $this->duracion_minutos,
                 'activo' => $this->activo,
-                'observaciones' => trim($this->observaciones),
+                'observaciones' => null,
             ]);
             $this->registrarAuditoria('Configuración', 'Editar Servicio', 'Se actualizó el servicio: ' . $s->nombre);
             session()->flash('success', 'Servicio actualizado correctamente.');
@@ -119,7 +116,7 @@ class GestionServicios extends Component
                 'precio_base' => $this->precio_base,
                 'duracion_minutos' => $this->duracion_minutos,
                 'activo' => $this->activo,
-                'observaciones' => trim($this->observaciones),
+                'observaciones' => null,
             ]);
             $this->registrarAuditoria('Configuración', 'Crear Servicio', 'Se creó el servicio: ' . $s->nombre);
             session()->flash('success', 'Servicio registrado correctamente. Ahora puede configurar su plantilla económica de participantes.');
