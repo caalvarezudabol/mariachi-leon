@@ -953,43 +953,54 @@ class GestionEventos extends Component
         $this->cerrarModalDesmarcar();
     }
 
+    private function eventosQuery()
+    {
+        return Evento::query()
+            ->when($this->search, function ($q) {
+                $q->where(function ($qq) {
+                    $qq->where('codigo_evento', 'like', '%' . $this->search . '%')
+                        ->orWhere('contacto_evento', 'like', '%' . $this->search . '%')
+                        ->orWhere('direccion_evento', 'like', '%' . $this->search . '%')
+                        ->orWhereHas('cliente', function ($c) {
+                            $c->where('nombre_completo', 'like', '%' . $this->search . '%');
+                        })
+                        ->orWhereHas('servicio', function ($s) {
+                            $s->where('nombre', 'like', '%' . $this->search . '%');
+                        });
+                });
+            })
+            ->when($this->cliente_filtro, fn ($q) => $q->where('cliente_id', $this->cliente_filtro));
+    }
+
     public function render()
     {
-        $query = Evento::with(['cliente', 'servicio', 'user', 'contrato.pagos', 'pagos', 'participantes.persona']);
+        $eventos = $this->eventosQuery()
+            ->with(['cliente', 'servicio', 'user', 'contrato.pagos', 'pagos', 'participantes.persona'])
+            ->when($this->estado_filtro, fn ($q) => $q->where('estado', $this->estado_filtro))
+            ->orderBy('fecha_evento', 'desc')->orderBy('hora_evento', 'asc')
+            ->paginate(10);
 
-        if ($this->search) {
-            $query->where(function ($q) {
-                $q->where('codigo_evento', 'like', '%' . $this->search . '%')
-                    ->orWhere('contacto_evento', 'like', '%' . $this->search . '%')
-                    ->orWhere('direccion_evento', 'like', '%' . $this->search . '%')
-                    ->orWhereHas('cliente', function ($c) {
-                        $c->where('nombre_completo', 'like', '%' . $this->search . '%');
-                    })
-                    ->orWhereHas('servicio', function ($s) {
-                        $s->where('nombre', 'like', '%' . $this->search . '%');
-                    });
-            });
-        }
+        $estados = $this->eventosQuery()
+            ->selectRaw('estado, count(*) as total')
+            ->groupBy('estado')
+            ->orderBy('estado')
+            ->pluck('total', 'estado');
 
-        if ($this->cliente_filtro) {
-            $query->where('cliente_id', $this->cliente_filtro);
-        }
-
-        if ($this->estado_filtro) {
-            $query->where('estado', $this->estado_filtro);
-        }
-
-        $eventos = $query->orderBy('fecha_evento', 'desc')->orderBy('hora_evento', 'asc')->paginate(10);
         $clientes = Cliente::where('estado', 'Activo')->orderBy('nombre_completo', 'asc')->get();
         $servicios = Servicio::where('activo', true)->orderBy('nombre', 'asc')->get();
         $personasDisponibles = MusicoPersonal::where('estado', 'Activo')->orderBy('nombre_completo', 'asc')->get();
 
         return view('livewire.comercial.gestion-eventos', [
             'eventos' => $eventos,
+            'totalEventos' => $this->eventosQuery()->count(),
+            'estados' => $estados,
             'clientes' => $clientes,
             'servicios' => $servicios,
             'personasDisponibles' => $personasDisponibles,
-        ])->layout('components.layouts.app', ['title' => 'Gestión de Eventos - Mariachi León Guanajuato']);
+        ])->layout('components.layouts.app', [
+            'title' => 'Gestión de Eventos - Mariachi León Guanajuato',
+            'themed' => true,
+        ]);
     }
 
     // Propiedades
@@ -1019,7 +1030,9 @@ class GestionEventos extends Component
     {
         $this->validate([
             'nc_nombre_completo' => 'required|string|max:255',
-            'nc_ci_nit'          => 'nullable|string|max:30',
+            'nc_ci_nit'          => 'nullable|string|max:50',
+            'nc_telefono'        => 'nullable|string|max:50',
+            'nc_whatsapp'        => 'nullable|string|max:50',
             'nc_email'           => 'nullable|email|max:255',
         ], [
             'nc_nombre_completo.required' => 'El nombre del cliente es obligatorio.',
@@ -1041,9 +1054,9 @@ class GestionEventos extends Component
         $this->dispatch(
             'cliente-creado',
             id: $cliente->id,
-            nombre_completo: $cliente->nombre_completo,
-            ci_nit: $cliente->ci_nit,
-            telefono: $cliente->telefono,
+            label: $cliente->nombre_completo,
+            meta: trim(($cliente->ci_nit ? 'CI: ' . $cliente->ci_nit : '') . ($cliente->telefono ? ' - Tel: ' . $cliente->telefono : '')),
+            search: mb_strtolower($cliente->nombre_completo . ' ' . $cliente->ci_nit . ' ' . $cliente->telefono),
         );
     }
 }
