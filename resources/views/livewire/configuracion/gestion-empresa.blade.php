@@ -1,542 +1,398 @@
-<div class="space-y-6" x-data="{ activeTab: @entangle('activeTab') }">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-white">Módulo Gestionar Empresa / Agrupación</h1>
-            <p class="text-xs text-slate-400">Administración centralizada de datos institucionales, legales, de contacto, marca y financieros.</p>
-        </div>
-        <button type="submit" form="formEmpresa" wire:loading.attr="disabled" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-lg shadow-gold-500/20 transition-all flex items-center justify-center gap-2">
-            <span wire:loading.remove wire:target="guardar"><i class="fa-solid fa-floppy-disk"></i> Guardar Cambios</span>
-            <span wire:loading wire:target="guardar"><i class="fa-solid fa-spinner animate-spin"></i> Guardando...</span>
-        </button>
-    </div>
+@php
+    // Campos de cada pestaña (para marcar con un punto rojo la pestaña que tiene errores)
+    $camposPestana = [
+        'general' => ['nombre_comercial', 'razon_social', 'nit_ruc', 'representante_legal', 'slogan'],
+        'contacto' => ['telefono_principal', 'whatsapp_comercial', 'email_contacto', 'direccion_fisica', 'ciudad_pais'],
+        'marca' => [
+            'logo_file',
+            'redes_instagram',
+            'redes_tiktok',
+            'redes_youtube',
+            'redes_facebook',
+            'redes_linktree',
+        ],
+        'banco' => [
+            'moneda_nombre',
+            'moneda_simbolo',
+            'porcentaje_fondo_comun',
+            'banco_nombre',
+            'banco_numero_cuenta',
+            'banco_titular',
+            'qr_file',
+        ],
+        'contratos' => ['terminos_contrato', 'observaciones'],
+    ];
+    $pestanas = [
+        'general' => ['label' => 'Identificación', 'icon' => 'fa-building'],
+        'contacto' => ['label' => 'Contacto', 'icon' => 'fa-address-book'],
+        'marca' => ['label' => 'Marca y redes', 'icon' => 'fa-icons'],
+        'banco' => ['label' => 'Banco y finanzas', 'icon' => 'fa-building-columns'],
+        'contratos' => ['label' => 'Contrato', 'icon' => 'fa-file-contract'],
+    ];
+    $redes = [
+        [
+            'redes_instagram',
+            'Instagram',
+            'fa-instagram',
+            'text-pink-500',
+            'https://www.instagram.com/mariachileonguanajuato',
+        ],
+        ['redes_tiktok', 'TikTok', 'fa-tiktok', 'text-cyan-500', 'https://www.tiktok.com/@mariachileonguanajuato'],
+        ['redes_youtube', 'YouTube', 'fa-youtube', 'text-red-500', 'https://youtube.com/@mariachileonguanajuato'],
+        ['redes_facebook', 'Facebook', 'fa-facebook-f', 'text-blue-500', 'https://www.facebook.com/profile.php?id=...'],
+    ];
+    $campoCss =
+        'w-full h-9 px-3.5 bg-surface-sunken border border-outline rounded-lg text-sm text-ink-primary placeholder:text-ink-muted focus:border-gold-500 focus:outline-none transition-colors';
+    $botonArchivo =
+        'inline-flex items-center gap-2 h-8 px-3 rounded-lg border border-outline bg-surface-card text-sm font-semibold text-ink-primary hover:border-gold-500 cursor-pointer transition-colors';
+@endphp
 
-    <!-- Flash Messages -->
-    @if(session()->has('success'))
-        <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center gap-2 shadow-lg animate-fade-in">
-            <i class="fa-solid fa-circle-check text-base"></i>
+<div class="space-y-3" x-data="{ activeTab: @entangle('activeTab') }">
+
+    @if (session()->has('success'))
+        <div
+            class="flex items-center gap-3 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-sm text-ink-primary">
+            <i class="fa-solid fa-circle-check text-lg text-emerald-600 dark:text-emerald-400"></i>
             <span>{{ session('success') }}</span>
         </div>
     @endif
 
-    <!-- Global Error Banner -->
     @if ($errors->any())
-        <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold space-y-1.5 shadow-lg animate-fade-in">
-            <div class="flex items-center gap-2 text-sm font-extrabold text-rose-300">
-                <i class="fa-solid fa-circle-exclamation text-base"></i>
-                <span>Por favor revise los siguientes campos para poder guardar:</span>
+        <div
+            class="flex items-start gap-3 p-3 rounded-lg border-l-[3px] border-rose-500 bg-rose-500/10 text-sm text-ink-primary">
+            <i class="fa-solid fa-circle-exclamation text-lg text-rose-600 dark:text-rose-400 mt-0.5"></i>
+            <div class="min-w-0">
+                <p class="font-semibold">Revisa los siguientes campos para poder guardar:</p>
+                <ul class="mt-1 list-disc list-inside text-xs text-ink-secondary space-y-0.5">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
             </div>
-            <ul class="list-disc list-inside pl-2 space-y-0.5 text-rose-300 font-normal">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
         </div>
     @endif
 
-    <!-- Company Quick Highlights -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-brand-card p-4 rounded-2xl border border-brand-border flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-gold-500/20 text-gold-400 flex items-center justify-center text-xl font-bold">
-                🏢
-            </div>
-            <div>
-                <div class="text-[11px] uppercase font-bold text-slate-400">Nombre Comercial</div>
-                <div class="text-sm font-bold text-white truncate max-w-[180px]">{{ $nombre_comercial }}</div>
-            </div>
-        </div>
-
-        <div class="bg-brand-card p-4 rounded-2xl border border-brand-border flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl font-bold">
-                👤
-            </div>
-            <div>
-                <div class="text-[11px] uppercase font-bold text-slate-400">Representante Legal</div>
-                <div class="text-sm font-bold text-white truncate max-w-[180px]">{{ $representante_legal }}</div>
-            </div>
-        </div>
-
-        <div class="bg-brand-card p-4 rounded-2xl border border-brand-border flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-xl font-bold">
-                📞
-            </div>
-            <div>
-                <div class="text-[11px] uppercase font-bold text-slate-400">Teléfono Comercial</div>
-                <div class="text-sm font-bold text-white truncate max-w-[180px]">{{ $telefono_principal }}</div>
-            </div>
-        </div>
-
-        <div class="bg-brand-card p-4 rounded-2xl border border-brand-border flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xl font-bold">
-                💵
-            </div>
-            <div>
-                <div class="text-[11px] uppercase font-bold text-slate-400">Moneda Oficial</div>
-                <div class="text-sm font-bold text-gold-400 font-mono">{{ $moneda_simbolo }} ({{ $moneda_nombre }})</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tab Navigation -->
-    <div class="flex items-center gap-2 border-b border-brand-border overflow-x-auto pb-1">
-        <button type="button" @click="activeTab = 'general'" :class="activeTab === 'general' ? 'bg-gold-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-900'" class="px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all flex items-center gap-2">
-            <i class="fa-solid fa-building"></i>
-            <span>1. Identificación & Legal</span>
-        </button>
-        <button type="button" @click="activeTab = 'contacto'" :class="activeTab === 'contacto' ? 'bg-gold-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-900'" class="px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all flex items-center gap-2">
-            <i class="fa-solid fa-address-book"></i>
-            <span>2. Contacto & Ubicación</span>
-        </button>
-        <button type="button" @click="activeTab = 'marca'" :class="activeTab === 'marca' ? 'bg-gold-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-900'" class="px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all flex items-center gap-2">
-            <i class="fa-solid fa-icons"></i>
-            <span>3. Marca & Redes</span>
-        </button>
-        <button type="button" @click="activeTab = 'banco'" :class="activeTab === 'banco' ? 'bg-gold-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-900'" class="px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all flex items-center gap-2">
-            <i class="fa-solid fa-building-columns"></i>
-            <span>4. Banco & Moneda</span>
-        </button>
-        <button type="button" @click="activeTab = 'contratos'" :class="activeTab === 'contratos' ? 'bg-gold-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-900'" class="px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all flex items-center gap-2">
-            <i class="fa-solid fa-file-contract"></i>
-            <span>5. Términos de Contrato</span>
-        </button>
-    </div>
-
-    <!-- Main Content Form Card -->
-    <div class="bg-brand-card p-6 rounded-3xl border border-brand-border shadow-2xl">
-        <form id="formEmpresa" wire:submit="guardar" class="space-y-6">
-
-            <!-- TAB 1: IDENTIFICACIÓN Y LEGAL -->
-            <div x-show="activeTab === 'general'" x-cloak class="space-y-4">
-                <h3 class="text-base font-bold text-white border-b border-brand-border pb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-building text-gold-400"></i>
-                    <span>Datos Identificativos & Legales</span>
-                </h3>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Nombre Comercial de la Agrupación *</label>
-                        <input type="text" wire:model="nombre_comercial" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 font-bold">
-                        @error('nombre_comercial') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Razón Social Oficial *</label>
-                        <input type="text" wire:model="razon_social" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
-                        @error('razon_social') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+    <form wire:submit="guardar">
+        <x-ui.panel>
+            {{-- Cabecera --}}
+            <x-slot:header>
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <i class="fa-solid fa-building text-lg text-gold-600 dark:text-gold-400"></i>
+                    <h1 class="text-base font-semibold text-ink-primary truncate">Empresa</h1>
                 </div>
+                <x-ui.button size="sm" type="submit" wire:loading.attr="disabled" wire:target="guardar">
+                    <i class="fa-solid fa-floppy-disk" wire:loading.remove wire:target="guardar"></i>
+                    <i class="fa-solid fa-spinner fa-spin" wire:loading wire:target="guardar"></i>
+                    <span>Guardar</span>
+                </x-ui.button>
+            </x-slot:header>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">NIT / NIF / Registro Fiscal</label>
-                        <input type="text" wire:model="nit_ruc" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 font-mono" placeholder="Ej. 1029384756">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Representante Legal / Director Musical *</label>
-                        <input type="text" wire:model="representante_legal" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 font-bold text-gold-300">
-                        @error('representante_legal') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Slogan / Frase Institucional</label>
-                    <input type="text" wire:model="slogan" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 italic" placeholder="Puntualidad, elegancia y virtuosismo musical en cada presentación">
-                </div>
-            </div>
-
-            <!-- TAB 2: CONTACTO Y UBICACIÓN -->
-            <div x-show="activeTab === 'contacto'" x-cloak class="space-y-4">
-                <h3 class="text-base font-bold text-white border-b border-brand-border pb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-address-book text-gold-400"></i>
-                    <span>Información de Contacto & Ubicación Física</span>
-                </h3>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Teléfono Principal *</label>
-                        <input type="text" wire:model="telefono_principal" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 font-mono">
-                        @error('telefono_principal') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">WhatsApp Comercial</label>
-                        <input type="text" wire:model="whatsapp_comercial" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 font-mono">
-                        @error('whatsapp_comercial') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Correo Electrónico Oficial *</label>
-                        <input type="email" wire:model="email_contacto" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
-                        @error('email_contacto') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Dirección Física de Oficina *</label>
-                        <input type="text" wire:model="direccion_fisica" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
-                        @error('direccion_fisica') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Ciudad / País</label>
-                        <input type="text" wire:model="ciudad_pais" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500" placeholder="Ej. Santa Cruz - Bolivia">
-                        @error('ciudad_pais') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 3: MARCA Y REDES SOCIALES -->
-            <div x-show="activeTab === 'marca'" x-cloak class="space-y-6">
-                <h3 class="text-base font-bold text-white border-b border-brand-border pb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-icons text-gold-400"></i>
-                    <span>Identidad Visual & Redes Sociales</span>
-                </h3>
-
-                <!-- Información de Estado del Logo -->
-                @if(session()->has('info_logo'))
-                    <div class="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold flex items-center gap-2">
-                        <i class="fa-solid fa-circle-info"></i>
-                        <span>{{ session('info_logo') }}</span>
-                    </div>
-                @endif
-
-                @error('logo_file')
-                    <div class="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold flex items-center gap-2">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span>{{ $message }}</span>
-                    </div>
-                @enderror
-
-                <!-- COMPONENTE DE CARGA DE LOGOTIPO -->
-                <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                        Logotipo Oficial de la Agrupación
-                    </label>
-
-                    <div class="flex flex-col sm:flex-row items-center gap-6">
-                        <!-- Recuadro Vista Previa -->
-                        <div class="relative w-44 h-44 rounded-2xl bg-slate-900 border-2 border-dashed border-slate-700 flex flex-col items-center justify-center p-3 text-center overflow-hidden flex-shrink-0 group">
-                            @if($logo_file)
-                                <img src="{{ $logo_file->temporaryUrl() }}" class="max-w-full max-h-32 object-contain rounded-lg">
-                                <span class="absolute bottom-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-slate-950 shadow">
-                                    Vista Previa Nueva
-                                </span>
-                            @elseif($logo_url && !$logo_eliminado)
-                                <img src="{{ asset($logo_url) }}" class="max-w-full max-h-32 object-contain rounded-lg">
-                                <span class="absolute bottom-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                    Logo Actual
-                                </span>
-                            @else
-                                <div class="text-slate-600 text-4xl mb-1">
-                                    <i class="fa-regular fa-image"></i>
-                                </div>
-                                <span class="text-[11px] text-slate-500">Sin logotipo</span>
+            {{-- Pestañas --}}
+            <x-slot:filters>
+                <div class="flex items-center gap-1 overflow-x-auto">
+                    @foreach ($pestanas as $clave => $p)
+                        @php $conError = collect($camposPestana[$clave])->contains(fn ($c) => $errors->has($c)); @endphp
+                        <button type="button" @click="activeTab = '{{ $clave }}'"
+                            :class="activeTab === '{{ $clave }}' ?
+                                'bg-gold-500/15 text-gold-700 dark:text-gold-400 font-semibold' :
+                                'text-ink-secondary hover:text-ink-primary hover:bg-surface-hover'"
+                            class="relative inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm whitespace-nowrap transition-colors">
+                            <i class="fa-solid {{ $p['icon'] }} text-xs"></i>
+                            <span>{{ $p['label'] }}</span>
+                            @if ($conError)
+                                <span class="w-2 h-2 rounded-full bg-rose-500"></span>
                             @endif
+                        </button>
+                    @endforeach
+                </div>
+            </x-slot:filters>
 
-                            <div wire:loading wire:target="logo_file" class="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex flex-col items-center justify-center text-gold-400 text-xs font-bold gap-2">
-                                <i class="fa-solid fa-spinner animate-spin text-xl"></i>
-                                <span>Cargando...</span>
-                            </div>
-                        </div>
+            <div class="px-5 py-5">
 
-                        <!-- Botones de Acción Logo -->
-                        <div class="space-y-3 w-full">
-                            <p class="text-xs text-slate-400 leading-relaxed">
-                                Cargue el logotipo institucional en alta resolución. Se optimizará automáticamente a formato WebP o PNG transparente para su uso en encabezados, PDFs de contratos y recibos oficiales.
-                            </p>
-                            <p class="text-[11px] text-slate-500 font-mono">Formatos permitidos: JPG, PNG, WEBP. Tamaño máximo: 5 MB.</p>
-
-                            <div class="flex flex-wrap items-center gap-3 pt-2">
-                                <label class="cursor-pointer px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-gold-400 text-xs font-bold border border-gold-500/30 hover:border-gold-500/50 transition-all flex items-center gap-2 shadow">
-                                    <i class="fa-solid fa-cloud-arrow-up"></i>
-                                    <span>Seleccionar Nuevo Logo</span>
-                                    <input type="file" wire:model="logo_file" accept="image/png,image/jpeg,image/webp" class="hidden">
-                                </label>
-
-                                @if($logo_url || $logo_file)
-                                    <button type="button" wire:click="abrirConfirmacionEliminarLogo" class="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold border border-rose-500/20 transition-all flex items-center gap-2">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                        <span>Quitar Logo</span>
-                                    </button>
-                                @endif
-                            </div>
-                        </div>
+                {{-- IDENTIFICACIÓN --}}
+                <div x-show="activeTab === 'general'" x-cloak class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <x-ui.input label="Nombre comercial" required name="nombre_comercial"
+                        wire:model="nombre_comercial" />
+                    <x-ui.input label="Razón social" required name="razon_social" wire:model="razon_social" />
+                    <x-ui.input label="NIT / NIF / Registro fiscal" name="nit_ruc" wire:model="nit_ruc"
+                        placeholder="Ej. 1029384756" />
+                    <x-ui.input label="Representante legal / Director musical" required name="representante_legal"
+                        wire:model="representante_legal" />
+                    <div class="sm:col-span-2">
+                        <x-ui.input label="Eslogan" name="slogan" wire:model="slogan"
+                            placeholder="Puntualidad, elegancia y virtuosismo musical en cada presentación" />
                     </div>
                 </div>
 
-                <!-- Modal Confirmación Eliminar Logo -->
-                @if($showConfirmDeleteLogo)
-                    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-                        <div class="bg-brand-card border border-brand-border rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl">
-                            <div class="flex items-center gap-3 text-rose-400">
-                                <div class="w-10 h-10 rounded-2xl bg-rose-500/10 flex items-center justify-center text-xl shrink-0">
-                                    <i class="fa-solid fa-triangle-exclamation"></i>
-                                </div>
-                                <h4 class="text-base font-bold text-white">¿Quitar el Logotipo Actual?</h4>
-                            </div>
-                            <p class="text-xs text-slate-300 leading-relaxed">
-                                El logotipo será desvinculado de la empresa y de los encabezados de los documentos oficiales (PDFs y recibos). Deberá hacer clic en "Guardar Cambios" para confirmar.
-                            </p>
-                            <div class="flex items-center justify-end gap-3 pt-2 border-t border-brand-border">
-                                <button type="button" wire:click="cancelarEliminarLogo" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">
-                                    Cancelar
-                                </button>
-                                <button type="button" wire:click="eliminarLogo" class="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 text-white hover:bg-rose-500">
-                                    Sí, Quitar Logo
-                                </button>
-                            </div>
-                        </div>
+                {{-- CONTACTO --}}
+                <div x-show="activeTab === 'contacto'" x-cloak class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <x-ui.input label="Teléfono principal" required name="telefono_principal"
+                        wire:model="telefono_principal" />
+                    <x-ui.input label="WhatsApp comercial" name="whatsapp_comercial" wire:model="whatsapp_comercial" />
+                    <x-ui.input type="email" label="Correo oficial" required name="email_contacto"
+                        wire:model="email_contacto" />
+                    <div class="sm:col-span-2">
+                        <x-ui.input label="Dirección de la oficina" required name="direccion_fisica"
+                            wire:model="direccion_fisica" />
                     </div>
-                @endif
-
-                <!-- REDES SOCIALES OFICIALES (BOTONES INDIVIDUALES) -->
-                <div class="space-y-4 pt-4 border-t border-brand-border">
-                    <div>
-                        <h4 class="text-sm font-bold text-white flex items-center gap-2">
-                            <i class="fa-solid fa-share-nodes text-gold-400"></i>
-                            <span>Canales & Redes Sociales Oficiales</span>
-                        </h4>
-                        <p class="text-xs text-slate-400 mt-1">
-                            Configure las URLs oficiales para cada plataforma. Cada una contará con su propio botón e icono distintivo en el sitio web público.
-                        </p>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Instagram -->
-                        <div>
-                            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                <i class="fa-brands fa-instagram text-pink-400 text-sm"></i>
-                                <span>Instagram Oficial</span>
-                            </label>
-                            <div class="relative">
-                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-pink-400 text-sm">
-                                    <i class="fa-brands fa-instagram"></i>
-                                </span>
-                                <input type="url" wire:model="redes_instagram" class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-pink-500 font-mono text-xs" placeholder="https://www.instagram.com/mariachileonguanajuato">
-                            </div>
-                            @error('redes_instagram') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-
-                        <!-- TikTok -->
-                        <div>
-                            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                <i class="fa-brands fa-tiktok text-cyan-400 text-sm"></i>
-                                <span>TikTok Oficial</span>
-                            </label>
-                            <div class="relative">
-                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-cyan-400 text-sm">
-                                    <i class="fa-brands fa-tiktok"></i>
-                                </span>
-                                <input type="url" wire:model="redes_tiktok" class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-cyan-500 font-mono text-xs" placeholder="https://www.tiktok.com/@mariachileonguanajuato">
-                            </div>
-                            @error('redes_tiktok') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-
-                        <!-- YouTube -->
-                        <div>
-                            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                <i class="fa-brands fa-youtube text-red-500 text-sm"></i>
-                                <span>Canal de YouTube</span>
-                            </label>
-                            <div class="relative">
-                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-red-500 text-sm">
-                                    <i class="fa-brands fa-youtube"></i>
-                                </span>
-                                <input type="url" wire:model="redes_youtube" class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-red-500 font-mono text-xs" placeholder="http://youtube.com/@mariachileonguanajuato">
-                            </div>
-                            @error('redes_youtube') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-
-                        <!-- Facebook -->
-                        <div>
-                            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                <i class="fa-brands fa-facebook-f text-blue-500 text-sm"></i>
-                                <span>Página de Facebook</span>
-                            </label>
-                            <div class="relative">
-                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-500 text-sm">
-                                    <i class="fa-brands fa-facebook-f"></i>
-                                </span>
-                                <input type="url" wire:model="redes_facebook" class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-blue-500 font-mono text-xs" placeholder="https://www.facebook.com/profile.php?id=...">
-                            </div>
-                            @error('redes_facebook') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-                    </div>
-
-                    <!-- Enlace Adicional Linktree (Opcional) -->
-                    <div class="pt-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Enlace Auxiliar (Linktree / Web Externa - Opcional)</label>
-                        <div class="relative">
-                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
-                                <i class="fa-solid fa-link"></i>
-                            </span>
-                            <input type="url" wire:model="redes_linktree" class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 font-mono text-xs" placeholder="https://linktr.ee/mariachileonguanajuato">
-                        </div>
-                        @error('redes_linktree') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 4: BANCO Y MONEDA -->
-            <div x-show="activeTab === 'banco'" x-cloak class="space-y-6">
-                <h3 class="text-base font-bold text-white border-b border-brand-border pb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-building-columns text-gold-400"></i>
-                    <span>Parámetros Financieros & Cobranzas QR</span>
-                </h3>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Nombre Oficial de la Moneda *</label>
-                        <input type="text" wire:model="moneda_nombre" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500" placeholder="Ej. Bolivianos, Pesos">
-                        @error('moneda_nombre') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Símbolo Monetario *</label>
-                        <input type="text" wire:model="moneda_simbolo" required class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 font-mono font-bold" placeholder="Ej. Bs., $">
-                        @error('moneda_simbolo') <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                    <x-ui.input label="Ciudad / País" name="ciudad_pais" wire:model="ciudad_pais"
+                        placeholder="Ej. Santa Cruz - Bolivia" />
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Entidad Bancaria</label>
-                        <input type="text" wire:model="banco_nombre" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500" placeholder="Ej. Banco Nacional de Bolivia">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Número de Cuenta Bancaria</label>
-                        <input type="text" wire:model="banco_numero_cuenta" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500 font-mono" placeholder="Ej. 1000-2938-4756">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Titular de la Cuenta</label>
-                        <input type="text" wire:model="banco_titular" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500" placeholder="Ej. Enrrique Escalera">
-                    </div>
-                </div>
-
-                <!-- CARGA DE CÓDIGO QR PARA COBROS -->
-                <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                        Código QR Oficial de Cobro Bancario
-                    </label>
-
-                    @if(session()->has('info_qr'))
-                        <div class="p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold flex items-center gap-2">
-                            <i class="fa-solid fa-circle-info"></i>
-                            <span>{{ session('info_qr') }}</span>
+                {{-- MARCA Y REDES --}}
+                <div x-show="activeTab === 'marca'" x-cloak class="space-y-5">
+                    @if (session()->has('info_logo'))
+                        <div
+                            class="flex items-center gap-2.5 p-3 rounded-lg border border-sky-500/30 bg-sky-500/10 text-sm text-ink-primary">
+                            <i class="fa-solid fa-circle-info text-sky-600 dark:text-sky-400"></i>
+                            <span>{{ session('info_logo') }}</span>
                         </div>
                     @endif
 
-                    @error('qr_file')
-                        <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold flex items-center gap-2">
-                            <i class="fa-solid fa-triangle-exclamation"></i>
-                            <span>{{ $message }}</span>
-                        </div>
-                    @enderror
-
-                    <div class="flex flex-col sm:flex-row items-center gap-6">
-                        <div class="relative w-40 h-40 rounded-2xl bg-slate-900 border-2 border-dashed border-slate-700 flex flex-col items-center justify-center p-3 text-center overflow-hidden flex-shrink-0">
-                            @if($qr_file)
-                                <img src="{{ $qr_file->temporaryUrl() }}" class="max-w-full max-h-32 object-contain rounded-lg">
-                                <span class="absolute bottom-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500 text-slate-950 shadow">
-                                    Nuevo QR
-                                </span>
-                            @elseif($banco_qr_url && !$qr_eliminado)
-                                <img src="{{ asset($banco_qr_url) }}" class="max-w-full max-h-32 object-contain rounded-lg">
-                                <span class="absolute bottom-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                    QR Activo
-                                </span>
-                            @else
-                                <div class="text-slate-600 text-4xl mb-1">
-                                    <i class="fa-solid fa-qrcode"></i>
-                                </div>
-                                <span class="text-[11px] text-slate-500">Sin QR asignado</span>
-                            @endif
-
-                            <div wire:loading wire:target="qr_file" class="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex flex-col items-center justify-center text-gold-400 text-xs font-bold gap-2">
-                                <i class="fa-solid fa-spinner animate-spin text-xl"></i>
-                                <span>Cargando...</span>
-                            </div>
-                        </div>
-
-                        <div class="space-y-3 w-full">
-                            <p class="text-xs text-slate-400 leading-relaxed">
-                                Suba el código QR generado por su banco para transferencias y pagos instantáneos. Este QR se adjuntará en recibos digitales y órdenes de anticipo.
-                            </p>
-                            <p class="text-[11px] text-slate-500 font-mono">Formatos: JPG, PNG, WEBP. Máx: 5 MB.</p>
-
-                            <div class="flex flex-wrap items-center gap-3 pt-2">
-                                <label class="cursor-pointer px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-gold-400 text-xs font-bold border border-gold-500/30 hover:border-gold-500/50 transition-all flex items-center gap-2 shadow">
-                                    <i class="fa-solid fa-qrcode"></i>
-                                    <span>Cargar Imagen QR</span>
-                                    <input type="file" wire:model="qr_file" accept="image/png,image/jpeg,image/webp" class="hidden">
-                                </label>
-
-                                @if($banco_qr_url || $qr_file)
-                                    <button type="button" wire:click="abrirConfirmacionEliminarQr" class="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold border border-rose-500/20 transition-all flex items-center gap-2">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                        <span>Quitar QR</span>
-                                    </button>
+                    <div>
+                        <span class="block text-sm font-semibold text-ink-primary mb-2">Logotipo oficial:</span>
+                        <div class="flex flex-col sm:flex-row items-start gap-5">
+                            <div
+                                class="relative w-36 h-36 rounded-lg bg-surface-sunken border border-dashed border-outline flex flex-col items-center justify-center p-2 text-center overflow-hidden shrink-0">
+                                @if ($logo_file)
+                                    <img src="{{ $logo_file->temporaryUrl() }}"
+                                        class="max-w-full max-h-24 object-contain">
+                                    <span
+                                        class="absolute bottom-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500 text-slate-900">Vista
+                                        previa nueva</span>
+                                @elseif ($logo_url && !$logo_eliminado)
+                                    <img src="{{ asset($logo_url) }}" class="max-w-full max-h-24 object-contain">
+                                    <span
+                                        class="absolute bottom-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">Logo
+                                        actual</span>
+                                @else
+                                    <i class="fa-regular fa-image text-3xl text-ink-muted mb-1"></i>
+                                    <span class="text-xs text-ink-muted">Sin logotipo</span>
                                 @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Modal Confirmación Eliminar QR -->
-                @if($showConfirmDeleteQr)
-                    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-                        <div class="bg-brand-card border border-brand-border rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl">
-                            <div class="flex items-center gap-3 text-rose-400">
-                                <div class="w-10 h-10 rounded-2xl bg-rose-500/10 flex items-center justify-center text-xl shrink-0">
-                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                <div wire:loading wire:target="logo_file"
+                                    class="absolute inset-0 bg-surface-card/80 flex flex-col items-center justify-center text-gold-700 dark:text-gold-400 text-xs font-semibold gap-1.5">
+                                    <i class="fa-solid fa-spinner fa-spin text-lg"></i>
+                                    <span>Cargando...</span>
                                 </div>
-                                <h4 class="text-base font-bold text-white">¿Quitar el Código QR Actual?</h4>
                             </div>
-                            <p class="text-xs text-slate-300 leading-relaxed">
-                                La imagen del código QR será eliminada y no aparecerá en recibos ni órdenes de pago.
-                            </p>
-                            <div class="flex items-center justify-end gap-3 pt-2 border-t border-brand-border">
-                                <button type="button" wire:click="cancelarEliminarQr" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700">
-                                    Cancelar
-                                </button>
-                                <button type="button" wire:click="eliminarQr" class="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 text-white hover:bg-rose-500">
-                                    Sí, Quitar QR
-                                </button>
+
+                            <div class="space-y-2.5 min-w-0">
+                                <p class="text-sm text-ink-secondary">
+                                    Se optimiza automáticamente para el sitio, los contratos y los recibos en PDF.
+                                    Formatos JPG, PNG o WEBP, hasta 5 MB.
+                                </p>
+                                @error('logo_file')
+                                    <p class="text-xs text-rose-500 font-semibold">{{ $message }}</p>
+                                @enderror
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <label class="{{ $botonArchivo }}">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                                        <span>Seleccionar logo</span>
+                                        <input type="file" wire:model="logo_file"
+                                            accept="image/png,image/jpeg,image/webp" class="hidden">
+                                    </label>
+                                    @if ($logo_url || $logo_file)
+                                        <x-ui.button type="button" size="sm" variant="danger"
+                                            wire:click="abrirConfirmacionEliminarLogo">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                            <span>Quitar logo</span>
+                                        </x-ui.button>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
-                @endif
-            </div>
 
-            <!-- TAB 5: TÉRMINOS Y CONDICIONES DE CONTRATO -->
-            <div x-show="activeTab === 'contratos'" x-cloak class="space-y-4">
-                <h3 class="text-base font-bold text-white border-b border-brand-border pb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-file-contract text-gold-400"></i>
-                    <span>Términos & Condiciones Estándar para Contratos PDF</span>
-                </h3>
+                    <div class="pt-4 border-t border-outline space-y-3">
+                        <div>
+                            <h2 class="text-sm font-semibold text-ink-primary">Redes sociales</h2>
+                            <p class="text-xs text-ink-secondary">Cada red tendrá su botón en el sitio web público.</p>
+                        </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Cláusulas & Compromisos del Mariachi León Guanajuato</label>
-                    <textarea wire:model="terminos_contrato" rows="6" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500" placeholder="Escriba los términos legales, horas de anticipación, tolerancia de espera y compromisos de la agrupación..."></textarea>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            @foreach ($redes as [$campo, $nombre, $icono, $color, $ejemplo])
+                                <div>
+                                    <label
+                                        class="block text-sm font-semibold text-ink-primary mb-1">{{ $nombre }}:</label>
+                                    <div class="relative">
+                                        <i
+                                            class="fa-brands {{ $icono }} {{ $color }} absolute left-3 top-1/2 -translate-y-1/2 text-sm"></i>
+                                        <input type="url" wire:model="{{ $campo }}"
+                                            placeholder="{{ $ejemplo }}" class="{{ $campoCss }} pl-9">
+                                    </div>
+                                    @error($campo)
+                                        <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-ink-primary mb-1">Enlace auxiliar (Linktree
+                                o web externa):</label>
+                            <div class="relative">
+                                <i
+                                    class="fa-solid fa-link text-ink-muted absolute left-3 top-1/2 -translate-y-1/2 text-sm"></i>
+                                <input type="url" wire:model="redes_linktree"
+                                    placeholder="https://linktr.ee/mariachileonguanajuato"
+                                    class="{{ $campoCss }} pl-9">
+                            </div>
+                            @error('redes_linktree')
+                                <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Observaciones Generales de la Empresa</label>
-                    <textarea wire:model="observaciones" rows="2" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500" placeholder="Observaciones o notas adicionales de la gestión de la empresa..."></textarea>
+                {{-- BANCO Y MONEDA --}}
+                <div x-show="activeTab === 'banco'" x-cloak class="space-y-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <x-ui.input label="Moneda oficial" required name="moneda_nombre" wire:model="moneda_nombre"
+                            placeholder="Ej. Bolivianos" />
+                        <x-ui.input label="Símbolo" required name="moneda_simbolo" wire:model="moneda_simbolo"
+                            placeholder="Ej. Bs." />
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <x-ui.input label="Fondo común sugerido (%)" required type="number" step="0.01"
+                                min="0" max="100" name="porcentaje_fondo_comun"
+                                wire:model="porcentaje_fondo_comun" />
+                            <p class="mt-1 text-xs text-ink-muted">Solo es una sugerencia (ej. 5). Al pagar a una
+                                persona se puede cambiar o dejar en 0.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <x-ui.input label="Entidad bancaria" name="banco_nombre" wire:model="banco_nombre"
+                            placeholder="Ej. Banco Nacional de Bolivia" />
+                        <x-ui.input label="Número de cuenta" name="banco_numero_cuenta"
+                            wire:model="banco_numero_cuenta" placeholder="Ej. 1000-2938-4756" />
+                        <x-ui.input label="Titular de la cuenta" name="banco_titular" wire:model="banco_titular" />
+                    </div>
+
+                    <div class="pt-4 border-t border-outline">
+                        <span class="block text-sm font-semibold text-ink-primary mb-2">Código QR de cobro:</span>
+
+                        @if (session()->has('info_qr'))
+                            <div
+                                class="mb-3 flex items-center gap-2.5 p-3 rounded-lg border border-sky-500/30 bg-sky-500/10 text-sm text-ink-primary">
+                                <i class="fa-solid fa-circle-info text-sky-600 dark:text-sky-400"></i>
+                                <span>{{ session('info_qr') }}</span>
+                            </div>
+                        @endif
+
+                        <div class="flex flex-col sm:flex-row items-start gap-5">
+                            <div
+                                class="relative w-36 h-36 rounded-lg bg-surface-sunken border border-dashed border-outline flex flex-col items-center justify-center p-2 text-center overflow-hidden shrink-0">
+                                @if ($qr_file)
+                                    <img src="{{ $qr_file->temporaryUrl() }}"
+                                        class="max-w-full max-h-24 object-contain">
+                                    <span
+                                        class="absolute bottom-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500 text-slate-900">Nuevo
+                                        QR</span>
+                                @elseif ($banco_qr_url && !$qr_eliminado)
+                                    <img src="{{ asset($banco_qr_url) }}" class="max-w-full max-h-24 object-contain">
+                                    <span
+                                        class="absolute bottom-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">QR
+                                        activo</span>
+                                @else
+                                    <i class="fa-solid fa-qrcode text-3xl text-ink-muted mb-1"></i>
+                                    <span class="text-xs text-ink-muted">Sin QR asignado</span>
+                                @endif
+
+                                <div wire:loading wire:target="qr_file"
+                                    class="absolute inset-0 bg-surface-card/80 flex flex-col items-center justify-center text-gold-700 dark:text-gold-400 text-xs font-semibold gap-1.5">
+                                    <i class="fa-solid fa-spinner fa-spin text-lg"></i>
+                                    <span>Cargando...</span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2.5 min-w-0">
+                                <p class="text-sm text-ink-secondary">
+                                    El QR de tu banco se adjunta en los recibos digitales y órdenes de anticipo.
+                                    Formatos JPG, PNG o WEBP, hasta 5 MB.
+                                </p>
+                                @error('qr_file')
+                                    <p class="text-xs text-rose-500 font-semibold">{{ $message }}</p>
+                                @enderror
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <label class="{{ $botonArchivo }}">
+                                        <i class="fa-solid fa-qrcode"></i>
+                                        <span>Cargar imagen QR</span>
+                                        <input type="file" wire:model="qr_file"
+                                            accept="image/png,image/jpeg,image/webp" class="hidden">
+                                    </label>
+                                    @if ($banco_qr_url || $qr_file)
+                                        <x-ui.button type="button" size="sm" variant="danger"
+                                            wire:click="abrirConfirmacionEliminarQr">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                            <span>Quitar QR</span>
+                                        </x-ui.button>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- CONTRATO --}}
+                <div x-show="activeTab === 'contratos'" x-cloak class="space-y-4">
+                    <x-ui.textarea label="Términos y condiciones de los contratos (PDF)" name="terminos_contrato"
+                        rows="1" class="!min-h-[180px]" wire:model="terminos_contrato"
+                        placeholder="Horas de anticipación, tolerancia de espera, compromisos de la agrupación..." />
+                    <x-ui.textarea label="Observaciones generales" name="observaciones" rows="1"
+                        class="!min-h-[72px]" wire:model="observaciones" />
                 </div>
             </div>
+        </x-ui.panel>
+    </form>
 
-            <!-- Submit Buttons -->
-            <div class="flex items-center justify-end gap-4 border-t border-brand-border pt-4">
-                <button type="submit" form="formEmpresa" wire:loading.attr="disabled" class="px-6 py-3 rounded-xl text-sm font-bold bg-gold-500 text-slate-950 hover:bg-gold-400 shadow-lg shadow-gold-500/20 transition-all flex items-center gap-2">
-                    <span wire:loading.remove wire:target="guardar"><i class="fa-solid fa-floppy-disk"></i> Guardar Todos los Datos de la Empresa</span>
-                    <span wire:loading wire:target="guardar"><i class="fa-solid fa-spinner animate-spin"></i> Guardando...</span>
-                </button>
+    {{-- Confirmación: quitar logo --}}
+    @if ($showConfirmDeleteLogo)
+        <x-ui.modal icon="fa-solid fa-triangle-exclamation" title="Quitar el logotipo" maxWidth="max-w-md"
+            onClose="cancelarEliminarLogo">
+            <div class="px-6 py-5">
+                <p class="text-sm text-ink-primary">
+                    El logotipo se desvincula de la empresa y de los encabezados de los documentos oficiales (PDF y
+                    recibos).
+                    Para confirmar, después presiona <strong>Guardar</strong>.
+                </p>
             </div>
-        </form>
-    </div>
+            <x-slot:footer>
+                <x-ui.button type="button" variant="secondary" wire:click="cancelarEliminarLogo">
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Cancelar</span>
+                </x-ui.button>
+                <x-ui.button type="button" variant="danger" wire:click="eliminarLogo">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Quitar logo</span>
+                </x-ui.button>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
+
+    {{-- Confirmación: quitar QR --}}
+    @if ($showConfirmDeleteQr)
+        <x-ui.modal icon="fa-solid fa-triangle-exclamation" title="Quitar el código QR" maxWidth="max-w-md"
+            onClose="cancelarEliminarQr">
+            <div class="px-6 py-5">
+                <p class="text-sm text-ink-primary">
+                    La imagen del QR se elimina y no aparecerá en recibos ni órdenes de pago.
+                    Para confirmar, después presiona <strong>Guardar</strong>.
+                </p>
+            </div>
+            <x-slot:footer>
+                <x-ui.button type="button" variant="secondary" wire:click="cancelarEliminarQr">
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Cancelar</span>
+                </x-ui.button>
+                <x-ui.button type="button" variant="danger" wire:click="eliminarQr">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Quitar QR</span>
+                </x-ui.button>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
 </div>

@@ -38,6 +38,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Tiempo máximo de inactividad (minutos)
+    |--------------------------------------------------------------------------
+    |
+    | Lo usa el middleware CheckSessionTimeout: si el usuario no hace nada durante
+    | este tiempo, se cierra su sesión. 0 desactiva el control.
+    |
+    */
+
+    'idle_timeout' => (int) env('SESSION_IDLE_MINUTES', 120),
+
+    /*
+    |--------------------------------------------------------------------------
     | Session Encryption
     |--------------------------------------------------------------------------
     |
@@ -129,7 +141,7 @@ return [
 
     'cookie' => env(
         'SESSION_COOKIE',
-        Str::slug(env('APP_NAME', 'laravel'), '_').'_session'
+        Str::slug(env('APP_NAME', 'laravel'), '_') . '_session'
     ),
 
     /*

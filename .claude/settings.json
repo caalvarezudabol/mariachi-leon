@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"C:/laragon/www/mariachi-leon/resources/views/components/ui\")",
+      "Bash(php artisan *)",
+      "Bash(node check_xdata.cjs)",
+      "Bash(grep -n '@json\\($paths' resources/views/components/layouts/app.blade.php)",
+      "Bash(sed -i -E 's/@json\\\\\\(\\(\\\\$paths[A-Za-z]+\\)\\\\\\)/@js\\(\\\\1\\)/g' resources/views/components/layouts/app.blade.php)",
+      "Bash(grep -n '@js\\($paths\\\\|@json\\($paths' resources/views/components/layouts/app.blade.php)",
+      "Bash(node -e ' *)",
+      "Bash(cat)",
+      "Bash(node check_modal_xdata.cjs)",
+      "Bash(node check_final.cjs)"
+    ],
+    "additionalDirectories": [
+      "C:\\laragon\\www\\mariachi-leon\\resources\\views\\components"
+    ]
+  }
+}

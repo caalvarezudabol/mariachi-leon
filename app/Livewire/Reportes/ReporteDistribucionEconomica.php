@@ -92,7 +92,6 @@ class ReporteDistribucionEconomica extends Component
                 'participantes' => $participantes,
                 'resumenEvento' => $resumenEvento,
             ];
-
         } elseif ($this->modalidad === 'por_participante') {
             $persona = null;
             $participaciones = collect();
@@ -136,7 +135,6 @@ class ReporteDistribucionEconomica extends Component
                 'participaciones' => $participaciones,
                 'resumenParticipante' => $resumenParticipante,
             ];
-
         } else {
             // Modalidad Consolidado por Período
             $musicosQuery = MusicoPersonal::with(['participaciones' => function ($q) {
@@ -152,8 +150,8 @@ class ReporteDistribucionEconomica extends Component
             if ($this->search) {
                 $musicosQuery->where(function ($q) {
                     $q->where('nombre_completo', 'like', '%' . $this->search . '%')
-                      ->orWhere('ci_nit', 'like', '%' . $this->search . '%')
-                      ->orWhere('telefono', 'like', '%' . $this->search . '%');
+                        ->orWhere('ci_nit', 'like', '%' . $this->search . '%')
+                        ->orWhere('telefono', 'like', '%' . $this->search . '%');
                 });
             }
 
@@ -209,6 +207,9 @@ class ReporteDistribucionEconomica extends Component
             'fecha_desde' => $this->fecha_desde,
             'fecha_hasta' => $this->fecha_hasta,
             'search' => $this->search,
-        ]))->layout('components.layouts.app', ['title' => 'Distribución Económica a Músicos - Mariachi León Guanajuato']);
+        ]))->layout('components.layouts.app', [
+            'title' => 'Distribución Económica a Músicos - Mariachi León Guanajuato',
+            'themed' => true,
+        ]);
     }
 }

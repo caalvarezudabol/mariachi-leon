@@ -60,8 +60,14 @@ class ReporteEstadosCuenta extends Component
     {
         $clientesQuery = Cliente::withCount('contratos')->orderBy('nombre_completo');
         if ($this->search_cliente) {
-            $clientesQuery->where('nombre_completo', 'like', '%' . $this->search_cliente . '%')
-                          ->orWhere('ci_nit', 'like', '%' . $this->search_cliente . '%');
+            // Agrupado para que el cliente ya seleccionado no desaparezca de la lista al filtrar
+            $clientesQuery->where(function ($q) {
+                $q->where('nombre_completo', 'like', '%' . $this->search_cliente . '%')
+                    ->orWhere('ci_nit', 'like', '%' . $this->search_cliente . '%');
+                if ($this->cliente_id) {
+                    $q->orWhere('id', $this->cliente_id);
+                }
+            });
         }
         $clientes = $clientesQuery->get();
 
@@ -165,6 +171,9 @@ class ReporteEstadosCuenta extends Component
             'empresa' => $empresa,
             'tokenCliente' => $tokenCliente,
             'tokenContrato' => $tokenContrato,
-        ])->layout('components.layouts.app', ['title' => 'Estados de Cuenta - Mariachi León Guanajuato']);
+        ])->layout('components.layouts.app', [
+            'title' => 'Estados de Cuenta - Mariachi León Guanajuato',
+            'themed' => true,
+        ]);
     }
 }

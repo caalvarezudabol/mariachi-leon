@@ -33,17 +33,29 @@ class GestionRoles extends Component
     public function abrirModal()
     {
         $this->reset(['role_id', 'name', 'selectedPermissions', 'isEdit']);
+        $this->resetValidation();
         $this->modalOpen = true;
     }
 
     public function editar($id)
     {
         $role = Role::findOrFail($id);
+        $this->resetValidation();
         $this->role_id = $role->id;
         $this->name = $role->name;
         $this->selectedPermissions = $role->permissions->pluck('name')->toArray();
         $this->isEdit = true;
         $this->modalOpen = true;
+    }
+
+    public function seleccionarTodos()
+    {
+        $this->selectedPermissions = Permission::orderBy('name')->pluck('name')->toArray();
+    }
+
+    public function quitarTodos()
+    {
+        $this->selectedPermissions = [];
     }
 
     public function guardar()
@@ -52,6 +64,13 @@ class GestionRoles extends Component
 
         if ($this->isEdit) {
             $role = Role::findOrFail($this->role_id);
+
+            // El rol Administrador se usa en todo el sistema: no se puede renombrar
+            if ($role->name === 'Administrador' && $this->name !== 'Administrador') {
+                $this->addError('name', 'El rol Administrador no se puede renombrar.');
+                return;
+            }
+
             $role->update(['name' => $this->name]);
             $role->syncPermissions($this->selectedPermissions);
 
@@ -70,12 +89,15 @@ class GestionRoles extends Component
 
     public function render()
     {
-        $roles = Role::with('permissions')->get();
-        $permissions = Permission::all();
+        $roles = Role::with('permissions')->withCount('users')->orderBy('name')->get();
+        $permissions = $this->modalOpen ? Permission::orderBy('name')->get() : collect();
 
         return view('livewire.admin.gestion-roles', [
             'roles' => $roles,
             'permissions' => $permissions,
-        ])->layout('components.layouts.app', ['title' => 'Gestión de Roles & Permisos - Mariachi León']);
+        ])->layout('components.layouts.app', [
+            'title' => 'Gestión de Roles & Permisos - Mariachi León',
+            'themed' => true,
+        ]);
     }
 }

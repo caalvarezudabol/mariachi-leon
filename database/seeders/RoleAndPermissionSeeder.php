@@ -13,6 +13,7 @@ use App\Models\Paquete;
 use App\Models\GaleriaItem;
 use App\Models\Banner;
 use App\Models\MusicoPersonal;
+use App\Models\Empresa;
 use Illuminate\Support\Facades\Hash;
 
 class RoleAndPermissionSeeder extends Seeder
@@ -63,19 +64,6 @@ class RoleAndPermissionSeeder extends Seeder
             Permission::findOrCreate($permission, 'web');
         }
 
-        // Músico/Personal de Prueba Centralizado (Idempotente)
-        MusicoPersonal::firstOrCreate(
-            ['nombre_completo' => 'Juan Pérez'],
-            [
-                'nombre' => 'Juan',
-                'apellido' => 'Pérez',
-                'tipo' => 'Músico',
-                'telefono' => '70000000',
-                'estado' => 'Activo',
-                'observaciones' => 'Registro generado automáticamente para pruebas del Módulo de Activos Fijos.',
-            ]
-        );
-
         // Crear Roles
         $adminRole = Role::findOrCreate('Administrador', 'web');
         $adminRole->givePermissionTo(Permission::all());
@@ -120,15 +108,79 @@ class RoleAndPermissionSeeder extends Seeder
             ['clave' => 'moneda_simbolo', 'valor' => 'Bs.', 'grupo' => 'general', 'descripcion' => 'Símbolo oficial de moneda del sistema'],
             ['clave' => 'moneda_nombre', 'valor' => 'Bolivianos', 'grupo' => 'general', 'descripcion' => 'Nombre de la moneda oficial'],
             ['clave' => 'redes_linktree', 'valor' => 'https://linktr.ee/mariachileonguanajuato', 'grupo' => 'general', 'descripcion' => 'Enlace directo a Redes Sociales (Linktree)'],
-            ['clave' => 'telefono_contacto', 'valor' => '+591 700 00000', 'grupo' => 'general', 'descripcion' => 'Teléfono principal de contacto'],
-            ['clave' => 'email_contacto', 'valor' => 'contacto@mariachileonguanajuato.com', 'grupo' => 'general', 'descripcion' => 'Correo de contacto comercial'],
-            ['clave' => 'direccion_oficina', 'valor' => 'León, Guanajuato, México', 'grupo' => 'general', 'descripcion' => 'Dirección fiscal/comercial'],
+            ['clave' => 'telefono_contacto', 'valor' => '+59173164825', 'grupo' => 'general', 'descripcion' => 'Teléfono principal de contacto'],
+            ['clave' => 'email_contacto', 'valor' => 'mariachileonguanajuato@gmail.com', 'grupo' => 'general', 'descripcion' => 'Correo de contacto comercial'],
+            ['clave' => 'direccion_oficina', 'valor' => 'Magisterio Sur, Santa Cruz - Bolivia', 'grupo' => 'general', 'descripcion' => 'Dirección fiscal/comercial'],
             ['clave' => 'porcentaje_fondo_comun', 'valor' => '10', 'grupo' => 'financiero', 'descripcion' => 'Porcentaje por defecto retenido para el fondo común (%)'],
             ['clave' => 'terminos_contrato', 'valor' => 'El Mariachi León Guanajuato se compromete a brindar puntualidad, profesionalismo y presentación impecable.', 'grupo' => 'contrato', 'descripcion' => 'Términos y condiciones por defecto en contratos'],
         ];
 
         foreach ($configs as $config) {
             Configuracion::firstOrCreate(['clave' => $config['clave']], $config);
+        }
+
+        // Datos reales de la empresa (la pantalla Empresa los puede seguir editando)
+        $empresa = Empresa::first() ?? new Empresa();
+        $empresa->fill([
+            'nombre_comercial' => 'Mariachi León Guanajuato',
+            'razon_social' => 'Mariachi León Guanajuato S.R.L.',
+            'nit_ruc' => '78464284',
+            'slogan' => 'Puntualidad, elegancia y variedad musical en cada presentación',
+            'representante_legal' => 'Olvis Ariel Carvajal Melendres',
+            'telefono_principal' => '+59173164825',
+            'whatsapp_comercial' => '+59173164825',
+            'email_contacto' => 'mariachileonguanajuato@gmail.com',
+            'direccion_fisica' => 'Magisterio Sur',
+            'ciudad_pais' => 'Santa Cruz - Bolivia',
+            'moneda_nombre' => 'Bolivianos',
+            'moneda_simbolo' => 'Bs.',
+            'redes_linktree' => 'https://linktr.ee/mariachileonguanajuato',
+            'redes_facebook' => 'https://www.facebook.com/profile.php?id=100084898613114',
+            'redes_instagram' => 'https://www.instagram.com/mariachileonguanajuato',
+            'redes_tiktok' => 'https://www.tiktok.com/@mariachileonguanajuato',
+            'redes_youtube' => 'http://youtube.com/@mariachileonguanajuato',
+            'banco_nombre' => 'Banco Ganadero',
+            'banco_numero_cuenta' => '1310281534',
+            'banco_titular' => 'Luis Enrrique Escalera Arispe',
+            'terminos_contrato' => 'El Mariachi León Guanajuato se compromete a brindar puntualidad, profesionalismo y presentación impecable.',
+            // Los archivos del logo y del QR no se borran con migrate:fresh, pero su ruta sí.
+            // Pega aquí lo que dice la columna logo_url / banco_qr_url de la tabla empresas:
+            'logo_url' => null,
+            'banco_qr_url' => null,
+        ])->save();
+
+        // Músicos y personal (tarifa sugerida por evento; en cada show se puede cambiar)
+        $personal = [
+            // nombre completo, tipo, teléfono, email, tarifa, va en todos los eventos
+            ['Luis Enrique Escalera Arispe', 'Músico', '77666516', 'e2luisgou@gmail.com', 100, false],
+            ['Ariel Andia', 'Músico', null, null, 100, true],
+            ['Cristian Escobar', 'Músico', null, null, 100, false],
+            ['Salustrio Guzman', 'Músico', '70484233', null, 100, false],
+            ['Josue Llanos', 'Músico', '71079013', null, 100, false],
+            ['Arvin Cruz', 'Músico', '69143888', null, 100, true],
+            ['Olvis Carvajal', 'Músico', '61586879', null, 100, false],
+            ['Darlin Arispe', 'Músico', '71022732', null, 100, false],
+            ['Humberto Savedra', 'Músico', '69058232', null, 100, false],
+            ['Minibus', 'Transporte', null, null, 80, true],
+        ];
+
+        foreach ($personal as [$nombreCompleto, $tipo, $telefono, $email, $tarifa, $enTodos]) {
+            $partes = explode(' ', $nombreCompleto, 2);
+            MusicoPersonal::updateOrCreate(
+                ['nombre_completo' => $nombreCompleto],
+                [
+                    'nombre' => $partes[0],
+                    'apellido' => $partes[1] ?? '',
+                    'tipo' => $tipo,
+                    'telefono' => $telefono,
+                    'email' => $email,
+                    'estado' => 'Activo',
+                    'modalidad_pago' => 'por_evento',
+                    'tarifa_evento' => $tarifa,
+                    'sueldo_mensual' => null,
+                    'va_en_todos_eventos' => $enTodos,
+                ]
+            );
         }
 
         // Crear Banners del Banner de Inicio
@@ -191,6 +243,7 @@ class RoleAndPermissionSeeder extends Seeder
         // Crear Servicios por defecto (en Bolivianos Bs.)
         $servicios = [
             ['nombre' => 'Show Estándar (1 Hora)', 'descripcion' => '1 hora de música en vivo con repertorio variado', 'precio_base' => 1200.00, 'duracion_minutos' => 60],
+            ['nombre' => 'Show Tradicional (30min)', 'descripcion' => '30 minutos de música en vivo con repertorio tradicional', 'precio_base' => 1200.00, 'duracion_minutos' => 30],
             ['nombre' => 'Show Ampliado (2 Horas)', 'descripcion' => '2 horas continuas con interacción y complacencias', 'precio_base' => 2200.00, 'duracion_minutos' => 120],
             ['nombre' => 'Acompañamiento Misa', 'descripcion' => 'Música sacra mariachi para ceremonias religiosas', 'precio_base' => 1000.00, 'duracion_minutos' => 45],
         ];

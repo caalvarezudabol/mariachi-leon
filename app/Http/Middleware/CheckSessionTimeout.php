@@ -10,22 +10,24 @@ use Symfony\Component\HttpFoundation\Response;
 class CheckSessionTimeout
 {
     /**
-     * Handle an incoming request.
+     * Cierra la sesión si el usuario estuvo inactivo más de SESSION_IDLE_MINUTES minutos.
+     * También se ejecuta en las peticiones de Livewire (ver AppServiceProvider), así cada
+     * clic, búsqueda o guardado cuenta como actividad.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         if (Auth::check()) {
+            $minutos = (int) config('session.idle_timeout', 120);
             $lastActivity = session('last_activity_timestamp');
-            $timeoutSeconds = 5 * 60; // 5 minutos = 300 segundos
 
-            if ($lastActivity && (time() - $lastActivity > $timeoutSeconds)) {
+            if ($minutos > 0 && $lastActivity && (time() - $lastActivity > $minutos * 60)) {
                 Auth::logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
 
-                return redirect()->route('login')->with('error', 'Su sesión se cerró automáticamente por 5 minutos de inactividad.');
+                return redirect()->route('login')->with('error', "Su sesión se cerró automáticamente por {$minutos} minutos de inactividad.");
             }
 
             session(['last_activity_timestamp' => time()]);

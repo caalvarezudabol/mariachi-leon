@@ -15,6 +15,9 @@ class PagoParticipante extends Model
         'evento_id',
         'persona_id',
         'monto',
+        'aporte_fondo',
+        'fondo_movimiento_id',
+        'tipo', // pago | anticipo
         'metodo_pago',
         'glosa',
         'observaciones',
@@ -28,6 +31,7 @@ class PagoParticipante extends Model
 
     protected $casts = [
         'monto' => 'decimal:2',
+        'aporte_fondo' => 'decimal:2',
         'fecha_pago' => 'datetime',
         'fecha_reversion' => 'datetime',
     ];

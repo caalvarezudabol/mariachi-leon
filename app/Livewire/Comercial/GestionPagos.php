@@ -43,13 +43,23 @@ class GestionPagos extends Component
             'contrato_id' => 'required|exists:contratos,id',
             'fecha_pago' => 'required',
             'monto' => 'required|numeric|gt:0',
-            'metodo_pago' => 'required|in:EFECTIVO,QR,TRANSFERENCIA',
+            'metodo_pago' => 'required|in:EFECTIVO,QR',
             'comprobante_referencia' => 'nullable|string|max:100',
             'observaciones' => 'nullable|string',
         ];
     }
 
     public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingMetodoFiltro()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingEstadoFiltro()
     {
         $this->resetPage();
     }
@@ -139,8 +149,6 @@ class GestionPagos extends Component
 
             session()->flash('success_pago', 'Pago ' . $pago->numero_recibo . ' registrado exitosamente por Bs ' . number_format($montoPago, 2) . '.');
             $this->modalOpen = false;
-
-            return redirect()->route('comercial.pagos.recibo', $this->ultimoRecibo['codigo_verificacion']);
         });
     }
 
@@ -233,20 +241,24 @@ class GestionPagos extends Component
         });
     }
 
-    public function render()
+    /**
+     * Consulta base de pagos (aplica buscador y método). Se reutiliza para la lista y para
+     * los contadores de los chips de estado.
+     */
+    private function pagosQuery()
     {
-        $query = Pago::with(['contrato', 'cliente', 'evento', 'user', 'anuladoPor']);
+        $query = Pago::with(['contrato.evento', 'cliente', 'evento', 'anuladoPor']);
 
         if ($this->search) {
             $query->where(function ($q) {
                 $q->where('numero_recibo', 'like', '%' . $this->search . '%')
-                  ->orWhere('comprobante_referencia', 'like', '%' . $this->search . '%')
-                  ->orWhereHas('cliente', function($c) {
-                      $c->where('nombre_completo', 'like', '%' . $this->search . '%');
-                  })
-                  ->orWhereHas('contrato', function($ct) {
-                      $ct->where('numero_contrato', 'like', '%' . $this->search . '%');
-                  });
+                    ->orWhere('comprobante_referencia', 'like', '%' . $this->search . '%')
+                    ->orWhereHas('cliente', function ($c) {
+                        $c->where('nombre_completo', 'like', '%' . $this->search . '%');
+                    })
+                    ->orWhereHas('contrato', function ($ct) {
+                        $ct->where('numero_contrato', 'like', '%' . $this->search . '%');
+                    });
             });
         }
 
@@ -254,19 +266,57 @@ class GestionPagos extends Component
             $query->where('metodo_pago', $this->metodo_filtro);
         }
 
+        return $query;
+    }
+
+    public function render()
+    {
+        // Contadores por estado para los chips (respetan buscador y método, no el filtro de estado)
+        $estados = $this->pagosQuery()
+            ->reorder()
+            ->selectRaw('estado, COUNT(*) as total')
+            ->groupBy('estado')
+            ->pluck('total', 'estado');
+
+        $query = $this->pagosQuery();
+
         if ($this->estado_filtro) {
             $query->where('estado', $this->estado_filtro);
         }
 
         $pagos = $query->orderBy('fecha_pago', 'desc')->paginate(10);
-        $contratosPendientes = Contrato::with(['cliente', 'evento'])
-            ->where('saldo_pendiente', '>', 0)
-            ->orderBy('numero_contrato', 'asc')
-            ->get();
+
+        // Opciones del selector con buscador: solo se cargan cuando el modal está abierto
+        $contratosOptions = [];
+        if ($this->modalOpen) {
+            $contratosOptions = Contrato::with(['cliente', 'evento'])
+                ->where('saldo_pendiente', '>', 0)
+                ->whereDoesntHave('evento', fn($e) => $e->where('estado', 'Cancelado'))
+                ->orderBy('numero_contrato', 'asc')
+                ->get()
+                ->map(function ($ctr) {
+                    $cliente = $ctr->cliente->nombre_completo ?? 'N/A';
+                    $evento = $ctr->evento->codigo_evento ?? '';
+
+                    return [
+                        'id' => $ctr->id,
+                        'label' => $ctr->numero_contrato . ' - ' . $cliente,
+                        'meta' => $evento,
+                        'aside' => 'Bs ' . number_format($ctr->saldo_pendiente, 2),
+                        'search' => mb_strtolower($ctr->numero_contrato . ' ' . $cliente . ' ' . $evento),
+                    ];
+                })
+                ->values()
+                ->all();
+        }
 
         return view('livewire.comercial.gestion-pagos', [
             'pagos' => $pagos,
-            'contratosPendientes' => $contratosPendientes,
-        ])->layout('components.layouts.app', ['title' => 'Gestión de Pagos - Mariachi León Guanajuato']);
+            'estados' => $estados,
+            'contratosOptions' => $contratosOptions,
+        ])->layout('components.layouts.app', [
+            'title' => 'Gestión de Pagos - Mariachi León Guanajuato',
+            'themed' => true,
+        ]);
     }
 }

@@ -8,8 +8,6 @@ use App\Models\Evento;
 use App\Models\Servicio;
 use App\Services\Finanzas\FinanzasService;
 use App\Traits\Auditable;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Auth;
 
 class DashboardFinanciero extends Component
 {
@@ -21,15 +19,10 @@ class DashboardFinanciero extends Component
     public $cliente_id = '';
     public $evento_id = '';
     public $servicio_id = '';
-    public $metodo_pago = '';
-
-    public $kpis = [];
-    public $graficos = [];
 
     public function mount()
     {
         $this->aplicarPreset('este_mes');
-        $this->cargarDatos();
 
         $this->registrarAuditoria(
             'Gestión Financiera',
@@ -63,16 +56,14 @@ class DashboardFinanciero extends Component
                 // Conserva los valores actuales
                 break;
         }
-
-        $this->cargarDatos();
     }
 
+    // Si se edita una fecha a mano, el período pasa a "personalizado"
     public function updated($property)
     {
         if (in_array($property, ['fecha_inicio', 'fecha_fin'])) {
             $this->periodo_preset = 'personalizado';
         }
-        $this->cargarDatos();
     }
 
     public function limpiarFiltros()
@@ -80,35 +71,40 @@ class DashboardFinanciero extends Component
         $this->cliente_id = '';
         $this->evento_id = '';
         $this->servicio_id = '';
-        $this->metodo_pago = '';
         $this->aplicarPreset('este_mes');
     }
 
-    public function cargarDatos()
+    public function render()
     {
+        // Los indicadores se calculan en cada render, ya no viajan como datos públicos al navegador
         $filtros = [
             'fecha_inicio' => $this->fecha_inicio,
             'fecha_fin' => $this->fecha_fin,
             'cliente_id' => $this->cliente_id ?: null,
             'evento_id' => $this->evento_id ?: null,
             'servicio_id' => $this->servicio_id ?: null,
-            'metodo_pago' => $this->metodo_pago ?: null,
+            'metodo_pago' => null,
         ];
 
-        $this->kpis = FinanzasService::calcularKPIs($filtros);
-        $this->graficos = FinanzasService::obtenerDatosGraficos($filtros);
-    }
+        $kpis = FinanzasService::calcularKPIs($filtros);
+        $graficos = FinanzasService::obtenerDatosGraficos($filtros);
 
-    public function render()
-    {
-        $clientes = Cliente::orderBy('nombre_completo', 'asc')->get();
-        $eventos = Evento::with('cliente')->orderBy('fecha_evento', 'desc')->limit(50)->get();
-        $servicios = Servicio::where('activo', true)->orderBy('nombre', 'asc')->get();
+        $clientes = Cliente::orderBy('nombre_completo', 'asc')->get(['id', 'nombre_completo']);
+        $eventos = Evento::with('cliente:id,nombre_completo')
+            ->orderBy('fecha_evento', 'desc')
+            ->limit(50)
+            ->get(['id', 'codigo_evento', 'cliente_id']);
+        $servicios = Servicio::where('activo', true)->orderBy('nombre', 'asc')->get(['id', 'nombre']);
 
         return view('livewire.finanzas.dashboard-financiero', [
+            'kpis' => $kpis,
+            'graficos' => $graficos,
             'clientes' => $clientes,
             'eventos' => $eventos,
             'servicios' => $servicios,
-        ])->layout('components.layouts.app', ['title' => 'Dashboard Financiero - Mariachi León Guanajuato']);
+        ])->layout('components.layouts.app', [
+            'title' => 'Dashboard Financiero - Mariachi León Guanajuato',
+            'themed' => true,
+        ]);
     }
 }

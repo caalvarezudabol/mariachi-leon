@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MusicoPersonal extends Model
@@ -20,6 +21,17 @@ class MusicoPersonal extends Model
         'direccion',
         'estado',
         'observaciones',
+        'modalidad_pago',
+        'tarifa_evento',
+        'sueldo_mensual',
+        'va_en_todos_eventos',
+        'user_id',
+    ];
+
+    protected $casts = [
+        'tarifa_evento' => 'decimal:2',
+        'sueldo_mensual' => 'decimal:2',
+        'va_en_todos_eventos' => 'boolean',
     ];
 
     public function assignments(): HasMany
@@ -55,5 +67,10 @@ class MusicoPersonal extends Model
     public function plantillasServicios(): HasMany
     {
         return $this->hasMany(ServicioParticipante::class, 'persona_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

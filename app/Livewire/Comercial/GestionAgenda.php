@@ -4,10 +4,14 @@ namespace App\Livewire\Comercial;
 
 use Livewire\Component;
 use App\Models\Evento;
+use App\Traits\Auditable;
+use App\Traits\ManejaFormularioEvento;
 use Carbon\Carbon;
 
 class GestionAgenda extends Component
 {
+    use Auditable, ManejaFormularioEvento;
+
     public $vistaModo = 'mes'; // 'dia', 'semana', 'mes'
     public $fechaSeleccionada = '';
     public $eventoIdDetalle = null;
@@ -20,7 +24,9 @@ class GestionAgenda extends Component
 
     public function cambiarVista($modo)
     {
-        $this->vistaModo = $modo;
+        if (in_array($modo, ['dia', 'semana', 'mes'], true)) {
+            $this->vistaModo = $modo;
+        }
     }
 
     public function verDetalleEvento($id)
@@ -35,6 +41,7 @@ class GestionAgenda extends Component
         $this->eventoIdDetalle = null;
     }
 
+    // Ver el día completo (cambia a la vista Día)
     public function irADia($fechaStr)
     {
         $this->fechaSeleccionada = $fechaStr;
@@ -43,25 +50,25 @@ class GestionAgenda extends Component
 
     public function fechaAnterior()
     {
-        $dt = Carbon::parse($this->fechaSeleccionada);
+        $dt = $this->fechaBase();
         if ($this->vistaModo === 'dia') {
             $this->fechaSeleccionada = $dt->subDay()->format('Y-m-d');
         } elseif ($this->vistaModo === 'semana') {
             $this->fechaSeleccionada = $dt->subWeek()->format('Y-m-d');
         } else {
-            $this->fechaSeleccionada = $dt->subMonth()->format('Y-m-d');
+            $this->fechaSeleccionada = $dt->subMonthNoOverflow()->format('Y-m-d');
         }
     }
 
     public function fechaSiguiente()
     {
-        $dt = Carbon::parse($this->fechaSeleccionada);
+        $dt = $this->fechaBase();
         if ($this->vistaModo === 'dia') {
             $this->fechaSeleccionada = $dt->addDay()->format('Y-m-d');
         } elseif ($this->vistaModo === 'semana') {
             $this->fechaSeleccionada = $dt->addWeek()->format('Y-m-d');
         } else {
-            $this->fechaSeleccionada = $dt->addMonth()->format('Y-m-d');
+            $this->fechaSeleccionada = $dt->addMonthNoOverflow()->format('Y-m-d');
         }
     }
 
@@ -70,10 +77,60 @@ class GestionAgenda extends Component
         $this->fechaSeleccionada = date('Y-m-d');
     }
 
+    /**
+     * Nuevo evento: abre el mismo formulario de Eventos (con contrato, adelanto y equipo)
+     * aquí mismo, con la fecha ya puesta.
+     */
+    public function abrirNuevoEvento($fecha = null)
+    {
+        if (!$fecha) {
+            $fecha = $this->vistaModo === 'dia' && $this->fechaSeleccionada
+                ? $this->fechaSeleccionada
+                : date('Y-m-d');
+        }
+
+        $this->abrirModal($fecha);
+    }
+
+    // Desde el detalle de un evento: abre el mismo formulario para editarlo
+    public function editarDesdeDetalle()
+    {
+        $id = $this->eventoIdDetalle;
+        $this->cerrarModalDetalle();
+        if ($id) {
+            $this->editar($id);
+        }
+    }
+
+    private function fechaBase(): Carbon
+    {
+        return $this->fechaSeleccionada
+            ? Carbon::parse($this->fechaSeleccionada)
+            : Carbon::today();
+    }
+
+    private function aMinutos($hora): int
+    {
+        $hora = (string) $hora;
+
+        return ((int) substr($hora, 0, 2)) * 60 + (int) substr($hora, 3, 2);
+    }
+
+    // Agrega hora_txt y hora_fin_txt (HH:MM) al evento
+    private function conHoras($ev)
+    {
+        $ini = $this->aMinutos($ev->hora_evento);
+        $finMin = $ini + (int) round(((float) $ev->duracion_horas) * 60);
+        $ev->hora_txt = sprintf('%02d:%02d', intdiv($ini, 60) % 24, $ini % 60);
+        $ev->hora_fin_txt = sprintf('%02d:%02d', intdiv($finMin, 60) % 24, $finMin % 60);
+
+        return $ev;
+    }
+
     public function render()
     {
         Carbon::setLocale('es');
-        $dt = Carbon::parse($this->fechaSeleccionada)->locale('es');
+        $dt = $this->fechaBase()->locale('es');
 
         if ($this->vistaModo === 'dia') {
             $inicio = $dt->copy()->startOfDay();
@@ -82,48 +139,61 @@ class GestionAgenda extends Component
             $inicio = $dt->copy()->startOfWeek(Carbon::MONDAY);
             $fin = $dt->copy()->endOfWeek(Carbon::SUNDAY);
         } else {
-            // Mes completo + compensación de días de la semana anterior y posterior
+            // Mes completo + días de la semana anterior y posterior
             $inicio = $dt->copy()->startOfMonth()->startOfWeek(Carbon::MONDAY);
             $fin = $dt->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
         }
 
-        $eventos = Evento::with(['cliente', 'servicio', 'contrato'])
+        $eventos = Evento::with(['cliente', 'servicio'])
             ->whereBetween('fecha_evento', [$inicio->format('Y-m-d'), $fin->format('Y-m-d')])
             ->orderBy('fecha_evento', 'asc')
             ->orderBy('hora_evento', 'asc')
             ->get();
 
-        // Detección de Conflictos de Horario
-        $conflictos = [];
+        foreach ($eventos as $ev) {
+            $this->conHoras($ev);
+        }
+
         $gruposFecha = $eventos->groupBy(function ($item) {
-            return is_object($item->fecha_evento) ? $item->fecha_evento->format('Y-m-d') : substr((string)$item->fecha_evento, 0, 10);
+            return is_object($item->fecha_evento) ? $item->fecha_evento->format('Y-m-d') : substr((string) $item->fecha_evento, 0, 10);
         });
 
+        // Conflictos de horario (mismo día, horarios que se cruzan)
+        $conflictos = [];
+        $conflictosPares = [];
+
         foreach ($gruposFecha as $fechaStr => $evsEnFecha) {
-            foreach ($evsEnFecha as $ev1) {
-                foreach ($evsEnFecha as $ev2) {
-                    if ($ev1->id !== $ev2->id && !in_array($ev1->estado, ['Cancelado']) && !in_array($ev2->estado, ['Cancelado'])) {
-                        $h1Inicio = Carbon::parse($ev1->hora_evento);
-                        $h1Fin = $h1Inicio->copy()->addMinutes((int)($ev1->duracion_horas * 60));
+            $lista = $evsEnFecha->reject(fn($e) => $e->estado === 'Cancelado')->values();
+            $n = $lista->count();
 
-                        $h2Inicio = Carbon::parse($ev2->hora_evento);
-                        $h2Fin = $h2Inicio->copy()->addMinutes((int)($ev2->duracion_horas * 60));
+            for ($i = 0; $i < $n; $i++) {
+                for ($j = $i + 1; $j < $n; $j++) {
+                    $e1 = $lista[$i];
+                    $e2 = $lista[$j];
 
-                        if ($h1Inicio < $h2Fin && $h1Fin > $h2Inicio) {
-                            $conflictos[$ev1->id] = true;
-                            $conflictos[$ev2->id] = true;
-                        }
+                    $s1 = $this->aMinutos($e1->hora_evento);
+                    $f1 = $s1 + (int) round(((float) $e1->duracion_horas) * 60);
+                    $s2 = $this->aMinutos($e2->hora_evento);
+                    $f2 = $s2 + (int) round(((float) $e2->duracion_horas) * 60);
+
+                    if ($s1 < $f2 && $f1 > $s2) {
+                        $conflictos[$e1->id] = true;
+                        $conflictos[$e2->id] = true;
+                        $conflictosPares[] = [
+                            'fecha' => $fechaStr,
+                            'a' => $e1->codigo_evento,
+                            'b' => $e2->codigo_evento,
+                        ];
                     }
                 }
             }
         }
 
-        // Construcción de la matriz de días para el Calendario Mensual y Semanal
+        // Días para las vistas de mes y semana
         $diasCalendario = [];
         $curr = $inicio->copy();
         while ($curr <= $fin) {
             $dateKey = $curr->format('Y-m-d');
-            $evsDia = $gruposFecha->get($dateKey, collect());
 
             $diasCalendario[] = [
                 'fecha' => $curr->copy(),
@@ -131,25 +201,49 @@ class GestionAgenda extends Component
                 'diaNumero' => $curr->day,
                 'esMesActual' => $curr->month === $dt->month,
                 'esHoy' => $curr->isToday(),
-                'eventos' => $evsDia
+                'eventos' => $gruposFecha->get($dateKey, collect()),
             ];
             $curr->addDay();
         }
 
+        // Resumen del período visible (sin contar cancelados)
+        $activos = $eventos->reject(fn($e) => $e->estado === 'Cancelado');
+        $resumen = [
+            'total' => $activos->count(),
+            'confirmados' => $activos->whereIn('estado', ['Confirmado', 'Realizado', 'Finalizado'])->count(),
+            'porConfirmar' => $activos->whereIn('estado', ['Pendiente', 'Cotizado', 'Reservado'])->count(),
+        ];
+        // En vista mes, el resumen cuenta solo el mes que se está viendo
+        if ($this->vistaModo === 'mes') {
+            $delMes = $activos->filter(fn($e) => $e->fecha_evento->month === $dt->month && $e->fecha_evento->year === $dt->year);
+            $resumen = [
+                'total' => $delMes->count(),
+                'confirmados' => $delMes->whereIn('estado', ['Confirmado', 'Realizado', 'Finalizado'])->count(),
+                'porConfirmar' => $delMes->whereIn('estado', ['Pendiente', 'Cotizado', 'Reservado'])->count(),
+            ];
+        }
+
         $eventoDetalle = null;
         if ($this->eventoIdDetalle) {
-            /* $eventoDetalle = Evento::with(['cliente', 'servicio', 'contrato', 'participantes.integrante'])->find($this->eventoIdDetalle); */
-            $eventoDetalle = Evento::with(['cliente', 'servicio', 'contrato', 'participantes.persona'])->find($this->eventoIdDetalle);
+            $eventoDetalle = Evento::with(['cliente', 'servicio'])->find($this->eventoIdDetalle);
+            if ($eventoDetalle) {
+                $this->conHoras($eventoDetalle);
+            }
         }
 
         return view('livewire.comercial.gestion-agenda', [
             'eventos' => $eventos,
             'conflictos' => $conflictos,
+            'conflictosPares' => $conflictosPares,
             'diasCalendario' => $diasCalendario,
             'inicioPeriodo' => $inicio,
             'finPeriodo' => $fin,
             'fechaActual' => $dt,
             'eventoDetalle' => $eventoDetalle,
-        ])->layout('components.layouts.app', ['title' => 'Gestionar Agenda - Mariachi León Guanajuato']);
+            'resumen' => $resumen,
+        ] + $this->datosFormularioEvento())->layout('components.layouts.app', [
+            'title' => 'Gestionar Agenda - Mariachi León Guanajuato',
+            'themed' => true,
+        ]);
     }
 }

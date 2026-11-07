@@ -65,6 +65,35 @@ class ReporteEventosContratos extends Component
         $this->resetPage();
     }
 
+    public function updatingCampoFecha()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFechaDesde()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFechaHasta()
+    {
+        $this->resetPage();
+    }
+
+    public function limpiarFiltros()
+    {
+        $this->search = '';
+        $this->cliente_id = '';
+        $this->servicio_id = '';
+        $this->estado_contrato = '';
+        $this->estado_evento = '';
+        $this->search_lugar = '';
+        $this->campo_fecha = 'fecha_evento';
+        $this->fecha_desde = now()->startOfYear()->format('Y-m-d');
+        $this->fecha_hasta = now()->endOfMonth()->format('Y-m-d');
+        $this->resetPage();
+    }
+
     public function render()
     {
         $query = Evento::with(['cliente', 'servicio', 'contrato.pagos']);
@@ -72,8 +101,8 @@ class ReporteEventosContratos extends Component
         if ($this->search) {
             $query->where(function ($q) {
                 $q->where('codigo_evento', 'like', '%' . $this->search . '%')
-                  ->orWhereHas('cliente', fn($c) => $c->where('nombre_completo', 'like', '%' . $this->search . '%'))
-                  ->orWhereHas('contrato', fn($ct) => $ct->where('numero_contrato', 'like', '%' . $this->search . '%'));
+                    ->orWhereHas('cliente', fn($c) => $c->where('nombre_completo', 'like', '%' . $this->search . '%'))
+                    ->orWhereHas('contrato', fn($ct) => $ct->where('numero_contrato', 'like', '%' . $this->search . '%'));
             });
         }
 
@@ -145,6 +174,9 @@ class ReporteEventosContratos extends Component
                 'total_cobrado' => $totalCobrado,
                 'total_saldo_pendiente' => $totalSaldoPendiente,
             ],
-        ])->layout('components.layouts.app', ['title' => 'Reporte de Eventos y Contratos - Mariachi León Guanajuato']);
+        ])->layout('components.layouts.app', [
+            'title' => 'Reporte de Eventos y Contratos - Mariachi León Guanajuato',
+            'themed' => true,
+        ]);
     }
 }

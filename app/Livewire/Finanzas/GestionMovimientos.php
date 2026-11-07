@@ -6,7 +6,6 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\MovimientoFinanciero;
 use App\Models\Evento;
-use App\Models\Contrato;
 use App\Traits\Auditable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,23 +18,22 @@ class GestionMovimientos extends Component
     public $search = '';
     public $filtro_tipo = ''; // '', 'EGRESO', 'INGRESO'
     public $filtro_clasificacion = ''; // '', 'OPERATIVO', 'EVENTO'
-    public $filtro_categoria = '';
     public $filtro_estado = 'Valido'; // 'Valido', 'Anulado', 'todos'
     public $fecha_desde = '';
     public $fecha_hasta = '';
 
-    // Modal Crear/Editar Movimiento
+    // Modal Crear Movimiento
     public $modalOpen = false;
     public $tipo = 'EGRESO'; // 'EGRESO', 'INGRESO'
     public $clasificacion = 'OPERATIVO'; // 'OPERATIVO', 'EVENTO'
-    public $categoria = 'Transporte y Combustible';
+    public $categoria = '';
     public $evento_id = '';
     public $contrato_id = '';
     public $proveedor = '';
     public $concepto = '';
     public $descripcion = '';
     public $monto = '';
-    public $metodo_pago = 'Efectivo';
+    public $metodo_pago = 'EFECTIVO';
     public $numero_comprobante = '';
     public $fecha = '';
     public $glosa = '';
@@ -47,8 +45,8 @@ class GestionMovimientos extends Component
     public $movimiento_a_anular = null;
     public $motivo_anulacion = '';
 
-    // Categorías predefinidas comunes
-    public $categoriasOperativas = [
+    // Categorías predefinidas (no viajan al navegador en cada request)
+    protected $categoriasOperativas = [
         'Alquiler de Local',
         'Servicios Básicos (Agua / Luz)',
         'Internet y Comunicaciones',
@@ -59,7 +57,7 @@ class GestionMovimientos extends Component
         'Otros Gastos Operativos',
     ];
 
-    public $categoriasEventos = [
+    protected $categoriasEventos = [
         'Transporte y Combustible',
         'Viáticos y Pasajes',
         'Alimentación y Refrigerios del Personal',
@@ -70,7 +68,7 @@ class GestionMovimientos extends Component
         'Otros Gastos del Evento',
     ];
 
-    public $categoriasIngresos = [
+    protected $categoriasIngresos = [
         'Ingreso Operativo Extraordinario',
         'Venta de Mercancía / Discos / Souvenirs',
         'Ajuste a Favor',
@@ -85,14 +83,22 @@ class GestionMovimientos extends Component
             'categoria' => 'required|string|max:100',
             'evento_id' => 'nullable|required_if:clasificacion,EVENTO|exists:eventos,id',
             'proveedor' => 'nullable|string|max:150',
-            'concepto' => 'required|string|min:3|max:255',
+            'concepto' => 'nullable|string|max:255',
             'descripcion' => 'nullable|string|max:1000',
             'monto' => 'required|numeric|min:0.01',
-            'metodo_pago' => 'required|string|max:50',
+            'metodo_pago' => 'required|in:EFECTIVO,QR',
             'numero_comprobante' => 'nullable|string|max:100',
             'fecha' => 'required|date',
             'glosa' => 'nullable|string|max:255',
             'observaciones' => 'nullable|string|max:500',
+        ];
+    }
+
+    protected function messages()
+    {
+        return [
+            'evento_id.required_if' => 'Elige el show de este gasto.',
+            'categoria.required' => 'Elige o escribe una categoría.',
         ];
     }
 
@@ -106,6 +112,78 @@ class GestionMovimientos extends Component
     public function updatingSearch()
     {
         $this->resetPage();
+    }
+    public function updatingFiltroTipo()
+    {
+        $this->resetPage();
+    }
+    public function updatingFiltroClasificacion()
+    {
+        $this->resetPage();
+    }
+    public function updatingFiltroEstado()
+    {
+        $this->resetPage();
+    }
+    public function updatingFechaDesde()
+    {
+        $this->resetPage();
+    }
+    public function updatingFechaHasta()
+    {
+        $this->resetPage();
+    }
+
+    public function limpiarFiltros()
+    {
+        $this->search = '';
+        $this->filtro_tipo = '';
+        $this->filtro_clasificacion = '';
+        $this->filtro_estado = 'Valido';
+        $this->fecha_desde = now()->startOfMonth()->format('Y-m-d');
+        $this->fecha_hasta = now()->endOfMonth()->format('Y-m-d');
+        $this->resetPage();
+    }
+
+    /**
+     * Consulta base con los filtros activos (sin relaciones, para poder usarla en sumas y conteos).
+     * $conTipo / $conEstado permiten ignorar esos dos filtros en los totales.
+     */
+    private function movimientosQuery(bool $conTipo = true, bool $conEstado = true)
+    {
+        $query = MovimientoFinanciero::query();
+
+        if ($this->search) {
+            $query->where(function ($q) {
+                $q->where('concepto', 'like', '%' . $this->search . '%')
+                    ->orWhere('proveedor', 'like', '%' . $this->search . '%')
+                    ->orWhere('numero_comprobante', 'like', '%' . $this->search . '%')
+                    ->orWhere('glosa', 'like', '%' . $this->search . '%')
+                    ->orWhereHas('evento', fn($e) => $e->where('codigo_evento', 'like', '%' . $this->search . '%'));
+            });
+        }
+
+        if ($conTipo && $this->filtro_tipo) {
+            $query->where('tipo', $this->filtro_tipo);
+        }
+
+        if ($this->filtro_clasificacion) {
+            $query->where('clasificacion', $this->filtro_clasificacion);
+        }
+
+        if ($conEstado && $this->filtro_estado && $this->filtro_estado !== 'todos') {
+            $query->where('estado', $this->filtro_estado);
+        }
+
+        if ($this->fecha_desde) {
+            $query->where('fecha', '>=', $this->fecha_desde);
+        }
+
+        if ($this->fecha_hasta) {
+            $query->where('fecha', '<=', $this->fecha_hasta);
+        }
+
+        return $query;
     }
 
     public function abrirModalCrear($tipo = 'EGRESO', $clasificacion = 'OPERATIVO')
@@ -123,40 +201,19 @@ class GestionMovimientos extends Component
         $this->observaciones = '';
         $this->evento_id = '';
         $this->contrato_id = '';
-        $this->metodo_pago = 'Efectivo';
-
-        if ($tipo === 'INGRESO') {
-            $this->categoria = 'Ingreso Operativo Extraordinario';
-        } elseif ($clasificacion === 'EVENTO') {
-            $this->categoria = 'Transporte y Combustible';
-        } else {
-            $this->categoria = 'Servicios Básicos (Agua / Luz)';
-        }
+        $this->metodo_pago = 'EFECTIVO';
+        $this->categoria = '';
 
         $this->modalOpen = true;
     }
 
     public function updatedClasificacion($val)
     {
-        if ($val === 'EVENTO') {
-            $this->categoria = 'Transporte y Combustible';
-        } else {
-            $this->categoria = 'Alquiler de Local';
+        if ($val !== 'EVENTO') {
             $this->evento_id = '';
             $this->contrato_id = '';
         }
-    }
-
-    public function updatedEventoId($val)
-    {
-        if ($val) {
-            $evento = Evento::find($val);
-            if ($evento && $evento->contrato) {
-                $this->contrato_id = $evento->contrato->id;
-            } else {
-                $this->contrato_id = null;
-            }
-        }
+        $this->categoria = '';
     }
 
     public function cerrarModal()
@@ -169,22 +226,32 @@ class GestionMovimientos extends Component
     {
         $this->validate();
 
-        DB::transaction(function () {
+        $this->categoria = trim($this->categoria);
+        $this->concepto = trim((string) $this->concepto) ?: $this->categoria;
+
+        // El contrato se toma del evento al guardar (no depende de ningún evento de la pantalla)
+        $contratoId = null;
+        if ($this->clasificacion === 'EVENTO') {
+            $evento = Evento::with('contrato')->find($this->evento_id);
+            $contratoId = $evento && $evento->contrato ? $evento->contrato->id : null;
+        }
+
+        DB::transaction(function () use ($contratoId) {
             $mov = MovimientoFinanciero::create([
                 'tipo' => $this->tipo,
                 'clasificacion' => $this->clasificacion,
                 'categoria' => $this->categoria,
                 'evento_id' => $this->clasificacion === 'EVENTO' ? $this->evento_id : null,
-                'contrato_id' => $this->clasificacion === 'EVENTO' ? $this->contrato_id : null,
-                'proveedor' => trim($this->proveedor) ?: null,
+                'contrato_id' => $contratoId,
+                'proveedor' => trim((string) $this->proveedor) ?: null,
                 'concepto' => trim($this->concepto),
-                'descripcion' => trim($this->descripcion) ?: null,
-                'monto' => (float)$this->monto,
+                'descripcion' => trim((string) $this->descripcion) ?: null,
+                'monto' => (float) $this->monto,
                 'metodo_pago' => $this->metodo_pago,
-                'numero_comprobante' => trim($this->numero_comprobante) ?: null,
+                'numero_comprobante' => trim((string) $this->numero_comprobante) ?: null,
                 'fecha' => $this->fecha,
-                'glosa' => trim($this->glosa) ?: trim($this->concepto),
-                'observaciones' => trim($this->observaciones) ?: null,
+                'glosa' => trim((string) $this->glosa) ?: trim($this->concepto),
+                'observaciones' => trim((string) $this->observaciones) ?: null,
                 'estado' => 'Valido',
                 'user_id' => Auth::id(),
             ]);
@@ -257,73 +324,80 @@ class GestionMovimientos extends Component
 
     public function render()
     {
-        $query = MovimientoFinanciero::with(['evento.cliente', 'user', 'anuladoPor']);
+        $movimientos = $this->movimientosQuery()
+            ->with(['evento.cliente', 'user', 'anuladoPor'])
+            ->orderBy('fecha', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate(12);
 
-        if ($this->search) {
-            $query->where(function ($q) {
-                $q->where('concepto', 'like', '%' . $this->search . '%')
-                  ->orWhere('proveedor', 'like', '%' . $this->search . '%')
-                  ->orWhere('numero_comprobante', 'like', '%' . $this->search . '%')
-                  ->orWhere('glosa', 'like', '%' . $this->search . '%')
-                  ->orWhereHas('evento', fn($e) => $e->where('codigo_evento', 'like', '%' . $this->search . '%'));
-            });
-        }
+        // Totales del resumen: ignoran el filtro de tipo y solo cuentan movimientos válidos
+        $sumas = $this->movimientosQuery(false, false)
+            ->where('estado', 'Valido')
+            ->selectRaw('tipo, clasificacion, SUM(monto) as total')
+            ->groupBy('tipo', 'clasificacion')
+            ->get();
 
-        if ($this->filtro_tipo) {
-            $query->where('tipo', $this->filtro_tipo);
-        }
+        $suma = fn($tipo, $clasif = null) => (float) $sumas
+            ->where('tipo', $tipo)
+            ->when($clasif, fn($c) => $c->where('clasificacion', $clasif))
+            ->sum('total');
 
-        if ($this->filtro_clasificacion) {
-            $query->where('clasificacion', $this->filtro_clasificacion);
-        }
-
-        if ($this->filtro_categoria) {
-            $query->where('categoria', $this->filtro_categoria);
-        }
-
-        if ($this->filtro_estado && $this->filtro_estado !== 'todos') {
-            $query->where('estado', $this->filtro_estado);
-        }
-
-        if ($this->fecha_desde) {
-            $query->where('fecha', '>=', $this->fecha_desde);
-        }
-
-        if ($this->fecha_hasta) {
-            $query->where('fecha', '<=', $this->fecha_hasta);
-        }
-
-        $movimientos = $query->orderBy('fecha', 'desc')->orderBy('id', 'desc')->paginate(12);
-
-        // Totales de la consulta actual
         $totalesConsulta = [
-            'egresos' => (float) (clone $query)->where('estado', 'Valido')->where('tipo', 'EGRESO')->sum('monto'),
-            'ingresos' => (float) (clone $query)->where('estado', 'Valido')->where('tipo', 'INGRESO')->sum('monto'),
-            'operativos' => (float) (clone $query)->where('estado', 'Valido')->where('tipo', 'EGRESO')->where('clasificacion', 'OPERATIVO')->sum('monto'),
-            'eventos' => (float) (clone $query)->where('estado', 'Valido')->where('tipo', 'EGRESO')->where('clasificacion', 'EVENTO')->sum('monto'),
+            'egresos' => $suma('EGRESO'),
+            'ingresos' => $suma('INGRESO'),
+            'operativos' => $suma('EGRESO', 'OPERATIVO'),
+            'eventos' => $suma('EGRESO', 'EVENTO'),
         ];
 
-        $eventos = Evento::with('cliente')->orderBy('fecha_evento', 'desc')->limit(60)->get();
+        // Contadores para los chips de tipo (respetan búsqueda, clasificación, fechas y estado)
+        $contTipos = $this->movimientosQuery(false)
+            ->selectRaw('tipo, COUNT(*) as total')
+            ->groupBy('tipo')
+            ->pluck('total', 'tipo');
+
+        // Datos del modal (solo se cargan cuando hacen falta)
+        $eventosOptions = [];
+        if ($this->modalOpen && $this->clasificacion === 'EVENTO') {
+            $eventosOptions = Evento::with('cliente')
+                ->orderBy('fecha_evento', 'desc')
+                ->limit(200)
+                ->get()
+                ->map(function ($e) {
+                    $cliente = $e->cliente->nombre_completo ?? 'Cliente S/N';
+                    $fecha = \Carbon\Carbon::parse($e->fecha_evento)->format('d/m/Y');
+                    return [
+                        'id' => $e->id,
+                        'label' => $e->codigo_evento,
+                        'meta' => $fecha . ' - ' . $cliente,
+                        'search' => mb_strtolower($e->codigo_evento . ' ' . $cliente . ' ' . $fecha),
+                    ];
+                })
+                ->values()
+                ->all();
+        }
+
+        // Categorías: las sugeridas + las que ya se escribieron antes (así lo nuevo queda disponible solo)
+        $categoriasModal = [];
+        if ($this->modalOpen) {
+            $base = $this->tipo === 'INGRESO'
+                ? $this->categoriasIngresos
+                : ($this->clasificacion === 'EVENTO' ? $this->categoriasEventos : $this->categoriasOperativas);
+            $usadas = MovimientoFinanciero::where('tipo', $this->tipo)
+                ->where('clasificacion', $this->clasificacion)
+                ->where('estado', 'Valido')
+                ->distinct()->orderBy('categoria')->limit(60)->pluck('categoria')->all();
+            $categoriasModal = array_values(array_unique(array_merge($base, $usadas)));
+        }
 
         return view('livewire.finanzas.gestion-movimientos', [
             'movimientos' => $movimientos,
             'totalesConsulta' => $totalesConsulta,
-            'eventos' => $eventos,
-            'search' => $this->search,
-            'filtro_tipo' => $this->filtro_tipo,
-            'filtro_clasificacion' => $this->filtro_clasificacion,
-            'filtro_categoria' => $this->filtro_categoria,
-            'filtro_estado' => $this->filtro_estado,
-            'fecha_desde' => $this->fecha_desde,
-            'fecha_hasta' => $this->fecha_hasta,
-            'modalOpen' => $this->modalOpen,
-            'modalAnularOpen' => $this->modalAnularOpen,
-            'tipo' => $this->tipo,
-            'clasificacion' => $this->clasificacion,
-            'categoria' => $this->categoria,
-            'categoriasOperativas' => $this->categoriasOperativas,
-            'categoriasEventos' => $this->categoriasEventos,
-            'categoriasIngresos' => $this->categoriasIngresos,
-        ])->layout('components.layouts.app', ['title' => 'Ingresos y Gastos - Mariachi León Guanajuato']);
+            'contTipos' => $contTipos,
+            'eventosOptions' => $eventosOptions,
+            'categoriasModal' => $categoriasModal,
+        ])->layout('components.layouts.app', [
+            'title' => 'Ingresos y Gastos - Mariachi León Guanajuato',
+            'themed' => true,
+        ]);
     }
 }

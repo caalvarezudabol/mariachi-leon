@@ -3,8 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold text-white">Paquetes de Servicios</h1>
-            <p class="text-xs text-slate-400">Combos especiales de servicios con tarifa preferencial para clientes.</p>
-        </div>
+                    </div>
         <button wire:click="abrirModal" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-lg shadow-gold-500/20 transition-all flex items-center justify-center gap-2">
             <i class="fa-solid fa-plus"></i>
             <span>Nuevo Paquete</span>

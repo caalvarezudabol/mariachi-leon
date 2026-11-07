@@ -67,6 +67,11 @@ class GestionCotizaciones extends Component
         $this->resetPage();
     }
 
+    public function updatingEstadoFiltro()
+    {
+        $this->resetPage();
+    }
+
     public function generarNumeroAutomatico()
     {
         $last = Cotizacion::orderBy('id', 'desc')->first();
@@ -324,32 +329,75 @@ class GestionCotizaciones extends Component
         return redirect()->route('comercial.pagos.recibo', $this->ultimoRecibo['codigo_verificacion']);
     }
 
-    public function render()
+    /**
+     * Consulta base de cotizaciones (aplica el buscador). Se reutiliza para la lista y para
+     * los contadores de los chips de estado.
+     */
+    private function cotizacionesQuery()
     {
         $query = Cotizacion::with(['cliente', 'servicio', 'evento', 'contrato']);
 
         if ($this->search) {
             $query->where(function ($q) {
                 $q->where('numero_cotizacion', 'like', '%' . $this->search . '%')
-                  ->orWhereHas('cliente', function($c) {
-                      $c->where('nombre_completo', 'like', '%' . $this->search . '%');
-                  })
-                  ->orWhereHas('evento', function($e) {
-                      $e->where('codigo_evento', 'like', '%' . $this->search . '%');
-                  });
+                    ->orWhereHas('cliente', function ($c) {
+                        $c->where('nombre_completo', 'like', '%' . $this->search . '%');
+                    })
+                    ->orWhereHas('evento', function ($e) {
+                        $e->where('codigo_evento', 'like', '%' . $this->search . '%');
+                    });
             });
         }
+
+        return $query;
+    }
+
+    public function render()
+    {
+        // Contadores por estado para los chips (respetan el buscador, no el filtro de estado)
+        $estados = $this->cotizacionesQuery()
+            ->reorder()
+            ->selectRaw('estado, COUNT(*) as total')
+            ->groupBy('estado')
+            ->pluck('total', 'estado');
+
+        $query = $this->cotizacionesQuery();
 
         if ($this->estado_filtro) {
             $query->where('estado', $this->estado_filtro);
         }
 
         $cotizaciones = $query->orderBy('fecha_cotizacion', 'desc')->paginate(10);
-        $eventos = Evento::with(['cliente', 'servicio'])->orderBy('fecha_evento', 'desc')->get();
+
+        // Opciones del selector con buscador: solo se cargan cuando el modal está abierto
+        $eventosOptions = [];
+        if ($this->modalOpen) {
+            $eventosOptions = Evento::with(['cliente', 'servicio'])
+                ->orderBy('fecha_evento', 'desc')
+                ->get()
+                ->map(function ($ev) {
+                    $cliente = $ev->cliente->nombre_completo ?? 'N/A';
+                    $servicio = $ev->servicio->nombre ?? 'N/A';
+                    $fecha = $ev->fecha_evento ? $ev->fecha_evento->format('d/m/Y') : '';
+
+                    return [
+                        'id' => $ev->id,
+                        'label' => $ev->codigo_evento . ' - ' . $cliente,
+                        'meta' => $servicio . ' - ' . $fecha,
+                        'search' => mb_strtolower($ev->codigo_evento . ' ' . $cliente . ' ' . $servicio . ' ' . $fecha),
+                    ];
+                })
+                ->values()
+                ->all();
+        }
 
         return view('livewire.comercial.gestion-cotizaciones', [
             'cotizaciones' => $cotizaciones,
-            'eventos' => $eventos,
-        ])->layout('components.layouts.app', ['title' => 'Gestión de Cotizaciones - Mariachi León Guanajuato']);
+            'estados' => $estados,
+            'eventosOptions' => $eventosOptions,
+        ])->layout('components.layouts.app', [
+            'title' => 'Gestión de Cotizaciones - Mariachi León Guanajuato',
+            'themed' => true,
+        ]);
     }
 }

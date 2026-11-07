@@ -3,8 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold text-white">Kardex Valorizado (Precio Promedio Ponderado - PPP)</h1>
-            <p class="text-xs text-slate-400">Historial cronológico de movimientos de entradas, salidas, saldos y valoración monetaria.</p>
-        </div>
+                    </div>
         <div class="flex items-center gap-3">
             <button wire:click="exportarPdf" class="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 text-white hover:bg-rose-500 shadow-lg shadow-rose-600/20 transition-all flex items-center justify-center gap-2">
                 <i class="fa-solid fa-file-pdf text-sm"></i>

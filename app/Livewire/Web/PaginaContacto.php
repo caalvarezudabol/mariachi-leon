@@ -3,6 +3,8 @@
 namespace App\Livewire\Web;
 
 use Livewire\Component;
+use Livewire\Attributes\Locked;
+use Illuminate\Support\Facades\RateLimiter;
 use App\Models\TipoEvento;
 use App\Models\Servicio;
 use App\Models\Paquete;
@@ -27,7 +29,9 @@ class PaginaContacto extends Component
     public $item_id = ''; // "servicio_X" o "paquete_Y"
 
     // CAPTCHA anti-bot
+    #[Locked]
     public $captcha_num1;
+    #[Locked]
     public $captcha_num2;
     public $captcha_respuesta = '';
 
@@ -119,18 +123,21 @@ class PaginaContacto extends Component
     protected $rules = [
         'nombre' => 'required|string|max:255',
         'telefono' => 'required|string|max:20',
-        'email' => 'nullable|email',
+        'email' => 'nullable|email|max:255',
         'tipo_evento_id' => 'nullable|exists:tipos_evento,id',
         'servicio_id' => 'nullable|exists:servicios,id',
         'paquete_id' => 'nullable|exists:paquetes,id',
-        'fecha_estimada' => 'nullable|date',
-        'mensaje' => 'required|string',
+        'fecha_estimada' => 'nullable|date|after_or_equal:today',
+        'mensaje' => 'required|string|max:2000',
         'captcha_respuesta' => 'required|numeric',
     ];
 
     protected $messages = [
         'nombre.required' => 'Por favor ingrese su nombre.',
         'telefono.required' => 'Debe ingresar un número de teléfono de contacto.',
+        'fecha_estimada.after_or_equal' => 'Elige una fecha de hoy en adelante.',
+        'fecha_estimada.date' => 'La fecha no es válida.',
+        'mensaje.max' => 'El mensaje es demasiado largo (máximo 2000 caracteres).',
         'mensaje.required' => 'Por favor escriba los detalles de su evento.',
         'captcha_respuesta.required' => 'Por favor resuelva el código Anti-Bot (CAPTCHA).',
         'captcha_respuesta.numeric' => 'El CAPTCHA debe ser un número.',
@@ -140,12 +147,21 @@ class PaginaContacto extends Component
     {
         $this->validate();
 
+        // Límite por IP: 5 solicitudes por hora
+        $clave = 'contacto-web:' . request()->ip();
+        if (RateLimiter::tooManyAttempts($clave, 5)) {
+            $this->addError('mensaje', 'Enviaste varias solicitudes seguidas. Intenta más tarde o escríbenos por WhatsApp.');
+            return;
+        }
+
         // Validar respuesta del CAPTCHA
         if ((int)$this->captcha_respuesta !== ($this->captcha_num1 + $this->captcha_num2)) {
             $this->addError('captcha_respuesta', 'La respuesta del CAPTCHA Anti-Bot es incorrecta. Por favor intente de nuevo.');
             $this->generarCaptcha();
             return;
         }
+
+        RateLimiter::hit($clave, 3600);
 
         ContactoWeb::create([
             'nombre' => $this->nombre,

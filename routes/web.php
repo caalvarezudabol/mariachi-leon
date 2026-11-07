@@ -71,6 +71,7 @@ Route::get('/nosotros', PaginaNosotros::class)->name('web.nosotros');
 Route::get('/servicios', PaginaServicios::class)->name('web.servicios');
 Route::get('/galeria', PaginaGaleria::class)->name('web.galeria');
 Route::get('/contacto', PaginaContacto::class)->name('web.contacto');
+Route::get('/disponibilidad', \App\Http\Controllers\DisponibilidadController::class)->name('web.disponibilidad');
 
 // Portal Público de Verificación QR Anti-Fraude
 Route::get('/verificar/recibo/{token}', [VerificacionQrController::class, 'verificarRecibo'])->name('public.verificar.recibo');
@@ -198,6 +199,9 @@ Route::get('/admin/comercial/clientes/estado-cuenta/pdf', fn() => redirect()->ro
 Route::get('/admin/comercial/clientes/historial-contratos/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/activos-fijos/kardex/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/activos-fijos/comprobante', fn() => redirect()->route('web.home'));
+Route::get('/admin/comercial/musicos-personal', \App\Livewire\Comercial\GestionMusicosPersonal::class)->name('admin.musicos');
+
+Route::get('/comercial/pagos-personal', \App\Livewire\Comercial\GestionPagosPersonal::class)->name('admin.pagos-personal');
 
 // Redirección global de respaldo: cualquier ruta inválida o no registrada va al index principal
 Route::fallback(function () {

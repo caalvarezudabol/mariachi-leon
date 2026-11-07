@@ -45,6 +45,16 @@ class GestionSolicitudesWeb extends Component
         $this->resetPage();
     }
 
+    public function updatingFechaDesde()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFechaHasta()
+    {
+        $this->resetPage();
+    }
+
     public function verDetalle($id)
     {
         $solicitud = ContactoWeb::with(['tipoEvento', 'servicio', 'paquete'])->find($id);
@@ -146,22 +156,22 @@ class GestionSolicitudesWeb extends Component
         $this->resetPage();
     }
 
-    public function render()
+    /**
+     * Consulta base con buscador, servicio y fechas (sin el filtro de estado), para
+     * reutilizarla en el listado y en los contadores de los chips.
+     */
+    private function solicitudesQuery()
     {
-        $query = ContactoWeb::with(['tipoEvento', 'servicio', 'paquete'])->latest();
+        $query = ContactoWeb::query();
 
         if (!empty($this->search)) {
             $term = '%' . $this->search . '%';
             $query->where(function ($q) use ($term) {
                 $q->where('nombre', 'like', $term)
-                  ->orWhere('telefono', 'like', $term)
-                  ->orWhere('email', 'like', $term)
-                  ->orWhere('mensaje', 'like', $term);
+                    ->orWhere('telefono', 'like', $term)
+                    ->orWhere('email', 'like', $term)
+                    ->orWhere('mensaje', 'like', $term);
             });
-        }
-
-        if (!empty($this->filtro_estado)) {
-            $query->where('estado', $this->filtro_estado);
         }
 
         if (!empty($this->filtro_servicio)) {
@@ -176,27 +186,36 @@ class GestionSolicitudesWeb extends Component
             $query->whereDate('created_at', '<=', $this->fecha_hasta);
         }
 
+        return $query;
+    }
+
+    public function render()
+    {
+        // Contadores por estado para los chips (respetan buscador, servicio y fechas)
+        $estados = $this->solicitudesQuery()
+            ->selectRaw('estado, COUNT(*) as total')
+            ->groupBy('estado')
+            ->pluck('total', 'estado');
+
+        $query = $this->solicitudesQuery()->with(['tipoEvento', 'servicio', 'paquete'])->latest();
+
+        if (!empty($this->filtro_estado)) {
+            $query->where('estado', $this->filtro_estado);
+        }
+
         $solicitudes = $query->paginate($this->perPage);
 
-        // Contadores KPI
-        $totalTodas = ContactoWeb::count();
-        $totalNuevas = ContactoWeb::where('estado', 'nuevo')->count();
-        $totalAtendidas = ContactoWeb::where('estado', 'atendido')->count();
-        $totalCotizadas = ContactoWeb::where('estado', 'cotizado')->count();
-        $totalDescartadas = ContactoWeb::where('estado', 'descartado')->count();
-
-        $servicios = Servicio::where('activo', true)->orderBy('nombre')->get();
+        $servicios = Servicio::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']);
         $empresa = Empresa::obtener();
 
         return view('livewire.admin.gestion-solicitudes-web', [
             'solicitudes' => $solicitudes,
-            'totalTodas' => $totalTodas,
-            'totalNuevas' => $totalNuevas,
-            'totalAtendidas' => $totalAtendidas,
-            'totalCotizadas' => $totalCotizadas,
-            'totalDescartadas' => $totalDescartadas,
+            'estados' => $estados,
             'servicios' => $servicios,
             'empresa' => $empresa,
-        ])->layout('components.layouts.app', ['title' => 'Solicitudes Web y Cotizaciones - ' . ($empresa->nombre_comercial ?? 'Mariachi León')]);
+        ])->layout('components.layouts.app', [
+            'title' => 'Solicitudes Web y Cotizaciones - ' . ($empresa->nombre_comercial ?? 'Mariachi León'),
+            'themed' => true,
+        ]);
     }
 }

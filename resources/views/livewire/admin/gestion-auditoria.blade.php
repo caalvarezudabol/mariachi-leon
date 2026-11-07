@@ -1,76 +1,117 @@
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-white">Auditoría de Operaciones</h1>
-            <p class="text-xs text-slate-400">Historial completo y trazabilidad de acciones realizadas en la plataforma.</p>
-        </div>
-    </div>
+@php
+    $hayFiltros = $search !== '' || $modulo !== '' || $usuario !== '' || $fecha_desde !== '' || $fecha_hasta !== '';
+    $campo =
+        'h-8 px-3 bg-surface-sunken border border-outline rounded-lg text-sm text-ink-primary focus:border-gold-500 focus:outline-none transition-colors';
+@endphp
 
-    <!-- Filters -->
-    <div class="p-4 rounded-2xl bg-brand-card border border-brand-border flex flex-col sm:flex-row gap-4">
-        <div class="relative flex-1">
-            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
-                <i class="fa-solid fa-magnifying-glass"></i>
-            </span>
-            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar en la descripción o acción..." class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-gold-500 text-sm">
-        </div>
-        <select wire:model.live="modulo" class="px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-gold-500">
-            <option value="">Todos los Módulos</option>
-            @foreach($modulos as $m)
-                <option value="{{ $m }}">{{ $m }}</option>
-            @endforeach
-        </select>
-    </div>
+<div class="space-y-3">
+    <x-ui.panel>
+        {{-- Cabecera --}}
+        <x-slot:header>
+            <div class="flex items-center gap-2.5 min-w-0">
+                <i class="fa-solid fa-shield-halved text-lg text-gold-600 dark:text-gold-400"></i>
+                <h1 class="text-base font-semibold text-ink-primary">Auditoría</h1>
+                <x-ui.badge variant="neutral">{{ $logs->total() }}</x-ui.badge>
+            </div>
+        </x-slot:header>
 
-    <!-- Table -->
-    <div class="rounded-2xl bg-brand-card border border-brand-border overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-slate-300">
-                <thead class="bg-slate-950/80 border-b border-brand-border text-xs uppercase font-bold text-slate-400">
-                    <tr>
-                        <th class="px-6 py-4">Fecha y Hora</th>
-                        <th class="px-6 py-4">Usuario</th>
-                        <th class="px-6 py-4">Módulo</th>
-                        <th class="px-6 py-4">Acción</th>
-                        <th class="px-6 py-4">Descripción</th>
-                        <th class="px-6 py-4">Dirección IP</th>
+        {{-- Filtros: una sola fila --}}
+        <x-slot:filters>
+            <div class="flex flex-col lg:flex-row lg:items-center gap-2">
+                <div class="relative flex-1 min-w-0">
+                    <i
+                        class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted text-xs"></i>
+                    <input type="text" wire:model.live.debounce.300ms="search"
+                        placeholder="Buscar en la descripción, acción o usuario..."
+                        class="w-full h-8 pl-8 pr-3 bg-surface-sunken border border-outline rounded-lg text-sm text-ink-primary placeholder:text-ink-muted focus:border-gold-500 focus:outline-none transition-colors">
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <select wire:model.live="modulo" class="{{ $campo }}">
+                        <option value="">Todos los módulos</option>
+                        @foreach ($modulos as $m)
+                            <option value="{{ $m }}">{{ $m }}</option>
+                        @endforeach
+                    </select>
+                    <select wire:model.live="usuario" class="{{ $campo }}">
+                        <option value="">Todos los usuarios</option>
+                        @foreach ($usuarios as $u)
+                            <option value="{{ $u->id }}">{{ $u->name }}</option>
+                        @endforeach
+                    </select>
+                    <input type="date" wire:model.live="fecha_desde" title="Desde" class="{{ $campo }}">
+                    <input type="date" wire:model.live="fecha_hasta" title="Hasta" class="{{ $campo }}">
+                    @if ($hayFiltros)
+                        <x-ui.icon-button wire:click="limpiarFiltros" title="Limpiar filtros">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </x-ui.icon-button>
+                    @endif
+                </div>
+            </div>
+        </x-slot:filters>
+
+        {{-- Tabla (escritorio) --}}
+        <div class="hidden md:block">
+            <x-ui.table>
+                <x-slot:header>
+                    <th class="px-3 py-2 border-r border-outline whitespace-nowrap">Fecha y hora</th>
+                    <th class="px-3 py-2 border-r border-outline">Usuario</th>
+                    <th class="px-3 py-2 border-r border-outline">Módulo y acción</th>
+                    <th class="px-3 py-2 border-r border-outline">Descripción</th>
+                    <th class="px-3 py-2 whitespace-nowrap">IP</th>
+                </x-slot:header>
+
+                @forelse ($logs as $log)
+                    <tr class="border-b border-outline hover:bg-gold-500/5 transition-colors">
+                        <td class="px-3 py-1.5 border-r border-outline whitespace-nowrap tabular-nums">
+                            <div class="text-ink-primary">{{ $log->created_at->format('d/m/Y') }}</div>
+                            <div class="text-xs text-ink-secondary">{{ $log->created_at->format('H:i:s') }}</div>
+                        </td>
+                        <td
+                            class="px-3 py-1.5 border-r border-outline whitespace-nowrap font-semibold text-ink-primary">
+                            {{ $log->user->name ?? 'Sistema' }}
+                        </td>
+                        <td class="px-3 py-1.5 border-r border-outline">
+                            <div class="font-semibold text-gold-700 dark:text-gold-400">{{ $log->accion }}</div>
+                            <div class="text-xs text-ink-secondary">{{ $log->modulo }}</div>
+                        </td>
+                        <td class="px-3 py-1.5 border-r border-outline text-ink-primary">{{ $log->descripcion }}</td>
+                        <td class="px-3 py-1.5 whitespace-nowrap text-xs tabular-nums text-ink-secondary">
+                            {{ $log->ip_address ?? '-' }}</td>
                     </tr>
-                </thead>
-                <tbody class="divide-y divide-brand-border/60">
-                    @forelse($logs as $log)
-                        <tr class="hover:bg-brand-hover/50 transition-colors">
-                            <td class="px-6 py-4 font-mono text-xs text-slate-400 whitespace-nowrap">
-                                {{ $log->created_at->format('d/m/Y H:i:s') }}
-                            </td>
-                            <td class="px-6 py-4 font-semibold text-white">
-                                {{ $log->user->name ?? 'Sistema' }}
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                    {{ $log->modulo }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 font-medium text-gold-400">
-                                {{ $log->accion }}
-                            </td>
-                            <td class="px-6 py-4 text-slate-300">
-                                {{ $log->descripcion }}
-                            </td>
-                            <td class="px-6 py-4 font-mono text-xs text-slate-500">
-                                {{ $log->ip_address ?? 'N/A' }}
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="px-6 py-8 text-center text-slate-500">No se registraron entradas de auditoría.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                @empty
+                    <tr>
+                        <td colspan="5" class="text-center py-8 text-sm text-ink-secondary">No se registraron
+                            entradas de auditoría.</td>
+                    </tr>
+                @endforelse
+            </x-ui.table>
         </div>
-        <div class="p-4 border-t border-brand-border">
-            {{ $logs->links() }}
+
+        {{-- Lista compacta (móvil) --}}
+        <div class="md:hidden divide-y divide-outline">
+            @forelse ($logs as $log)
+                <div class="px-4 py-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span
+                            class="text-sm font-semibold text-gold-700 dark:text-gold-400 truncate">{{ $log->accion }}</span>
+                        <span
+                            class="text-xs text-ink-secondary tabular-nums shrink-0">{{ $log->created_at->format('d/m/Y H:i') }}</span>
+                    </div>
+                    <div class="text-sm text-ink-primary">{{ $log->descripcion }}</div>
+                    <div class="text-xs text-ink-secondary">
+                        {{ $log->user->name ?? 'Sistema' }} - {{ $log->modulo }}@if ($log->ip_address)
+                            - {{ $log->ip_address }}
+                        @endif
+                    </div>
+                </div>
+            @empty
+                <div class="text-center py-8 text-sm text-ink-secondary">No se registraron entradas de auditoría.</div>
+            @endforelse
         </div>
-    </div>
+
+        <x-slot:footer>
+            <span>Mostrando {{ $logs->firstItem() ?? 0 }}–{{ $logs->lastItem() ?? 0 }} de {{ $logs->total() }}</span>
+            <div>{{ $logs->links() }}</div>
+        </x-slot:footer>
+    </x-ui.panel>
 </div>

@@ -3,8 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold text-white">Gestión de Devoluciones de Activos</h1>
-            <p class="text-xs text-slate-400">Recepción y reingreso al inventario de equipos devueltos por el personal o músicos.</p>
-        </div>
+                    </div>
         <button wire:click="abrirModal" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-cyan-500 to-cyan-600 text-slate-950 hover:from-cyan-400 hover:to-cyan-500 shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2">
             <i class="fa-solid fa-arrow-rotate-left"></i>
             <span>Registrar Devolución</span>

@@ -1,20 +1,41 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full bg-slate-950">
+<html lang="es" class="h-full">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @php $empresaWeb = \App\Models\Empresa::obtener(); @endphp
-    <title>{{ $title ?? (($empresaWeb->nombre_comercial ?? 'Mariachi León Guanajuato') . ' - Música y Mariachi Profesional') }}</title>
-    <!-- Fonts -->
+    <title>
+        {{ $title ?? ($empresaWeb->nombre_comercial ?? 'Mariachi León Guanajuato') . ' - Música y Mariachi Profesional' }}
+    </title>
+
+    {{-- Ícono de la pestaña: el logo de la empresa --}}
+    @if ($empresaWeb->logo_url)
+        <link rel="icon" href="{{ asset($empresaWeb->logo_url) }}" type="image/png">
+        <link rel="apple-touch-icon" href="{{ asset($empresaWeb->logo_url) }}">
+    @else
+        <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+    @endif
+
+    {{-- Tema: oscuro por defecto; recuerda la elección del visitante --}}
+    <script>
+        try {
+            if (localStorage.getItem('tema') !== 'light') document.documentElement.classList.add('dark');
+        } catch (e) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Font Awesome -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -40,325 +61,447 @@
         }
     </script>
     <style>
-        [x-cloak] { display: none !important; }
-        .hero-bg {
-            background: linear-gradient(185deg, rgba(11, 19, 41, 0.88) 0%, rgba(2, 6, 23, 0.96) 100%), 
-                        url('https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1920&auto=format&fit=crop');
-            background-size: cover;
-            background-position: center;
+        [x-cloak] {
+            display: none !important;
+        }
+
+        /* Aparece al hacer scroll */
+        [data-reveal] {
+            opacity: 0;
+            transform: translateY(18px);
+            transition: opacity .6s ease, transform .6s ease;
+        }
+
+        [data-reveal].in {
+            opacity: 1;
+            transform: none;
+        }
+
+        /* Hero: zoom lento de la imagen y entrada del texto */
+        @keyframes kenburns {
+            from {
+                transform: scale(1);
+            }
+
+            to {
+                transform: scale(1.08);
+            }
+        }
+
+        .kenburns {
+            animation: kenburns 14s ease-out forwards;
+        }
+
+        @keyframes heroin {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .hero-in {
+            animation: heroin .8s ease-out both;
+        }
+
+        .hero-in-2 {
+            animation: heroin .8s .15s ease-out both;
+        }
+
+        .hero-in-3 {
+            animation: heroin .8s .3s ease-out both;
+        }
+
+        /* WhatsApp flotante: pulso constante + sacudida cada tanto */
+        @keyframes waring {
+            0% {
+                transform: scale(1);
+                opacity: .55;
+            }
+
+            70%,
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        .wa-ring {
+            animation: waring 2s ease-out infinite;
+        }
+
+        @keyframes wawiggle {
+
+            0%,
+            82%,
+            100% {
+                transform: rotate(0);
+            }
+
+            86% {
+                transform: rotate(-7deg);
+            }
+
+            90% {
+                transform: rotate(7deg);
+            }
+
+            94% {
+                transform: rotate(-5deg);
+            }
+
+            98% {
+                transform: rotate(4deg);
+            }
+        }
+
+        .wa-wiggle {
+            animation: wawiggle 5s ease-in-out infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            [data-reveal] {
+                opacity: 1;
+                transform: none;
+                transition: none;
+            }
+
+            .wa-ring,
+            .wa-wiggle {
+                animation: none;
+            }
+
+            .kenburns,
+            .hero-in,
+            .hero-in-2,
+            .hero-in-3 {
+                animation: none;
+            }
         }
     </style>
+    <noscript>
+        <style>
+            [data-reveal] {
+                opacity: 1;
+                transform: none;
+            }
+        </style>
+    </noscript>
     @livewireStyles
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-gold-500 selection:text-slate-950" x-data="{ mobileMenuOpen: false }">
 
-    <!-- Header Navigation -->
-    @php $empresaWeb = \App\Models\Empresa::obtener(); @endphp
-    <header class="fixed top-0 inset-x-0 z-50 bg-slate-950/80 backdrop-blur-lg border-b border-slate-800/80">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <!-- Brand Logo Oficial Mariachi León Guanajuato -->
-            <a href="{{ route('web.home') }}" class="flex items-center gap-3 group">
-                <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-gold-500/40 p-1 flex items-center justify-center shadow-lg shadow-gold-500/20 group-hover:scale-105 transition-transform overflow-hidden">
-                    @if($empresaWeb->logo_url)
-                        <img src="{{ asset($empresaWeb->logo_url) }}" alt="Logo {{ $empresaWeb->nombre_comercial }}" class="w-full h-full object-contain rounded-xl">
+<body
+    class="bg-white text-slate-700 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased selection:bg-gold-500 selection:text-slate-950 pb-14 md:pb-0"
+    x-data="{ mobileMenuOpen: false, scrolled: false }" @scroll.window="scrolled = window.scrollY > 10">
+
+    @php
+        $links = [
+            ['web.home', 'Inicio'],
+            ['web.nosotros', 'Nosotros'],
+            ['web.servicios', 'Servicios'],
+            ['web.galeria', 'Galería'],
+            ['web.contacto', 'Contacto'],
+        ];
+    @endphp
+
+    <!-- Cabecera -->
+    <header class="fixed top-0 inset-x-0 z-50 border-b transition-all duration-300 backdrop-blur-lg"
+        :class="scrolled ? 'bg-white/95 dark:bg-slate-950/95 border-slate-200 dark:border-slate-800 shadow-sm' :
+            'bg-white/80 dark:bg-slate-950/80 border-transparent'">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <a href="{{ route('web.home') }}" class="flex items-center gap-3 group shrink-0">
+                <div
+                    class="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-gold-500/40 p-1 flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden">
+                    @if ($empresaWeb->logo_url)
+                        <img src="{{ asset($empresaWeb->logo_url) }}" alt="Logo {{ $empresaWeb->nombre_comercial }}"
+                            class="w-full h-full object-contain rounded-lg">
                     @else
-                        <svg viewBox="0 0 100 100" class="w-full h-full text-gold-400 fill-current">
-                            <!-- Emblem Badge with Lions & Trumpets -->
-                            <circle cx="50" cy="50" r="45" fill="#0b1329" stroke="#d97706" stroke-width="3"/>
-                            <path d="M50 15 L53 25 L63 25 L55 31 L58 41 L50 35 L42 41 L45 31 L37 25 L47 25 Z" fill="#fbbf24"/>
-                            <text x="50" y="58" font-family="Cinzel, serif" font-weight="900" font-size="20" fill="#f59e0b" text-anchor="middle">LEÓN</text>
-                            <text x="50" y="72" font-family="Cinzel, serif" font-weight="700" font-size="9" fill="#ffffff" text-anchor="middle" letter-spacing="1">GUANAJUATO</text>
-                            <text x="50" y="82" font-family="sans-serif" font-weight="800" font-size="7" fill="#fbbf24" text-anchor="middle" letter-spacing="2">MARIACHI</text>
-                        </svg>
+                        <i class="fa-solid fa-guitar text-gold-600 dark:text-gold-400 text-lg"></i>
                     @endif
                 </div>
-                <div>
-                    <span class="font-serif font-black text-xl text-white tracking-wide block leading-none uppercase">{{ $empresaWeb->nombre_comercial ?? 'MARIACHI LEÓN' }}</span>
-                    <span class="text-[10px] text-gold-400 font-bold tracking-widest uppercase block mt-1">{{ $empresaWeb->ciudad_pais ?? 'Guanajuato • Bolivia' }}</span>
+                <div class="leading-none">
+                    <span
+                        class="font-serif font-black text-base sm:text-lg text-slate-900 dark:text-white tracking-wide block uppercase whitespace-nowrap">{{ $empresaWeb->nombre_comercial ?? 'MARIACHI LEÓN' }}</span>
+                    <span
+                        class="text-[10px] text-gold-700 dark:text-gold-400 font-bold tracking-widest uppercase block mt-1">{{ $empresaWeb->ciudad_pais ?? 'Santa Cruz - Bolivia' }}</span>
                 </div>
             </a>
 
-            <!-- Desktop Navigation -->
-            <nav class="hidden md:flex items-center gap-8">
-                <a href="{{ route('web.home') }}" class="text-sm font-medium transition-colors {{ request()->routeIs('web.home') ? 'text-gold-400 font-semibold' : 'text-slate-300 hover:text-white' }}">Inicio</a>
-                <a href="{{ route('web.nosotros') }}" class="text-sm font-medium transition-colors {{ request()->routeIs('web.nosotros') ? 'text-gold-400 font-semibold' : 'text-slate-300 hover:text-white' }}">Nosotros</a>
-                <a href="{{ route('web.servicios') }}" class="text-sm font-medium transition-colors {{ request()->routeIs('web.servicios') ? 'text-gold-400 font-semibold' : 'text-slate-300 hover:text-white' }}">Servicios & Paquetes</a>
-                <a href="{{ route('web.galeria') }}" class="text-sm font-medium transition-colors {{ request()->routeIs('web.galeria') ? 'text-gold-400 font-semibold' : 'text-slate-300 hover:text-white' }}">Galería</a>
-                <a href="{{ route('web.contacto') }}" class="text-sm font-medium transition-colors {{ request()->routeIs('web.contacto') ? 'text-gold-400 font-semibold' : 'text-slate-300 hover:text-white' }}">Contacto</a>
+            <!-- Menú escritorio -->
+            <nav class="hidden md:flex items-center gap-7">
+                @foreach ($links as [$ruta, $texto])
+                    @php $activo = request()->routeIs($ruta); @endphp
+                    <a href="{{ route($ruta) }}"
+                        class="relative text-sm font-medium whitespace-nowrap transition-colors py-1 {{ $activo ? 'text-gold-700 dark:text-gold-400 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white' }}">
+                        {{ $texto }}
+                        @if ($activo)
+                            <span class="absolute -bottom-0.5 left-0 right-0 h-0.5 rounded-full bg-gold-500"></span>
+                        @endif
+                    </a>
+                @endforeach
             </nav>
 
-            <div class="hidden md:flex items-center gap-2">
-                <!-- Redes Sociales Directas con Iconos Respectivos -->
-                <div class="flex items-center gap-1.5 mr-2">
-                    @if($empresaWeb->whatsapp_numero_limpio)
-                        <a href="{{ $empresaWeb->whatsapp_url }}" target="_blank" rel="noopener noreferrer" title="WhatsApp Oficial" class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white border border-emerald-500/30 flex items-center justify-center transition-all text-sm">
-                            <i class="fa-brands fa-whatsapp"></i>
-                        </a>
-                    @endif
-                    @if($empresaWeb->redes_instagram)
-                        <a href="{{ $empresaWeb->redes_instagram }}" target="_blank" rel="noopener noreferrer" title="Instagram Oficial" class="w-8 h-8 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-gradient-to-tr hover:from-amber-500 hover:via-rose-500 hover:to-purple-600 hover:text-white border border-pink-500/30 flex items-center justify-center transition-all text-sm">
-                            <i class="fa-brands fa-instagram"></i>
-                        </a>
-                    @endif
-                    @if($empresaWeb->redes_tiktok)
-                        <a href="{{ $empresaWeb->redes_tiktok }}" target="_blank" rel="noopener noreferrer" title="TikTok Oficial" class="w-8 h-8 rounded-lg bg-slate-900 text-cyan-400 hover:bg-black hover:text-pink-400 border border-slate-700 flex items-center justify-center transition-all text-xs">
-                            <i class="fa-brands fa-tiktok"></i>
-                        </a>
-                    @endif
-                    @if($empresaWeb->redes_youtube)
-                        <a href="{{ $empresaWeb->redes_youtube }}" target="_blank" rel="noopener noreferrer" title="Canal de YouTube" class="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/30 flex items-center justify-center transition-all text-sm">
-                            <i class="fa-brands fa-youtube"></i>
-                        </a>
-                    @endif
-                    @if($empresaWeb->redes_facebook)
-                        <a href="{{ $empresaWeb->redes_facebook }}" target="_blank" rel="noopener noreferrer" title="Facebook Oficial" class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-[#1877F2] hover:text-white border border-blue-500/30 flex items-center justify-center transition-all text-sm">
-                            <i class="fa-brands fa-facebook-f"></i>
-                        </a>
-                    @endif
-                </div>
+            <div class="flex items-center gap-2">
+                <!-- Tema claro / oscuro -->
+                <button type="button" x-data="{ dark: document.documentElement.classList.contains('dark') }"
+                    @click="dark = !dark; document.documentElement.classList.toggle('dark', dark); try { localStorage.setItem('tema', dark ? 'dark' : 'light') } catch (e) {}"
+                    title="Cambiar tema"
+                    class="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-gold-500/50 hover:text-gold-600 flex items-center justify-center transition-all">
+                    <i class="fa-solid" :class="dark ? 'fa-sun' : 'fa-moon'"></i>
+                </button>
 
-                <a href="{{ route('login') }}" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-900 border border-slate-800 transition-all">
-                    Acceso Personal
+                <!-- Iniciar sesión (personal) -->
+                <a href="{{ route('login') }}" title="Iniciar sesión"
+                    class="h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-gold-500/50 hover:text-gold-700 dark:hover:text-gold-400 flex items-center gap-2 text-sm font-medium whitespace-nowrap transition-all">
+                    <i class="fa-regular fa-user"></i><span class="hidden lg:inline">Ingresar</span>
                 </a>
-                <a href="{{ route('web.contacto') }}" class="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-lg shadow-gold-500/20 transition-all hover:scale-[1.02]">
-                    Cotizar Evento
+
+                <a href="{{ route('web.contacto') }}"
+                    class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950 hover:from-gold-400 hover:to-gold-500 shadow-md shadow-gold-500/20 transition-all hover:scale-[1.03]">
+                    <i class="fa-solid fa-calendar-check text-xs"></i>Cotizar
                 </a>
+
+                <button @click="mobileMenuOpen = !mobileMenuOpen"
+                    class="md:hidden w-9 h-9 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                    <i class="fa-solid fa-bars text-xl" x-show="!mobileMenuOpen"></i>
+                    <i class="fa-solid fa-xmark text-xl" x-show="mobileMenuOpen" x-cloak></i>
+                </button>
             </div>
-
-            <!-- Mobile Hamburger -->
-            <button @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden p-2 text-slate-400 hover:text-white">
-                <i class="fa-solid fa-bars text-2xl" x-show="!mobileMenuOpen"></i>
-                <i class="fa-solid fa-xmark text-2xl" x-show="mobileMenuOpen" x-cloak></i>
-            </button>
         </div>
 
-        <!-- Mobile Menu Dropdown -->
-        <div x-show="mobileMenuOpen" x-cloak class="md:hidden bg-slate-900 border-b border-slate-800 p-6 space-y-4">
-            <a href="{{ route('web.home') }}" class="block text-base font-semibold text-slate-200">Inicio</a>
-            <a href="{{ route('web.nosotros') }}" class="block text-base font-semibold text-slate-200">Nosotros</a>
-            <a href="{{ route('web.servicios') }}" class="block text-base font-semibold text-slate-200">Servicios & Paquetes</a>
-            <a href="{{ route('web.galeria') }}" class="block text-base font-semibold text-slate-200">Galería</a>
-            <a href="{{ route('web.contacto') }}" class="block text-base font-semibold text-slate-200">Contacto</a>
-
-            <!-- Redes Sociales en Menú Móvil -->
-            <div class="pt-4 border-t border-slate-800 space-y-3">
-                <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400 text-center">Nuestras Redes Oficiales:</p>
-                <div class="grid grid-cols-2 gap-2">
-                    @if($empresaWeb->whatsapp_numero_limpio)
-                        <a href="{{ $empresaWeb->whatsapp_url }}" target="_blank" class="py-2.5 px-3 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2">
-                            <i class="fa-brands fa-whatsapp text-sm"></i>
-                            <span>WhatsApp</span>
-                        </a>
-                    @endif
-                    @if($empresaWeb->redes_instagram)
-                        <a href="{{ $empresaWeb->redes_instagram }}" target="_blank" class="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] text-white font-bold text-xs flex items-center justify-center gap-2">
-                            <i class="fa-brands fa-instagram text-sm"></i>
-                            <span>Instagram</span>
-                        </a>
-                    @endif
-                    @if($empresaWeb->redes_tiktok)
-                        <a href="{{ $empresaWeb->redes_tiktok }}" target="_blank" class="py-2.5 px-3 rounded-xl bg-slate-950 text-white border border-cyan-400/40 font-bold text-xs flex items-center justify-center gap-2">
-                            <i class="fa-brands fa-tiktok text-sm text-cyan-400"></i>
-                            <span>TikTok</span>
-                        </a>
-                    @endif
-                    @if($empresaWeb->redes_youtube)
-                        <a href="{{ $empresaWeb->redes_youtube }}" target="_blank" class="py-2.5 px-3 rounded-xl bg-[#FF0000] text-white font-bold text-xs flex items-center justify-center gap-2">
-                            <i class="fa-brands fa-youtube text-sm"></i>
-                            <span>YouTube</span>
-                        </a>
-                    @endif
-                    @if($empresaWeb->redes_facebook)
-                        <a href="{{ $empresaWeb->redes_facebook }}" target="_blank" class="col-span-2 py-2.5 px-3 rounded-xl bg-[#1877F2] text-white font-bold text-xs flex items-center justify-center gap-2">
-                            <i class="fa-brands fa-facebook-f text-sm"></i>
-                            <span>Facebook Oficial</span>
-                        </a>
-                    @endif
-                </div>
-
-                <div class="pt-2 flex flex-col gap-2">
-                    <a href="{{ route('web.contacto') }}" class="w-full text-center py-3 rounded-xl font-bold bg-gold-500 text-slate-950">Cotizar Evento</a>
-                    <a href="{{ route('login') }}" class="w-full text-center py-3 rounded-xl font-semibold text-slate-300 border border-slate-700">Acceso Personal</a>
-                </div>
-            </div>
+        <!-- Menú móvil -->
+        <div x-show="mobileMenuOpen" x-cloak x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
+            class="md:hidden bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 px-4 py-3 space-y-1">
+            @foreach ($links as [$ruta, $texto])
+                <a href="{{ route($ruta) }}"
+                    class="block px-3 py-2.5 rounded-lg text-base font-semibold {{ request()->routeIs($ruta) ? 'bg-gold-500/10 text-gold-700 dark:text-gold-400' : 'text-slate-700 dark:text-slate-200' }}">{{ $texto }}</a>
+            @endforeach
+            <a href="{{ route('web.contacto') }}"
+                class="block text-center mt-2 py-3 rounded-xl font-bold bg-gradient-to-r from-gold-500 to-gold-600 text-slate-950">Cotizar
+                evento</a>
+            <a href="{{ route('login') }}"
+                class="block text-center py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800"><i
+                    class="fa-regular fa-user mr-1.5"></i>Iniciar sesión</a>
         </div>
     </header>
 
-    <!-- Notificación Flotante de Éxito / Flash Messages -->
-    @if(session()->has('mensaje_exito') || session()->has('success'))
-        <div x-data="{ show: true }" 
-             x-init="setTimeout(() => show = false, 8000)" 
-             x-show="show" 
-             x-transition:enter="transition ease-out duration-500" 
-             x-transition:enter-start="opacity-0 -translate-y-6 scale-95" 
-             x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
-             x-transition:leave="transition ease-in duration-300" 
-             x-transition:leave-start="opacity-100 translate-y-0 scale-100" 
-             x-transition:leave-end="opacity-0 -translate-y-6 scale-95" 
-             class="fixed top-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-lg px-4 pointer-events-none">
-            <div class="p-5 rounded-2xl bg-slate-900/95 border-2 border-emerald-500/80 text-white shadow-2xl shadow-emerald-500/25 flex items-start gap-4 backdrop-blur-xl pointer-events-auto">
-                <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl flex-shrink-0 shadow-inner">
-                    <i class="fa-solid fa-circle-check"></i>
+    <!-- Mensaje de éxito -->
+    @if (session()->has('mensaje_exito') || session()->has('success'))
+        <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 8000)" x-show="show"
+            x-transition:enter="transition ease-out duration-500"
+            x-transition:enter-start="opacity-0 -translate-y-6 scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+            x-transition:leave-end="opacity-0 -translate-y-6 scale-95"
+            class="fixed top-20 left-1/2 -translate-x-1/2 z-[100] w-full max-w-lg px-4 pointer-events-none">
+            <div
+                class="p-4 rounded-2xl bg-white dark:bg-slate-900 border-2 border-emerald-500/70 text-slate-800 dark:text-white shadow-2xl flex items-start gap-3 pointer-events-auto">
+                <i class="fa-solid fa-circle-check text-2xl text-emerald-500"></i>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-sm text-emerald-600 dark:text-emerald-400">¡Solicitud enviada!</h4>
+                    <p class="text-xs text-slate-600 dark:text-slate-200 mt-0.5">
+                        {{ session('mensaje_exito') ?? session('success') }}</p>
                 </div>
-                <div class="flex-1 min-w-0 pt-0.5">
-                    <h4 class="font-bold text-base text-emerald-400">¡Solicitud Enviada con Éxito!</h4>
-                    <p class="text-xs text-slate-200 mt-1 leading-relaxed">
-                        {{ session('mensaje_exito') ?? session('success') }}
-                    </p>
-                </div>
-                <button type="button" @click="show = false" class="text-slate-400 hover:text-white transition-colors p-1 text-sm">
+                <button type="button" @click="show = false"
+                    class="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 text-sm">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
         </div>
     @endif
 
-    <!-- Main Content -->
-    <main class="pt-20">
+    <main class="pt-16">
         {{ $slot }}
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-slate-950 border-t border-slate-800/80 pt-16 pb-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
-                <div class="space-y-4 md:col-span-1">
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-gold-500/40 p-1 flex items-center justify-center shadow-lg shadow-gold-500/20 overflow-hidden">
-                            @if($empresaWeb->logo_url)
-                                <img src="{{ asset($empresaWeb->logo_url) }}" alt="Logo {{ $empresaWeb->nombre_comercial }}" class="w-full h-full object-contain rounded-xl">
-                            @else
-                                <svg viewBox="0 0 100 100" class="w-full h-full text-gold-400 fill-current">
-                                    <circle cx="50" cy="50" r="45" fill="#0b1329" stroke="#d97706" stroke-width="3"/>
-                                    <path d="M50 15 L53 25 L63 25 L55 31 L58 41 L50 35 L42 41 L45 31 L37 25 L47 25 Z" fill="#fbbf24"/>
-                                    <text x="50" y="58" font-family="Cinzel, serif" font-weight="900" font-size="20" fill="#f59e0b" text-anchor="middle">LEÓN</text>
-                                    <text x="50" y="72" font-family="Cinzel, serif" font-weight="700" font-size="9" fill="#ffffff" text-anchor="middle" letter-spacing="1">GUANAJUATO</text>
-                                    <text x="50" y="82" font-family="sans-serif" font-weight="800" font-size="7" fill="#fbbf24" text-anchor="middle" letter-spacing="2">MARIACHI</text>
-                                </svg>
-                            @endif
-                        </div>
-                        <div>
-                            <span class="font-serif font-bold text-lg text-white block leading-none uppercase">{{ $empresaWeb->nombre_comercial ?? 'MARIACHI LEÓN' }}</span>
-                            <span class="text-[10px] text-gold-400 font-bold tracking-widest uppercase block mt-1">{{ $empresaWeb->ciudad_pais ?? 'Guanajuato • Bolivia' }}</span>
-                        </div>
+    <!-- Pie -->
+    <footer class="bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800/80 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-gold-500/40 p-1 flex items-center justify-center overflow-hidden shrink-0">
+                        @if ($empresaWeb->logo_url)
+                            <img src="{{ asset($empresaWeb->logo_url) }}" alt="Logo"
+                                class="w-full h-full object-contain rounded-lg">
+                        @else
+                            <i class="fa-solid fa-guitar text-gold-600 dark:text-gold-400 text-lg"></i>
+                        @endif
                     </div>
-                    <p class="text-sm text-slate-400 leading-relaxed">
-                        {{ $empresaWeb->slogan ?? 'Música mexicana tradicional y de gala para todo tipo de evento social, bodas, quinceañeras y corporativos.' }}
-                    </p>
+                    <div class="min-w-0">
+                        <span
+                            class="font-serif font-bold text-base text-slate-900 dark:text-white block leading-none uppercase">{{ $empresaWeb->nombre_comercial ?? 'MARIACHI LEÓN' }}</span>
+                        <span
+                            class="text-xs text-slate-500 dark:text-slate-400 block mt-1">{{ $empresaWeb->slogan ?? 'Música mexicana en vivo para tus celebraciones' }}</span>
+                    </div>
                 </div>
-                <div>
-                    <h4 class="font-bold text-sm text-gold-400 uppercase tracking-widest mb-4">Navegación</h4>
-                    <ul class="space-y-2 text-sm text-slate-400">
-                        <li><a href="{{ route('web.home') }}" class="hover:text-white">Inicio</a></li>
-                        <li><a href="{{ route('web.nosotros') }}" class="hover:text-white">Nosotros</a></li>
-                        <li><a href="{{ route('web.servicios') }}" class="hover:text-white">Servicios & Paquetes</a></li>
-                        <li><a href="{{ route('web.contacto') }}" class="hover:text-white">Solicitar Cotización</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="font-bold text-sm text-gold-400 uppercase tracking-widest mb-4">Contacto Directo</h4>
-                    <ul class="space-y-3 text-sm text-slate-400">
-                        @if($empresaWeb->telefono_principal)
-                        <li class="flex items-center gap-3">
-                            <i class="fa-solid fa-phone text-gold-500"></i>
-                            <a href="{{ $empresaWeb->telefono_url }}" class="hover:text-gold-400 transition-colors">{{ $empresaWeb->telefono_principal }}</a>
-                        </li>
-                        @endif
-                        @if($empresaWeb->whatsapp_numero_limpio)
-                        <li class="flex items-center gap-3">
-                            <i class="fa-brands fa-whatsapp text-emerald-400"></i>
-                            <a href="{{ $empresaWeb->whatsapp_url }}" target="_blank" class="hover:text-emerald-400 transition-colors">WhatsApp: {{ $empresaWeb->whatsapp_comercial ?: $empresaWeb->telefono_principal }}</a>
-                        </li>
-                        @endif
-                        @if($empresaWeb->email_contacto)
-                        <li class="flex items-center gap-3">
-                            <i class="fa-solid fa-envelope text-gold-500"></i>
-                            <a href="mailto:{{ $empresaWeb->email_contacto }}" class="hover:text-gold-400 transition-colors break-all">{{ $empresaWeb->email_contacto }}</a>
-                        </li>
-                        @endif
-                        @if($empresaWeb->direccion_fisica)
-                        <li class="flex items-start gap-3">
-                            <i class="fa-solid fa-location-dot text-gold-500 mt-1"></i>
-                            <span>{{ $empresaWeb->direccion_fisica }} @if($empresaWeb->ciudad_pais) ({{ $empresaWeb->ciudad_pais }}) @endif</span>
-                        </li>
-                        @endif
-                        <li class="pt-3">
-                            <span class="block text-xs font-bold text-gold-400 uppercase tracking-wider mb-2">Redes Sociales Oficiales:</span>
-                            <div class="flex flex-wrap items-center gap-2">
-                                @if($empresaWeb->whatsapp_numero_limpio)
-                                    <a href="{{ $empresaWeb->whatsapp_url }}" target="_blank" rel="noopener noreferrer" title="WhatsApp Oficial"
-                                       class="w-9 h-9 rounded-xl bg-emerald-600/20 text-emerald-400 hover:bg-emerald-500 hover:text-white border border-emerald-500/30 flex items-center justify-center transition-all hover:scale-110">
-                                        <i class="fa-brands fa-whatsapp text-lg"></i>
-                                    </a>
-                                @endif
-                                @if($empresaWeb->redes_instagram)
-                                    <a href="{{ $empresaWeb->redes_instagram }}" target="_blank" rel="noopener noreferrer" title="Instagram Oficial"
-                                       class="w-9 h-9 rounded-xl bg-pink-500/20 text-pink-400 hover:bg-gradient-to-tr hover:from-amber-500 hover:via-rose-500 hover:to-purple-600 hover:text-white border border-pink-500/30 flex items-center justify-center transition-all hover:scale-110">
-                                        <i class="fa-brands fa-instagram text-lg"></i>
-                                    </a>
-                                @endif
-                                @if($empresaWeb->redes_tiktok)
-                                    <a href="{{ $empresaWeb->redes_tiktok }}" target="_blank" rel="noopener noreferrer" title="TikTok Oficial"
-                                       class="w-9 h-9 rounded-xl bg-slate-900 text-cyan-400 hover:bg-black hover:text-pink-400 border border-cyan-500/30 flex items-center justify-center transition-all hover:scale-110">
-                                        <i class="fa-brands fa-tiktok text-base"></i>
-                                    </a>
-                                @endif
-                                @if($empresaWeb->redes_youtube)
-                                    <a href="{{ $empresaWeb->redes_youtube }}" target="_blank" rel="noopener noreferrer" title="Canal de YouTube"
-                                       class="w-9 h-9 rounded-xl bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/30 flex items-center justify-center transition-all hover:scale-110">
-                                        <i class="fa-brands fa-youtube text-base"></i>
-                                    </a>
-                                @endif
-                                @if($empresaWeb->redes_facebook)
-                                    <a href="{{ $empresaWeb->redes_facebook }}" target="_blank" rel="noopener noreferrer" title="Página de Facebook"
-                                       class="w-9 h-9 rounded-xl bg-blue-600/20 text-blue-400 hover:bg-[#1877F2] hover:text-white border border-blue-500/30 flex items-center justify-center transition-all hover:scale-110">
-                                        <i class="fa-brands fa-facebook-f text-base"></i>
-                                    </a>
-                                @endif
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="font-bold text-sm text-gold-400 uppercase tracking-widest mb-4">Atención al Cliente</h4>
-                    <p class="text-sm text-slate-400 mb-4">Disponibles los 365 días del año para reservas y cotizaciones personalizadas.</p>
-                    <div class="space-y-3">
-                        <a href="{{ route('web.contacto') }}" class="inline-flex items-center gap-2 text-sm font-bold text-gold-400 hover:text-gold-300">
-                            <span>Solicitar cotización online</span>
-                            <i class="fa-solid fa-arrow-right"></i>
+
+                <nav class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-600 dark:text-slate-400">
+                    @foreach ($links as [$ruta, $texto])
+                        <a href="{{ route($ruta) }}"
+                            class="hover:text-gold-700 dark:hover:text-white transition-colors">{{ $texto }}</a>
+                    @endforeach
+                </nav>
+            </div>
+
+            <div
+                class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-5 border-t border-slate-200 dark:border-slate-800/80">
+                <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-600 dark:text-slate-400">
+                    @if ($empresaWeb->telefono_principal)
+                        <a href="{{ $empresaWeb->telefono_url }}"
+                            class="flex items-center gap-2 hover:text-gold-700 dark:hover:text-gold-400 transition-colors">
+                            <i
+                                class="fa-solid fa-phone text-gold-600 dark:text-gold-500 text-xs"></i>{{ $empresaWeb->telefono_principal }}
                         </a>
-                        @if($empresaWeb->whatsapp_numero_limpio)
-                        <div>
-                            <a href="{{ $empresaWeb->whatsapp_url }}" target="_blank" class="inline-flex items-center gap-2 text-xs font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 px-3 py-2 rounded-xl border border-emerald-500/20">
-                                <i class="fa-brands fa-whatsapp text-sm"></i>
-                                <span>Atención Inmediata por WhatsApp</span>
+                    @endif
+                    @if ($empresaWeb->email_contacto)
+                        <a href="mailto:{{ $empresaWeb->email_contacto }}"
+                            class="flex items-center gap-2 hover:text-gold-700 dark:hover:text-gold-400 transition-colors break-all">
+                            <i
+                                class="fa-solid fa-envelope text-gold-600 dark:text-gold-500 text-xs"></i>{{ $empresaWeb->email_contacto }}
+                        </a>
+                    @endif
+                    @if ($empresaWeb->direccion_fisica)
+                        <span class="flex items-center gap-2">
+                            <i
+                                class="fa-solid fa-location-dot text-gold-600 dark:text-gold-500 text-xs"></i>{{ $empresaWeb->direccion_fisica }}
+                        </span>
+                    @endif
+                </div>
+
+                <div class="flex items-center gap-2">
+                    @php
+                        $redes = [
+                            ['redes_instagram', 'fa-instagram', 'Instagram'],
+                            ['redes_tiktok', 'fa-tiktok', 'TikTok'],
+                            ['redes_youtube', 'fa-youtube', 'YouTube'],
+                            ['redes_facebook', 'fa-facebook-f', 'Facebook'],
+                        ];
+                    @endphp
+                    @if ($empresaWeb->whatsapp_numero_limpio)
+                        <a href="{{ $empresaWeb->whatsapp_url }}" target="_blank" rel="noopener noreferrer"
+                            title="WhatsApp"
+                            class="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-500 hover:border-emerald-500 hover:text-white flex items-center justify-center transition-all hover:scale-110">
+                            <i class="fa-brands fa-whatsapp text-lg"></i>
+                        </a>
+                    @endif
+                    @foreach ($redes as [$campo, $icono, $nombre])
+                        @if ($empresaWeb->{$campo})
+                            <a href="{{ $empresaWeb->{$campo} }}" target="_blank" rel="noopener noreferrer"
+                                title="{{ $nombre }}"
+                                class="w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-gold-500 hover:border-gold-500 hover:text-slate-950 flex items-center justify-center transition-all hover:scale-110">
+                                <i class="fa-brands {{ $icono }}"></i>
                             </a>
-                        </div>
                         @endif
-                    </div>
+                    @endforeach
                 </div>
             </div>
-            <div class="mt-12 pt-8 border-t border-slate-900 text-center text-xs text-slate-500">
-                <p>&copy; {{ date('Y') }} {{ $empresaWeb->nombre_comercial ?? 'Mariachi León Guanajuato' }}. Todos los derechos reservados.</p>
+
+            <div class="text-center text-xs text-slate-500">
+                <p>&copy; {{ date('Y') }} {{ $empresaWeb->nombre_comercial ?? 'Mariachi León Guanajuato' }}. Todos
+                    los derechos reservados.</p>
             </div>
         </div>
     </footer>
 
-    <!-- Botón Flotante de WhatsApp para Contacto Inmediato -->
-    @if($empresaWeb->whatsapp_numero_limpio)
-    <aside class="fixed bottom-6 right-6 z-50">
-        <a href="{{ $empresaWeb->whatsapp_url }}" target="_blank" rel="noopener noreferrer" 
-           class="group flex items-center gap-3 px-4 py-3 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white shadow-2xl shadow-emerald-500/50 hover:scale-105 active:scale-95 transition-all duration-300 border border-emerald-300/40"
-           title="Escríbenos directamente por WhatsApp">
-            <i class="fa-brands fa-whatsapp text-2xl animate-pulse"></i>
-            <div class="hidden sm:block text-left pr-1">
-                <span class="block text-[10px] uppercase font-bold tracking-wider text-emerald-100 leading-none">¿Cotización rápida?</span>
-                <span class="block text-xs font-extrabold text-white leading-tight mt-0.5">WhatsApp Directo</span>
+    <!-- Barra fija en celular: Llamar / WhatsApp -->
+    <div
+        class="md:hidden fixed bottom-0 inset-x-0 z-50 grid grid-cols-2 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
+        @if ($empresaWeb->telefono_principal)
+            <a href="{{ $empresaWeb->telefono_url }}"
+                class="py-3 flex items-center justify-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-100">
+                <i class="fa-solid fa-phone text-gold-600 dark:text-gold-400"></i>Llamar
+            </a>
+        @else
+            <a href="{{ route('web.contacto') }}"
+                class="py-3 flex items-center justify-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-100">
+                <i class="fa-solid fa-calendar-check text-gold-600 dark:text-gold-400"></i>Cotizar
+            </a>
+        @endif
+        @if ($empresaWeb->whatsapp_numero_limpio)
+            <a href="{{ $empresaWeb->whatsapp_url }}" target="_blank" rel="noopener noreferrer"
+                class="py-3 flex items-center justify-center gap-2 text-sm font-bold bg-emerald-500 text-white">
+                <i class="fa-brands fa-whatsapp text-lg"></i>WhatsApp
+            </a>
+        @endif
+    </div>
+
+    <!-- WhatsApp flotante (solo escritorio) -->
+    @if ($empresaWeb->whatsapp_numero_limpio)
+        <aside class="hidden md:flex fixed bottom-6 right-6 z-50 flex-col items-end gap-2" x-data="{ globo: false }"
+            x-init="setTimeout(() => globo = true, 3000);
+            setTimeout(() => globo = false, 12000)">
+            <div x-show="globo" x-cloak x-transition
+                class="relative px-3 py-2 rounded-xl rounded-br-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-semibold shadow-xl border border-slate-200 dark:border-slate-700">
+                ¿Cotizamos tu evento? 🎺
+                <button type="button" @click="globo = false" class="ml-2 text-slate-400 hover:text-slate-600"
+                    title="Cerrar"><i class="fa-solid fa-xmark"></i></button>
             </div>
-        </a>
-    </aside>
+            <div class="relative">
+                <span class="wa-ring absolute inset-0 rounded-full bg-emerald-500"></span>
+                <a href="{{ $empresaWeb->whatsapp_url }}" target="_blank" rel="noopener noreferrer"
+                    class="wa-wiggle relative flex items-center gap-3 px-4 py-3 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white shadow-xl shadow-emerald-500/40 hover:scale-105 active:scale-95 transition-all duration-300"
+                    title="Escríbenos por WhatsApp">
+                    <i class="fa-brands fa-whatsapp text-2xl"></i>
+                    <span class="text-xs font-extrabold pr-1">WhatsApp</span>
+                </a>
+            </div>
+        </aside>
     @endif
+
+    <script>
+        // Animación de aparición al hacer scroll
+        (function() {
+            var io = null;
+
+            function init() {
+                var els = document.querySelectorAll('[data-reveal]:not(.in):not([data-seen])');
+                if (!('IntersectionObserver' in window)) {
+                    els.forEach(function(e) {
+                        e.classList.add('in');
+                    });
+                    return;
+                }
+                if (!io) {
+                    io = new IntersectionObserver(function(entries) {
+                        entries.forEach(function(x) {
+                            if (x.isIntersecting) {
+                                x.target.classList.add('in');
+                                io.unobserve(x.target);
+                            }
+                        });
+                    }, {
+                        threshold: 0.1
+                    });
+                }
+                els.forEach(function(e, i) {
+                    e.setAttribute('data-seen', '1');
+                    e.style.transitionDelay = ((i % 3) * 80) + 'ms';
+                    io.observe(e);
+                });
+            }
+            document.addEventListener('DOMContentLoaded', function() {
+                init();
+                var t = null;
+                new MutationObserver(function() {
+                        clearTimeout(t);
+                        t = setTimeout(init, 40);
+                    })
+                    .observe(document.body, {
+                        childList: true,
+                        subtree: true
+                    });
+            });
+        })();
+    </script>
 
     @livewireScripts
 </body>
+
 </html>

@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Traits\Auditable;
 
@@ -14,6 +15,8 @@ class GestionUsuarios extends Component
     use WithPagination, Auditable;
 
     public $search = '';
+    public $estado_filtro = '';
+    public $rol_filtro = '';
     public $user_id = null;
     public $name = '';
     public $email = '';
@@ -50,9 +53,20 @@ class GestionUsuarios extends Component
         $this->resetPage();
     }
 
+    public function updatingEstadoFiltro()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingRolFiltro()
+    {
+        $this->resetPage();
+    }
+
     public function abrirModal()
     {
         $this->reset(['user_id', 'name', 'email', 'telefono', 'password', 'role', 'isEdit']);
+        $this->resetValidation();
         $this->activo = true;
         $this->modalOpen = true;
     }
@@ -60,10 +74,12 @@ class GestionUsuarios extends Component
     public function editar($id)
     {
         $user = User::findOrFail($id);
+        $this->resetValidation();
         $this->user_id = $user->id;
         $this->name = $user->name;
         $this->email = $user->email;
         $this->telefono = $user->telefono;
+        $this->password = '';
         $this->activo = $user->activo;
         $this->role = $user->roles->pluck('name')->first() ?? '';
         $this->isEdit = true;
@@ -109,6 +125,12 @@ class GestionUsuarios extends Component
 
     public function cambiarEstado($id)
     {
+        // Nadie puede desactivar su propia cuenta (se quedaría sin acceso)
+        if ((int) $id === (int) Auth::id()) {
+            session()->flash('error', 'No puedes desactivar tu propio usuario.');
+            return;
+        }
+
         $user = User::findOrFail($id);
         $user->activo = !$user->activo;
         $user->save();
@@ -120,6 +142,11 @@ class GestionUsuarios extends Component
 
     public function eliminar($id)
     {
+        if ((int) $id === (int) Auth::id()) {
+            session()->flash('error', 'No puedes eliminar tu propio usuario.');
+            return;
+        }
+
         $user = User::findOrFail($id);
         $email = $user->email;
         $user->delete();
@@ -128,21 +155,48 @@ class GestionUsuarios extends Component
         session()->flash('success', 'Usuario eliminado correctamente.');
     }
 
+    /**
+     * Consulta base con buscador y rol (sin el filtro de estado), para el listado y los contadores.
+     */
+    private function usuariosQuery()
+    {
+        return User::query()
+            ->when($this->search, function ($q) {
+                $q->where(function ($qq) {
+                    $qq->where('name', 'like', '%' . $this->search . '%')
+                        ->orWhere('email', 'like', '%' . $this->search . '%');
+                });
+            })
+            ->when($this->rol_filtro, function ($q) {
+                $q->whereHas('roles', fn($r) => $r->where('name', $this->rol_filtro));
+            });
+    }
+
     public function render()
     {
-        $usuarios = User::with('roles')
-            ->where(function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhere('email', 'like', '%' . $this->search . '%');
-            })
+        // Contadores de los chips (respetan buscador y rol)
+        $estados = $this->usuariosQuery()
+            ->selectRaw('activo, COUNT(*) as total')
+            ->groupBy('activo')
+            ->pluck('total', 'activo');
+
+        $usuarios = $this->usuariosQuery()
+            ->with('roles')
+            ->when($this->estado_filtro === 'activo', fn($q) => $q->where('activo', true))
+            ->when($this->estado_filtro === 'inactivo', fn($q) => $q->where('activo', false))
             ->latest()
             ->paginate(10);
 
-        $roles = Role::all();
+        $roles = Role::orderBy('name')->get();
 
         return view('livewire.admin.gestion-usuarios', [
             'usuarios' => $usuarios,
             'roles' => $roles,
-        ])->layout('components.layouts.app', ['title' => 'Gestión de Usuarios - Mariachi León']);
+            'totalActivos' => (int) ($estados[1] ?? 0),
+            'totalInactivos' => (int) ($estados[0] ?? 0),
+        ])->layout('components.layouts.app', [
+            'title' => 'Gestión de Usuarios - Mariachi León',
+            'themed' => true,
+        ]);
     }
 }

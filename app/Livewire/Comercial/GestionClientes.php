@@ -159,28 +159,35 @@ class GestionClientes extends Component
         ]);
     }
 
+    private function clientesQuery()
+    {
+        return Cliente::query()->when($this->search, function ($q) {
+            $q->where(function ($qq) {
+                $qq->where('nombre_completo', 'like', '%' . $this->search . '%')
+                   ->orWhere('ci_nit', 'like', '%' . $this->search . '%')
+                   ->orWhere('telefono', 'like', '%' . $this->search . '%')
+                   ->orWhere('whatsapp', 'like', '%' . $this->search . '%')
+                   ->orWhere('email', 'like', '%' . $this->search . '%');
+            });
+        });
+    }
+
     public function render()
     {
-        $query = Cliente::withCount('eventos');
-
-        if ($this->search) {
-            $query->where(function ($q) {
-                $q->where('nombre_completo', 'like', '%' . $this->search . '%')
-                  ->orWhere('ci_nit', 'like', '%' . $this->search . '%')
-                  ->orWhere('telefono', 'like', '%' . $this->search . '%')
-                  ->orWhere('whatsapp', 'like', '%' . $this->search . '%')
-                  ->orWhere('email', 'like', '%' . $this->search . '%');
-            });
-        }
-
-        if ($this->estado_filtro) {
-            $query->where('estado', $this->estado_filtro);
-        }
-
-        $clientes = $query->orderBy('nombre_completo', 'asc')->paginate(10);
+        $clientes = $this->clientesQuery()
+            ->withCount('eventos')
+            ->when($this->estado_filtro, fn ($q) => $q->where('estado', $this->estado_filtro))
+            ->orderBy('nombre_completo', 'asc')
+            ->paginate(10);
 
         return view('livewire.comercial.gestion-clientes', [
             'clientes' => $clientes,
-        ])->layout('components.layouts.app', ['title' => 'Gestión de Clientes - Mariachi León Guanajuato']);
+            'totalClientes' => $this->clientesQuery()->count(),
+            'activosCount' => $this->clientesQuery()->where('estado', 'Activo')->count(),
+            'inactivosCount' => $this->clientesQuery()->where('estado', 'Inactivo')->count(),
+        ])->layout('components.layouts.app', [
+            'title' => 'Gestión de Clientes - Mariachi León Guanajuato',
+            'themed' => true,
+        ]);
     }
 }

@@ -27,6 +27,7 @@ class GestionEmpresa extends Component
     public $logo_url;
     public $moneda_nombre;
     public $moneda_simbolo;
+    public $porcentaje_fondo_comun = 10;
     public $redes_linktree;
     public $redes_facebook;
     public $redes_instagram;
@@ -69,6 +70,7 @@ class GestionEmpresa extends Component
             'qr_file' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'moneda_nombre' => 'required|string|max:50',
             'moneda_simbolo' => 'required|string|max:10',
+            'porcentaje_fondo_comun' => 'required|numeric|min:0|max:100',
             'redes_linktree' => 'nullable|url|max:500',
             'redes_facebook' => 'nullable|url|max:500',
             'redes_instagram' => 'nullable|url|max:500',
@@ -84,6 +86,10 @@ class GestionEmpresa extends Component
     }
 
     protected $messages = [
+        'porcentaje_fondo_comun.required' => 'El porcentaje del fondo común es obligatorio.',
+        'porcentaje_fondo_comun.numeric' => 'El porcentaje debe ser un número.',
+        'porcentaje_fondo_comun.min' => 'El porcentaje no puede ser negativo.',
+        'porcentaje_fondo_comun.max' => 'El porcentaje no puede ser mayor a 100.',
         'nombre_comercial.required' => 'El nombre comercial de la agrupación es obligatorio.',
         'razon_social.required' => 'La razón social es obligatoria.',
         'representante_legal.required' => 'El nombre del representante legal es obligatorio.',
@@ -115,6 +121,7 @@ class GestionEmpresa extends Component
         $this->logo_url = $empresa->logo_url;
         $this->moneda_nombre = $empresa->moneda_nombre;
         $this->moneda_simbolo = $empresa->moneda_simbolo;
+        $this->porcentaje_fondo_comun = Configuracion::where('clave', 'porcentaje_fondo_comun')->value('valor') ?? 10;
         $this->redes_linktree = $empresa->redes_linktree;
         $this->redes_facebook = $empresa->redes_facebook;
         $this->redes_instagram = $empresa->redes_instagram;
@@ -199,7 +206,7 @@ class GestionEmpresa extends Component
                 $this->activeTab = 'contacto';
             } elseif (array_intersect($failedFields, ['redes_linktree', 'redes_facebook', 'redes_instagram', 'redes_tiktok', 'redes_youtube', 'logo_file'])) {
                 $this->activeTab = 'marca';
-            } elseif (array_intersect($failedFields, ['moneda_nombre', 'moneda_simbolo', 'banco_nombre', 'banco_numero_cuenta', 'banco_titular', 'qr_file'])) {
+            } elseif (array_intersect($failedFields, ['moneda_nombre', 'moneda_simbolo', 'porcentaje_fondo_comun', 'banco_nombre', 'banco_numero_cuenta', 'banco_titular', 'qr_file'])) {
                 $this->activeTab = 'banco';
             } elseif (array_intersect($failedFields, ['terminos_contrato', 'observaciones'])) {
                 $this->activeTab = 'contratos';
@@ -248,28 +255,28 @@ class GestionEmpresa extends Component
         }
 
         $empresa->update([
-            'nombre_comercial' => trim($this->nombre_comercial),
-            'razon_social' => trim($this->razon_social),
-            'nit_ruc' => trim($this->nit_ruc),
-            'slogan' => trim($this->slogan),
-            'representante_legal' => trim($this->representante_legal),
-            'telefono_principal' => trim($this->telefono_principal),
-            'whatsapp_comercial' => trim($this->whatsapp_comercial),
-            'email_contacto' => trim($this->email_contacto),
-            'direccion_fisica' => trim($this->direccion_fisica),
-            'ciudad_pais' => trim($this->ciudad_pais),
+            'nombre_comercial' => trim((string) $this->nombre_comercial),
+            'razon_social' => trim((string) $this->razon_social),
+            'nit_ruc' => trim((string) $this->nit_ruc),
+            'slogan' => trim((string) $this->slogan),
+            'representante_legal' => trim((string) $this->representante_legal),
+            'telefono_principal' => trim((string) $this->telefono_principal),
+            'whatsapp_comercial' => trim((string) $this->whatsapp_comercial),
+            'email_contacto' => trim((string) $this->email_contacto),
+            'direccion_fisica' => trim((string) $this->direccion_fisica),
+            'ciudad_pais' => trim((string) $this->ciudad_pais),
             'logo_url' => $this->logo_url,
-            'moneda_nombre' => trim($this->moneda_nombre),
-            'moneda_simbolo' => trim($this->moneda_simbolo),
-            'redes_linktree' => trim($this->redes_linktree),
-            'redes_facebook' => trim($this->redes_facebook),
-            'redes_instagram' => trim($this->redes_instagram),
-            'redes_tiktok' => trim($this->redes_tiktok),
-            'redes_youtube' => trim($this->redes_youtube),
-            'banco_nombre' => trim($this->banco_nombre),
-            'banco_numero_cuenta' => trim($this->banco_numero_cuenta),
-            'banco_titular' => trim($this->banco_titular),
-            'banco_qr_url' => trim($this->banco_qr_url),
+            'moneda_nombre' => trim((string) $this->moneda_nombre),
+            'moneda_simbolo' => trim((string) $this->moneda_simbolo),
+            'redes_linktree' => trim((string) $this->redes_linktree),
+            'redes_facebook' => trim((string) $this->redes_facebook),
+            'redes_instagram' => trim((string) $this->redes_instagram),
+            'redes_tiktok' => trim((string) $this->redes_tiktok),
+            'redes_youtube' => trim((string) $this->redes_youtube),
+            'banco_nombre' => trim((string) $this->banco_nombre),
+            'banco_numero_cuenta' => trim((string) $this->banco_numero_cuenta),
+            'banco_titular' => trim((string) $this->banco_titular),
+            'banco_qr_url' => trim((string) $this->banco_qr_url),
             'terminos_contrato' => $this->terminos_contrato,
             'observaciones' => $this->observaciones,
         ]);
@@ -290,6 +297,7 @@ class GestionEmpresa extends Component
             'terminos_contrato' => $this->terminos_contrato,
             'logo_url' => $this->logo_url,
             'banco_qr_url' => $this->banco_qr_url,
+            'porcentaje_fondo_comun' => $this->porcentaje_fondo_comun,
         ];
 
         foreach ($syncKeys as $clave => $valor) {
@@ -304,6 +312,9 @@ class GestionEmpresa extends Component
     public function render()
     {
         return view('livewire.configuracion.gestion-empresa')
-            ->layout('components.layouts.app', ['title' => 'Gestionar Empresa - Mariachi León Guanajuato']);
+            ->layout('components.layouts.app', [
+                'title' => 'Gestionar Empresa - Mariachi León Guanajuato',
+                'themed' => true,
+            ]);
     }
 }

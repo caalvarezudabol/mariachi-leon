@@ -12,9 +12,7 @@
             @endif
             <div>
                 <h1 class="text-2xl font-bold text-white">Dashboard de Activos Fijos & Bienes</h1>
-                <p class="text-xs text-slate-400">Resumen ejecutivo del inventario, valorización total (PPP),
-                    asignaciones y estados en {{ $empresaDashActivos->nombre_comercial }}.</p>
-            </div>
+                            </div>
         </div>
         <div class="flex items-center gap-3">
             <a href="{{ route('admin.activos-fijos.articulos') }}"

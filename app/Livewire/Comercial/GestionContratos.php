@@ -72,6 +72,11 @@ class GestionContratos extends Component
         $this->resetPage();
     }
 
+    public function updatingEstadoFiltro()
+    {
+        $this->resetPage();
+    }
+
     public function generarNumeroAutomatico()
     {
         $last = Contrato::orderBy('id', 'desc')->first();
@@ -82,8 +87,18 @@ class GestionContratos extends Component
     public function abrirModal()
     {
         $this->reset([
-            'contrato_id', 'numero_contrato', 'evento_id', 'cliente_id', 'servicio_id', 'cotizacion_id',
-            'monto_total', 'pago_inicial', 'total_pagado', 'saldo_pendiente', 'observaciones', 'isEdit'
+            'contrato_id',
+            'numero_contrato',
+            'evento_id',
+            'cliente_id',
+            'servicio_id',
+            'cotizacion_id',
+            'monto_total',
+            'pago_inicial',
+            'total_pagado',
+            'saldo_pendiente',
+            'observaciones',
+            'isEdit'
         ]);
         $this->numero_contrato = $this->generarNumeroAutomatico();
         $this->fecha_contrato = date('Y-m-d');
@@ -99,7 +114,7 @@ class GestionContratos extends Component
             if ($evento) {
                 $this->cliente_id = $evento->cliente_id;
                 $this->servicio_id = $evento->servicio_id;
-                
+
                 // Si el evento tiene cotización aceptada, la vincula
                 $cot = $evento->cotizaciones()->where('estado', 'Aceptada')->first();
                 if ($cot) {
@@ -128,7 +143,7 @@ class GestionContratos extends Component
     {
         $mt = (float)$this->monto_total;
         $pi = (float)$this->pago_inicial;
-        
+
         // No permitir pago inicial mayor al monto total
         if ($pi > $mt) {
             $pi = $mt;
@@ -220,10 +235,10 @@ class GestionContratos extends Component
                 ]);
             }
 
-            // Actualiza el evento a Confirmado o Reservado
+            // El evento se confirma solo si el cliente dejó un adelanto; sin adelanto queda Reservado.
             $evento = Evento::find($this->evento_id);
-            if ($evento) {
-                $evento->update(['estado' => 'Confirmado']);
+            if ($evento && in_array($evento->estado, ['Pendiente', 'Cotizado', 'Reservado'])) {
+                $evento->update(['estado' => (float) $this->pago_inicial > 0 ? 'Confirmado' : 'Reservado']);
             }
 
             $this->registrarAuditoria('Gestión Comercial', 'Crear Contrato', 'Se creó el contrato N° ' . $c->numero_contrato);
@@ -238,16 +253,16 @@ class GestionContratos extends Component
         $this->contratoHistorial = Contrato::with(['cliente', 'servicio', 'evento', 'pagos.user'])->findOrFail($id);
 
         $montoTotal = (float)$this->contratoHistorial->monto_total;
-        
+
         $pagos = Pago::where(function ($q) {
             $q->where('contrato_id', $this->contratoHistorial->id);
             if ($this->contratoHistorial->evento_id) {
                 $q->orWhere('evento_id', $this->contratoHistorial->evento_id);
             }
         })
-        ->with('user')
-        ->orderBy('fecha_pago', 'asc')
-        ->get();
+            ->with('user')
+            ->orderBy('fecha_pago', 'asc')
+            ->get();
 
         $totalAbonado = (float)$pagos->where('estado', 'Valido')->sum('monto');
         $saldoPendiente = max(0.0, $montoTotal - $totalAbonado);
@@ -306,8 +321,8 @@ class GestionContratos extends Component
     {
         if (!$this->eventoComisiones) return;
 
-        $montoEvento = $this->eventoComisiones->contrato 
-            ? (float)$this->eventoComisiones->contrato->monto_total 
+        $montoEvento = $this->eventoComisiones->contrato
+            ? (float)$this->eventoComisiones->contrato->monto_total
             : (float)($this->eventoComisiones->monto_total ?? 0);
 
         $participantes = $this->eventoComisiones->participantes;
@@ -388,8 +403,8 @@ class GestionContratos extends Component
 
             $personaNombre = $part->persona->nombre_completo ?? 'Participante';
             $eventoCodigo = $this->eventoComisiones->codigo_evento ?? 'Evento';
-            $contratoRef = $this->eventoComisiones->contrato?->numero_contrato 
-                ? " (Contrato: {$this->eventoComisiones->contrato->numero_contrato})" 
+            $contratoRef = $this->eventoComisiones->contrato?->numero_contrato
+                ? " (Contrato: {$this->eventoComisiones->contrato->numero_contrato})"
                 : '';
 
             $this->registrarAuditoria(
@@ -456,8 +471,8 @@ class GestionContratos extends Component
 
             $personaNombre = $part->persona->nombre_completo ?? 'Participante';
             $eventoCodigo = $this->eventoComisiones->codigo_evento ?? 'Evento';
-            $contratoRef = $this->eventoComisiones->contrato?->numero_contrato 
-                ? " (Contrato: {$this->eventoComisiones->contrato->numero_contrato})" 
+            $contratoRef = $this->eventoComisiones->contrato?->numero_contrato
+                ? " (Contrato: {$this->eventoComisiones->contrato->numero_contrato})"
                 : '';
 
             $this->registrarAuditoria(
@@ -492,32 +507,75 @@ class GestionContratos extends Component
         $this->cerrarModalDesmarcar();
     }
 
-    public function render()
+    /**
+     * Consulta base de contratos (aplica el buscador). Se reutiliza para la lista y para
+     * los contadores de los chips de estado.
+     */
+    private function contratosQuery()
     {
-        $query = Contrato::with(['cliente', 'servicio', 'evento.participantes.persona', 'pagos']);
+        $query = Contrato::with(['cliente', 'servicio', 'evento.participantes']);
 
         if ($this->search) {
             $query->where(function ($q) {
                 $q->where('numero_contrato', 'like', '%' . $this->search . '%')
-                  ->orWhereHas('cliente', function($c) {
-                      $c->where('nombre_completo', 'like', '%' . $this->search . '%');
-                  })
-                  ->orWhereHas('evento', function($e) {
-                      $e->where('codigo_evento', 'like', '%' . $this->search . '%');
-                  });
+                    ->orWhereHas('cliente', function ($c) {
+                        $c->where('nombre_completo', 'like', '%' . $this->search . '%');
+                    })
+                    ->orWhereHas('evento', function ($e) {
+                        $e->where('codigo_evento', 'like', '%' . $this->search . '%');
+                    });
             });
         }
+
+        return $query;
+    }
+
+    public function render()
+    {
+        // Contadores por estado para los chips (respetan el buscador, no el filtro de estado)
+        $estados = $this->contratosQuery()
+            ->reorder()
+            ->selectRaw('estado, COUNT(*) as total')
+            ->groupBy('estado')
+            ->pluck('total', 'estado');
+
+        $query = $this->contratosQuery();
 
         if ($this->estado_filtro) {
             $query->where('estado', $this->estado_filtro);
         }
 
         $contratos = $query->orderBy('fecha_contrato', 'desc')->paginate(10);
-        $eventos = Evento::with(['cliente', 'servicio'])->orderBy('fecha_evento', 'desc')->get();
+
+        // Opciones del selector con buscador: solo se cargan cuando el modal está abierto
+        $eventosOptions = [];
+        if ($this->modalOpen) {
+            $eventosOptions = Evento::with(['cliente', 'servicio'])
+                ->orderBy('fecha_evento', 'desc')
+                ->get()
+                ->map(function ($ev) {
+                    $cliente = $ev->cliente->nombre_completo ?? 'N/A';
+                    $servicio = $ev->servicio->nombre ?? 'N/A';
+                    $fecha = $ev->fecha_evento ? $ev->fecha_evento->format('d/m/Y') : '';
+
+                    return [
+                        'id' => $ev->id,
+                        'label' => $ev->codigo_evento . ' - ' . $cliente,
+                        'meta' => $servicio . ' - ' . $fecha,
+                        'search' => mb_strtolower($ev->codigo_evento . ' ' . $cliente . ' ' . $servicio . ' ' . $fecha),
+                    ];
+                })
+                ->values()
+                ->all();
+        }
 
         return view('livewire.comercial.gestion-contratos', [
             'contratos' => $contratos,
-            'eventos' => $eventos,
-        ])->layout('components.layouts.app', ['title' => 'Gestión de Contratos - Mariachi León Guanajuato']);
+            'estados' => $estados,
+            'eventosOptions' => $eventosOptions,
+        ])->layout('components.layouts.app', [
+            'title' => 'Gestión de Contratos - Mariachi León Guanajuato',
+            'themed' => true,
+        ]);
     }
 }

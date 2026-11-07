@@ -1,443 +1,484 @@
+@php
+    $cli = $contrato->cliente;
+    $ev = $contrato->evento;
+    $moneda = fn($n) => 'Bs ' . number_format((float) $n, 2, ',', '.');
+
+    // Monto en letras (si el servidor tiene la extensión intl)
+    $formateador = class_exists(\NumberFormatter::class)
+        ? new \NumberFormatter('es', \NumberFormatter::SPELLOUT)
+        : null;
+    $literal = function ($n) use ($formateador) {
+        if (!$formateador) {
+            return '';
+        }
+        $n = round((float) $n, 2);
+        $ent = (int) floor($n);
+        $cent = (int) round(($n - $ent) * 100);
+        return ucfirst($formateador->format($ent)) . ' ' . sprintf('%02d/100 Bolivianos', $cent);
+    };
+    $b = fn($t) => '<strong>' . e($t) . '</strong>';
+
+    // Solo se muestran los datos que existen
+    $telCliente = collect([$cli->telefono ?? null, $cli->whatsapp ?? null])
+        ->map(fn($t) => trim((string) $t))
+        ->filter()
+        ->unique()
+        ->implode(' / ');
+    $telEmpresa = collect([$empresa->telefono_principal ?? null, $empresa->whatsapp_comercial ?? null])
+        ->map(fn($t) => trim((string) $t))
+        ->filter()
+        ->unique()
+        ->implode(' / ');
+    $docCliente = trim((string) ($cli->ci_nit ?? ''));
+    $nitEmpresa = trim((string) ($empresa->nit_ruc ?? ''));
+    $domicilioEmpresa = collect([$empresa->direccion_fisica ?? null, $empresa->ciudad_pais ?? null])
+        ->map(fn($t) => trim((string) $t))
+        ->filter()
+        ->implode(', ');
+
+    $fechaEvento = $ev->fecha_evento->copy()->locale('es')->isoFormat('dddd D [de] MMMM [de] YYYY');
+    $horaEvento = substr((string) $ev->hora_evento, 0, 5);
+    $horas = (float) $ev->duracion_horas;
+    $duracion =
+        $horas > 0
+            ? ($horas < 1
+                ? (int) round($horas * 60) . ' minutos'
+                : rtrim(rtrim(number_format($horas, 2, '.', ''), '0'), '.') . ($horas == 1 ? ' hora' : ' horas'))
+            : null;
+    $fechaFirma = now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY');
+    $ciudadFirma = trim((string) ($empresa->ciudad_pais ?? '')) ?: 'Santa Cruz de la Sierra';
+    $ciudadFirma = trim(explode('-', $ciudadFirma)[0]);
+
+    $total = (float) $contrato->monto_total;
+    $inicial = (float) $contrato->pago_inicial;
+    $abonado = (float) $contrato->total_pagado;
+    $saldo = (float) $contrato->saldo_pendiente;
+
+    $bancoNombre = trim((string) ($empresa->banco_nombre ?? ''));
+    $bancoCuenta = trim((string) ($empresa->banco_numero_cuenta ?? ''));
+    $bancoTitular = trim((string) ($empresa->banco_titular ?? ''));
+
+    // Frases armadas aquí para que ningún formateador de código las parta
+    $conTerminos = trim((string) ($empresa->terminos_contrato ?? '')) !== '';
+    $ultimaClausula = $conTerminos ? 'Octava' : 'Séptima';
+    $subEncabezado = e(
+        trim(
+            $domicilioEmpresa .
+                ($domicilioEmpresa && $telEmpresa ? ' - ' : '') .
+                ($telEmpresa ? 'Cel.: ' . $telEmpresa : ''),
+        ),
+    );
+    $txtEmpresa =
+        $b($empresa->razon_social ?: $empresa->nombre_comercial) .
+        e($nitEmpresa ? ', con NIT ' . $nitEmpresa : '') .
+        ', representada legalmente por ' .
+        $b($empresa->representante_legal) .
+        e($domicilioEmpresa ? ', con domicilio en ' . $domicilioEmpresa : '') .
+        '.';
+    $txtCliente =
+        $b($cli->nombre_completo) .
+        e(
+            ($docCliente ? ', con C.I./NIT ' . $docCliente : '') .
+                ($telCliente ? ', teléfono ' . $telCliente : '') .
+                (!empty($cli->email) ? ', correo electrónico ' . $cli->email : ''),
+        ) .
+        '.';
+    $txtObjeto =
+        'EL PRESTADOR se obliga a brindar a EL CLIENTE el servicio ' .
+        $b($contrato->servicio->nombre) .
+        e($duracion ? ', con una duración de ' . $duracion : '') .
+        ', el día ' .
+        $b($fechaEvento) .
+        ' a horas ' .
+        $b($horaEvento) .
+        ', en ' .
+        $b($ev->direccion_evento ?: 'el lugar que las partes acuerden') .
+        '.' .
+        (!empty($ev->contacto_evento)
+            ? ' ' .
+                e(
+                    'La persona de contacto en el lugar es ' .
+                        $ev->contacto_evento .
+                        (!empty($ev->telefono_contacto) ? ', teléfono ' . $ev->telefono_contacto : '') .
+                        '.',
+                )
+            : '');
+    $enLetras = $literal($total);
+    $txtPrecio =
+        'El precio total del servicio es de ' .
+        $b($moneda($total)) .
+        ($enLetras ? ' (' . e($enLetras) . ')' : '') .
+        ', que EL CLIENTE se obliga a cancelar de la siguiente manera:';
+    $txtBanco =
+        $bancoNombre && $bancoCuenta
+            ? e(
+                ' Los pagos por transferencia se realizan a la cuenta ' .
+                    $bancoNombre .
+                    ' N° ' .
+                    $bancoCuenta .
+                    ($bancoTitular ? ', a nombre de ' . $bancoTitular : '') .
+                    '.',
+            )
+            : '';
+    $txtFirmaCliente = e($cli->nombre_completo) . ($docCliente ? '<br>' . e('C.I./NIT: ' . $docCliente) : '');
+    $txtFirmaPrestador =
+        e($empresa->representante_legal) .
+        '<br>' .
+        e('Representante legal - ' . ($empresa->razon_social ?: $empresa->nombre_comercial));
+@endphp
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
-    <title>Contrato de Servicio Musical - {{ $contrato->numero_contrato }}</title>
+    <title>Contrato de Prestación de Servicios Musicales - {{ $contrato->numero_contrato }}</title>
     <style>
         @page {
             size: letter portrait;
-            margin: 1.2cm 1.4cm 1.4cm 1.4cm;
+            margin: 1.8cm 2cm 2cm 2cm;
         }
 
         body {
-            font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
-            font-size: 8.5pt;
-            color: #0f172a;
-            line-height: 1.4;
+            font-family: 'DejaVu Serif', 'Times New Roman', serif;
+            font-size: 9.5pt;
+            color: #000;
+            line-height: 1.5;
             margin: 0;
             padding: 0;
         }
 
         .page-footer {
             position: fixed;
-            bottom: -1.0cm;
+            bottom: -1.2cm;
             left: 0;
             right: 0;
-            height: 0.8cm;
             font-size: 7pt;
-            color: #475569;
-            border-top: 1.5px solid #d97706;
-            padding-top: 5px;
+            color: #444;
+            border-top: 0.5pt solid #777;
+            padding-top: 4px;
+            font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
         }
 
-        .footer-table {
+        .head {
             width: 100%;
             border-collapse: collapse;
+            border-bottom: 1.2pt solid #000;
+            margin-bottom: 14px;
         }
 
-        .top-header-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 8px;
-        }
-
-        .logo-col {
-            width: 22%;
+        .head td {
             vertical-align: middle;
-            text-align: left;
+            padding: 0 0 8px 0;
         }
 
-        .logo-col img {
-            max-width: 110px;
-            max-height: 80px;
-            object-fit: contain;
+        .head img {
+            max-width: 70px;
+            max-height: 60px;
         }
 
-        .title-col {
-            width: 78%;
-            vertical-align: middle;
-            text-align: center;
-            padding-right: 8%;
-        }
-
-        .main-brand-name {
-            font-size: 15pt;
-            font-weight: 800;
-            color: #0b1329;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .main-sub-title {
-            font-size: 9pt;
-            font-weight: bold;
-            color: #1e293b;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-top: 2px;
-        }
-
-        .doc-type-title {
+        .brand {
+            font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
             font-size: 12pt;
-            font-weight: 800;
-            color: #d97706;
+            font-weight: bold;
             text-transform: uppercase;
-            margin-top: 4px;
             letter-spacing: 0.5px;
         }
 
-        .gold-line-container {
-            text-align: center;
-            margin: 4px auto 10px auto;
-            width: 85%;
-        }
-
-        .gold-line-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .gold-line-table td {
-            vertical-align: middle;
-        }
-
-        .gold-line-hr {
-            border-top: 1px solid #d97706;
-            width: 100%;
-        }
-
-        .gold-line-diamond {
-            color: #d97706;
-            font-size: 8pt;
-            padding: 0 6px;
-        }
-
-        .section-banner {
-            background-color: #0b1a30;
-            color: #ffffff;
-            font-size: 8.5pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            padding: 4px 8px;
-            border-radius: 3px;
-            margin-top: 10px;
-            margin-bottom: 6px;
-            letter-spacing: 0.5px;
-            border-left: 4px solid #d97706;
-            page-break-inside: avoid;
-        }
-
-        .info-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 8px;
-            font-size: 8pt;
-        }
-
-        .info-table td {
-            padding: 4px 6px;
-            border: 1px solid #cbd5e1;
-            vertical-align: top;
-        }
-
-        .info-label {
-            font-weight: bold;
-            color: #0b1a30;
-            width: 28%;
-            background-color: #f8fafc;
-        }
-
-        .econ-box-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 6px;
-            margin-bottom: 10px;
-        }
-
-        .econ-box-table td {
-            width: 25%;
-            text-align: center;
-            padding: 8px 4px;
-            border: 1px solid #cbd5e1;
-            background-color: #f8fafc;
-        }
-
-        .econ-label {
+        .brand-sub {
+            font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
             font-size: 7.5pt;
-            font-weight: bold;
-            color: #0b1a30;
-            text-transform: uppercase;
-        }
-
-        .econ-val {
-            font-size: 11pt;
-            font-weight: 800;
-            color: #0f172a;
+            color: #444;
             margin-top: 2px;
         }
 
-        .clauses-box {
-            font-size: 7.5pt;
-            color: #334155;
-            background-color: #f8fafc;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            padding: 8px 10px;
-            margin-top: 10px;
-            page-break-inside: avoid;
+        .num {
+            font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
+            font-size: 8pt;
+            text-align: right;
+        }
+
+        h1 {
+            font-size: 12.5pt;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin: 4px 0 2px 0;
+        }
+
+        .subtitulo {
+            text-align: center;
+            font-size: 8.5pt;
+            color: #333;
+            margin-bottom: 14px;
+        }
+
+        p {
+            margin: 0 0 8px 0;
             text-align: justify;
         }
 
-        .signatures-grid {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 35px;
+        .clausula {
+            margin-top: 10px;
             page-break-inside: avoid;
         }
 
-        .signatures-grid td {
-            width: 50%;
-            vertical-align: top;
-            padding: 0 20px;
-        }
-
-        .sig-line-td {
-            border-bottom: 1px solid #0f172a;
-            height: 40px;
-        }
-
-        .sig-subtext {
-            text-align: center;
-            font-size: 8pt;
-            color: #0f172a;
-            margin-top: 4px;
+        .clausula-titulo {
             font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        table.pagos {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 4px 0 8px 0;
+            font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
+            font-size: 8.5pt;
+        }
+
+        table.pagos td {
+            border: 0.6pt solid #555;
+            padding: 4px 8px;
+        }
+
+        table.pagos td.monto {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        table.pagos tr.total td {
+            font-weight: bold;
+            background: #eee;
+        }
+
+        ul.lista {
+            margin: 2px 0 8px 0;
+            padding-left: 18px;
+        }
+
+        ul.lista li {
+            margin-bottom: 3px;
+            text-align: justify;
+        }
+
+        table.firmas {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 55px;
+            page-break-inside: avoid;
+        }
+
+        table.firmas td {
+            width: 50%;
+            text-align: center;
+            vertical-align: top;
+            padding: 0 18px;
+        }
+
+        .firma-linea {
+            border-top: 0.8pt solid #000;
+            padding-top: 4px;
+            font-weight: bold;
+            font-size: 8.5pt;
+            text-transform: uppercase;
+            font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
+        }
+
+        .firma-dato {
+            font-size: 8pt;
+            color: #222;
+            font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
+        }
+
+        table.verif {
+            width: 100%;
+            margin-top: 26px;
+            border-top: 0.5pt solid #999;
+            padding-top: 6px;
+            page-break-inside: avoid;
+            font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
+        }
+
+        .verif-txt {
+            font-size: 6.8pt;
+            color: #444;
+            line-height: 1.4;
         }
     </style>
 </head>
+
 <body>
 
-    <!-- Fixed Footer -->
     <div class="page-footer">
-        <table class="footer-table">
+        <table style="width:100%; border-collapse:collapse;">
             <tr>
-                <td style="width: 45%; text-align: left;">
-                    <div style="font-weight: bold; color: #0f172a;">{{ $empresa->nombre_comercial }}</div>
-                    <div>Contrato Oficial de Presentación / Servicio Musical</div>
-                </td>
-                <td style="width: 30%; text-align: center;">
-                    <div style="font-weight: bold; color: #334155;">Contrato N°: {{ $contrato->numero_contrato }}</div>
-                    <div>Fecha: {{ $fechaEmision }}</div>
-                </td>
-                <td style="width: 25%; text-align: right; font-weight: bold; color: #0f172a;">
-                    <!-- DomPDF Inyectado -->
-                </td>
+                <td style="text-align:left;">{{ $empresa->nombre_comercial }} - Contrato N°
+                    {{ $contrato->numero_contrato }}</td>
+                <td style="text-align:right;"></td>
             </tr>
         </table>
     </div>
 
-    <!-- DomPDF Script -->
     <script type="text/php">
         if (isset($pdf)) {
             $text = "Página {PAGE_NUM} de {PAGE_COUNT}";
-            $font = $fontMetrics->get_font("DejaVu Sans", "bold");
+            $font = $fontMetrics->get_font("DejaVu Sans", "normal");
             $size = 7;
-            $color = array(0.06, 0.09, 0.16);
-            $pdf->page_text(495, 756, $text, $font, $size, $color);
+            $width = $fontMetrics->get_text_width($text, $font, $size);
+            $pdf->page_text($pdf->get_width() - $width - 57, $pdf->get_height() - 40, $text, $font, $size, array(0.27, 0.27, 0.27));
         }
     </script>
 
-    <!-- Header Section -->
-    <table class="top-header-table">
+    {{-- Encabezado --}}
+    <table class="head">
         <tr>
-            <td class="logo-col">
-                @if($logoBase64)
+            <td style="width: 80px;">
+                @if (!empty($logoBase64))
                     <img src="{{ $logoBase64 }}" alt="Logo">
-                @else
-                    <div style="width: 70px; height: 70px; border-radius: 50%; border: 2px solid #d97706; background-color: #0b1329; text-align: center; line-height: 1.2; padding-top: 14px; color: #f59e0b; font-weight: 900; font-size: 9pt;">
-                        LEÓN<br><span style="color: #ffffff; font-size: 4.5pt; letter-spacing: 1px;">GUANAJUATO</span>
-                    </div>
                 @endif
             </td>
-            <td class="title-col">
-                <div class="main-brand-name">{{ $empresa->nombre_comercial }}</div>
-                <div class="main-sub-title">EXCELENCIA Y VIRTUISISMO MUSICAL EN CADA PRESENTACIÓN</div>
-                <div class="doc-type-title">CONTRATO DE PRESTACIÓN DE SERVICIOS</div>
+            <td>
+                <div class="brand">{{ $empresa->nombre_comercial }}</div>
+                @if ($subEncabezado !== '')
+                    <div class="brand-sub">{!! $subEncabezado !!}</div>
+                @endif
+            </td>
+            <td class="num" style="width: 150px;">
+                <strong>Contrato N° {{ $contrato->numero_contrato }}</strong><br>
+                Evento {{ $ev->codigo_evento }}
             </td>
         </tr>
     </table>
 
-    <!-- Gold Line Divider -->
-    <div class="gold-line-container">
-        <table class="gold-line-table">
+    <h1>Contrato de Prestación de Servicios Musicales</h1>
+    <div class="subtitulo">{{ $ciudadFirma }}, {{ $fechaFirma }}</div>
+
+    <p>
+        Conste por el presente documento privado de prestación de servicios musicales, que las partes
+        abajo identificadas celebran de manera libre y voluntaria, bajo las siguientes cláusulas:
+    </p>
+
+    {{-- PRIMERA --}}
+    <div class="clausula">
+        <p><span class="clausula-titulo">Primera.- De las partes.</span></p>
+        <p><strong>1.1. EL PRESTADOR:</strong> {!! $txtEmpresa !!}</p>
+        <p><strong>1.2. EL CLIENTE:</strong> {!! $txtCliente !!}</p>
+    </div>
+
+    {{-- SEGUNDA --}}
+    <div class="clausula">
+        <p><span class="clausula-titulo">Segunda.- Del objeto.</span></p>
+        <p>{!! $txtObjeto !!}</p>
+    </div>
+
+    {{-- TERCERA --}}
+    <div class="clausula">
+        <p><span class="clausula-titulo">Tercera.- Del precio y la forma de pago.</span></p>
+        <p>{!! $txtPrecio !!}</p>
+        <table class="pagos">
             <tr>
-                <td><div class="gold-line-hr"></div></td>
-                <td class="gold-line-diamond">◆</td>
-                <td><div class="gold-line-hr"></div></td>
+                <td>Monto total del servicio</td>
+                <td class="monto">{{ $moneda($total) }}</td>
+            </tr>
+            @if ($inicial > 0)
+                <tr>
+                    <td>Anticipo / reserva de fecha</td>
+                    <td class="monto">{{ $moneda($inicial) }}</td>
+                </tr>
+            @endif
+            <tr>
+                <td>Total abonado a la fecha de emisión</td>
+                <td class="monto">{{ $moneda($abonado) }}</td>
+            </tr>
+            <tr class="total">
+                <td>Saldo a cancelar</td>
+                <td class="monto">{{ $moneda($saldo) }}</td>
             </tr>
         </table>
+        <p>El saldo debe ser cancelado, como máximo, al inicio de la presentación.{!! $txtBanco !!}</p>
     </div>
 
-    <!-- 1. Datos de la Empresa Prestadora -->
-    <div class="section-banner">1. DATOS DE LA EMPRESA PRESTADORA DE SERVICIO</div>
-    <table class="info-table">
-        <tr>
-            <td class="info-label">Empresa / Razón Social:</td>
-            <td><strong>{{ $empresa->razon_social ?: $empresa->nombre_comercial }}</strong> (NIT/RUC: {{ $empresa->nit_ruc }})</td>
-        </tr>
-        <tr>
-            <td class="info-label">Representante Legal:</td>
-            <td><strong>{{ $empresa->representante_legal }}</strong></td>
-        </tr>
-        <tr>
-            <td class="info-label">Teléfonos / WhatsApp:</td>
-            <td>{{ $empresa->telefono_principal }} / {{ $empresa->whatsapp_comercial }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Dirección Fiscal:</td>
-            <td>{{ $empresa->direccion_fisica }} &bull; {{ $empresa->ciudad_pais }}</td>
-        </tr>
-    </table>
-
-    <!-- 2. Datos del Cliente Contratante -->
-    <div class="section-banner">2. DATOS DEL CLIENTE CONTRATANTE</div>
-    <table class="info-table">
-        <tr>
-            <td class="info-label">Nombre del Cliente:</td>
-            <td><strong>{{ $contrato->cliente->nombre_completo }}</strong></td>
-        </tr>
-        <tr>
-            <td class="info-label">C.I. / NIT:</td>
-            <td>{{ $contrato->cliente->ci_nit ?: 'Sin Especificar' }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Teléfono / WhatsApp:</td>
-            <td>{{ $contrato->cliente->telefono }} / {{ $contrato->cliente->whatsapp }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Correo Electrónico:</td>
-            <td>{{ $contrato->cliente->email ?: 'Sin Correo' }}</td>
-        </tr>
-    </table>
-
-    <!-- 3. Detalles del Evento y Servicio -->
-    <div class="section-banner">3. DETALLES DEL EVENTO Y UBICACIÓN</div>
-    <table class="info-table">
-        <tr>
-            <td class="info-label">Código del Evento:</td>
-            <td><strong>{{ $contrato->evento->codigo_evento }}</strong></td>
-        </tr>
-        <tr>
-            <td class="info-label">Servicio Contratado:</td>
-            <td><strong>{{ $contrato->servicio->nombre }}</strong> (Duración: {{ $contrato->evento->duracion_horas }} horas)</td>
-        </tr>
-        <tr>
-            <td class="info-label">Fecha y Hora de Inicio:</td>
-            <td><strong>{{ $contrato->evento->fecha_evento->format('d/m/Y') }}</strong> a las <strong>{{ $contrato->evento->hora_evento }}</strong></td>
-        </tr>
-        <tr>
-            <td class="info-label">Persona de Contacto:</td>
-            <td>{{ $contrato->evento->contacto_evento }} (Tel: {{ $contrato->evento->telefono_contacto }})</td>
-        </tr>
-        <tr>
-            <td class="info-label">Dirección Exacta del Evento:</td>
-            <td>{{ $contrato->evento->direccion_evento }}</td>
-        </tr>
-        @if($contrato->evento->latitud && $contrato->evento->longitud)
-            <tr>
-                <td class="info-label">Coordenadas GPS:</td>
-                <td>Lat: {{ $contrato->evento->latitud }}, Lng: {{ $contrato->evento->longitud }} (Verificable en Google Maps)</td>
-            </tr>
-        @endif
-    </table>
-
-    <!-- 4. Resumen Económico del Contrato -->
-    <div class="section-banner">4. CONDICIONES ECONÓMICAS Y PLAN DE PAGO</div>
-    <table class="econ-box-table">
-        <tr>
-            <td>
-                <div class="econ-label">MONTO TOTAL CONTRATO</div>
-                <div class="econ-val" style="color: #0b1a30;">Bs {{ number_format($contrato->monto_total, 2, ',', '.') }}</div>
-            </td>
-            <td>
-                <div class="econ-label">PAGO INICIAL / SEÑA</div>
-                <div class="econ-val" style="color: #0284c7;">Bs {{ number_format($contrato->pago_inicial, 2, ',', '.') }}</div>
-            </td>
-            <td>
-                <div class="econ-label">TOTAL ABONADO</div>
-                <div class="econ-val" style="color: #16a34a;">Bs {{ number_format($contrato->total_pagado, 2, ',', '.') }}</div>
-            </td>
-            <td>
-                <div class="econ-label">SALDO PENDIENTE</div>
-                <div class="econ-val" style="color: #dc2626;">Bs {{ number_format($contrato->saldo_pendiente, 2, ',', '.') }}</div>
-            </td>
-        </tr>
-    </table>
-
-    <!-- Cláusulas y Términos -->
-    <div class="clauses-box">
-        <strong>TÉRMINOS Y CLÁUSULAS DEL CONTRATO:</strong><br>
-        1. <strong>Compromiso de Puntualidad:</strong> <em>{{ $empresa->nombre_comercial }}</em> se compromete a presentarse puntualmente en la fecha y hora indicadas.<br>
-        2. <strong>Condiciones de Pago:</strong> El cliente debe haber cancelado la totalidad del saldo pendiente como máximo al momento del inicio de la presentación en la fecha del evento.<br>
-        3. <strong>Garantía de Calidad:</strong> La agrupación musical se compromete a asistir con su vestimenta oficial e instrumentos profesionales en perfecto estado.<br>
-        4. {{ $empresa->terminos_contrato ?: 'Cualquier modificación de fecha u horario deberá coordinarse con 48 horas de anticipación sujeto a disponibilidad.' }}
+    {{-- CUARTA --}}
+    <div class="clausula">
+        <p><span class="clausula-titulo">Cuarta.- Obligaciones de El Prestador.</span></p>
+        <ul class="lista">
+            <li>Presentarse puntualmente en la fecha, hora y lugar acordados.</li>
+            <li>Asistir con vestimenta oficial e instrumentos profesionales en buen estado.</li>
+            <li>Brindar el servicio contratado con la calidad y el repertorio propios de la agrupación.</li>
+        </ul>
     </div>
 
-    <!-- Bloque de Firmas -->
-    <table class="signatures-grid">
+    {{-- QUINTA --}}
+    <div class="clausula">
+        <p><span class="clausula-titulo">Quinta.- Obligaciones de El Cliente.</span></p>
+        <ul class="lista">
+            <li>Cancelar el precio en los plazos señalados en la cláusula tercera.</li>
+            <li>Facilitar el acceso al lugar del evento y un espacio adecuado y seguro para la presentación.</li>
+            <li>Proveer, cuando corresponda, suministro de energía eléctrica para el equipo de sonido.</li>
+        </ul>
+    </div>
+
+    {{-- SEXTA --}}
+    <div class="clausula">
+        <p><span class="clausula-titulo">Sexta.- Modificaciones y cancelación.</span></p>
+        <p>
+            Cualquier cambio de fecha, hora o lugar debe ser coordinado por las partes con al menos
+            cuarenta y ocho (48) horas de anticipación y queda sujeto a la disponibilidad de la agrupación.
+            En caso de cancelación, las partes acordarán el tratamiento del anticipo entregado.
+        </p>
+    </div>
+
+    {{-- SÉPTIMA (condiciones propias de la empresa) --}}
+    @if ($conTerminos)
+        <div class="clausula">
+            <p><span class="clausula-titulo">Séptima.- Condiciones adicionales.</span></p>
+            <p>{!! nl2br(e($empresa->terminos_contrato)) !!}</p>
+        </div>
+    @endif
+
+    {{-- Conformidad --}}
+    <div class="clausula">
+        <p><span class="clausula-titulo">{{ $ultimaClausula }}.- Conformidad.</span></p>
+        <p>
+            En señal de conformidad, ambas partes firman el presente contrato en dos ejemplares de un mismo tenor,
+            en la ciudad de {{ $ciudadFirma }}, a {{ $fechaFirma }}.
+        </p>
+    </div>
+
+    {{-- Firmas --}}
+    <table class="firmas">
         <tr>
             <td>
-                <div class="sig-line-td"></div>
-                <div class="sig-subtext">POR EL CLIENTE CONTRATANTE</div>
-                <div style="text-align: center; font-size: 7.5pt; color: #475569;">{{ $contrato->cliente->nombre_completo }}<br>C.I.: {{ $contrato->cliente->ci_nit ?: '-' }}</div>
+                <div class="firma-linea">El Cliente</div>
+                <div class="firma-dato">{!! $txtFirmaCliente !!}</div>
             </td>
             <td>
-                <div class="sig-line-td"></div>
-                <div class="sig-subtext">POR MARIACHI LEÓN GUANAJUATO</div>
-                <div style="text-align: center; font-size: 7.5pt; color: #475569;">{{ $empresa->representante_legal }}<br>Director / Representante Legal</div>
+                <div class="firma-linea">El Prestador</div>
+                <div class="firma-dato">{!! $txtFirmaPrestador !!}</div>
             </td>
         </tr>
     </table>
 
-    <!-- Bloque de Seguridad y Validación QR Anti-Fraude (Inferior Derecho) -->
-    <table style="width: 100%; margin-top: 25px; border-top: 1px dashed #cbd5e1; padding-top: 8px; page-break-inside: avoid;">
+    {{-- Verificación --}}
+    <table class="verif">
         <tr>
-            <td style="width: 72%; vertical-align: middle; padding-right: 15px;">
-                <div style="font-size: 8pt; font-weight: bold; color: #0b1a30; text-transform: uppercase; margin-bottom: 3px;">
-                    🛡️ Verificación de Autenticidad y Validez Legal
+            <td style="vertical-align: middle; padding-right: 12px;">
+                <div class="verif-txt">
+                    <strong>Verificación del documento.</strong> Escanee el código QR para comprobar en línea que este
+                    contrato es auténtico y ver su estado actual.<br>
+                    Emitido el {{ $fechaEmision }} por {{ $usuarioImpresion }}. Registrado el {{ $fechaCreacion }}
+                    por {{ $usuarioCreacion }}.<br>
+                    <span style="font-family: monospace; color: #666;">Código:
+                        {{ $contrato->codigo_verificacion }}</span>
                 </div>
-                <div style="font-size: 7pt; color: #475569; line-height: 1.35;">
-                    Este contrato es un documento oficial emitido por el sistema informático de <strong>{{ $empresa->nombre_comercial }}</strong>. 
-                    Escanee el código QR adjunto con cualquier dispositivo móvil para verificar la integridad del contrato, su estado actual y su validez jurídica en línea.
-                </div>
-                <table style="width: 100%; margin-top: 5px; font-size: 6.8pt; color: #334155; border-collapse: collapse;">
-                    <tr>
-                        <td style="padding: 2px 0;"><strong>Creación Original:</strong> {{ $fechaCreacion }}</td>
-                        <td style="padding: 2px 0;"><strong>Registrado por:</strong> {{ $usuarioCreacion }}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 2px 0;"><strong>Fecha Impresión:</strong> {{ $fechaEmision }}</td>
-                        <td style="padding: 2px 0;"><strong>Generado por:</strong> {{ $usuarioImpresion }}</td>
-                    </tr>
-                    <tr>
-                        <td colspan="2" style="padding: 2px 0; font-family: monospace; color: #64748b; font-size: 6.3pt;">
-                            HASH DE SEGURIDAD: {{ $contrato->codigo_verificacion }}
-                        </td>
-                    </tr>
-                </table>
             </td>
-            <td style="width: 28%; text-align: right; vertical-align: middle;">
-                <div style="display: inline-block; text-align: center; border: 1px solid #cbd5e1; padding: 4px; border-radius: 4px; background: #ffffff;">
-                    @if(isset($qrBase64))
-                        <img src="{{ $qrBase64 }}" style="width: 82px; height: 82px;" alt="QR Verificación">
-                    @endif
-                    <div style="font-size: 5.5pt; font-weight: bold; color: #0b1a30; margin-top: 2px; text-transform: uppercase;">
-                        Escanear para verificar
-                    </div>
-                </div>
+            <td style="width: 80px; text-align: right; vertical-align: middle;">
+                @if (isset($qrBase64))
+                    <img src="{{ $qrBase64 }}" style="width: 70px; height: 70px;" alt="QR de verificación">
+                @endif
             </td>
         </tr>
     </table>
 
 </body>
+
 </html>
