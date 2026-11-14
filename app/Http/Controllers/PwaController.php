@@ -17,6 +17,7 @@ class PwaController extends Controller
         $v = $empresa->updated_at ? $empresa->updated_at->timestamp : 1;
 
         $manifest = [
+            'id' => '/',
             'name' => $nombre . ' - Sistema',
             'short_name' => 'Mariachi León',
             'description' => 'Sistema de gestión de ' . $nombre,
@@ -27,6 +28,7 @@ class PwaController extends Controller
             'background_color' => '#0f172a',
             'theme_color' => '#f59e0b',
             'lang' => 'es',
+            'categories' => ['business', 'productivity'],
             'icons' => [
                 ['src' => route('pwa.icono', ['size' => 192], false) . '?v=' . $v, 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
                 ['src' => route('pwa.icono', ['size' => 512], false) . '?v=' . $v, 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
@@ -60,23 +62,30 @@ JS;
         $maskable = request()->boolean('m');
         $empresa = Empresa::obtener();
         $origen = $empresa->logo_url ? public_path($empresa->logo_url) : null;
+        $cabeceras = ['Content-Type' => 'image/png', 'Cache-Control' => 'public, max-age=86400'];
 
-        if (!$origen || !is_file($origen) || !function_exists('imagecreatefromstring')) {
+        // Sin logo: usar el favicon del sitio
+        if (!$origen || !is_file($origen)) {
             $fallback = public_path('favicon.png');
             abort_unless(is_file($fallback), 404);
-            return response()->file($fallback);
+            return response()->file($fallback, $cabeceras);
         }
 
         $cache = storage_path('app/pwa-icon-' . $size . ($maskable ? 'm' : '') . '-' . filemtime($origen) . '.png');
-        if (!is_file($cache)) {
-            $img = @imagecreatefromstring(file_get_contents($origen));
-            abort_unless($img, 404);
+        if (is_file($cache)) {
+            return response()->file($cache, $cabeceras);
+        }
+
+        try {
+            $img = function_exists('imagecreatefromstring') ? @imagecreatefromstring(file_get_contents($origen)) : false;
+            if (!$img) {
+                throw new \RuntimeException('GD no pudo leer el logo');
+            }
 
             $lienzo = imagecreatetruecolor($size, $size);
-            imagealphablending($lienzo, true);
             imagefill($lienzo, 0, 0, imagecolorallocate($lienzo, 255, 255, 255));
 
-            // El logo ocupa ~80% (70% si es maskable, para que no lo recorte el círculo)
+            // El logo ocupa ~82% (70% si es maskable, para que no lo recorte el círculo)
             $caja = (int) round($size * ($maskable ? 0.70 : 0.82));
             $w = imagesx($img);
             $h = imagesy($img);
@@ -85,11 +94,18 @@ JS;
             $nh = max(1, (int) round($h * $escala));
             imagecopyresampled($lienzo, $img, (int) (($size - $nw) / 2), (int) (($size - $nh) / 2), 0, 0, $nw, $nh, $w, $h);
 
-            imagepng($lienzo, $cache);
+            ob_start();
+            imagepng($lienzo);
+            $png = ob_get_clean();
             imagedestroy($img);
             imagedestroy($lienzo);
-        }
 
-        return response()->file($cache, ['Content-Type' => 'image/png', 'Cache-Control' => 'public, max-age=604800']);
+            @file_put_contents($cache, $png); // si no se puede guardar, igual se responde
+            return response($png, 200, $cabeceras);
+        } catch (\Throwable $e) {
+            // Último recurso: entregar el logo tal cual con su tipo real
+            $mime = mime_content_type($origen) ?: 'image/png';
+            return response()->file($origen, ['Content-Type' => $mime, 'Cache-Control' => 'public, max-age=3600']);
+        }
     }
 }
