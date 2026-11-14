@@ -74,9 +74,16 @@
                         <td
                             class="py-1.5 px-3 border-r border-outline text-right text-sm text-ink-primary tabular-nums">
                             Bs {{ number_format($s->precio_base, 2) }}
+                            @if ($s->por_hora)
+                                <span class="text-xs text-ink-muted">/ hora</span>
+                            @endif
                         </td>
                         <td class="py-1.5 px-3 border-r border-outline text-center text-sm text-ink-secondary">
-                            {{ $s->duracion_minutos }} min
+                            @if ($s->por_hora)
+                                {{ $s->horas_minimas ? 'mín. ' . rtrim(rtrim(number_format($s->horas_minimas, 1), '0'), '.') . ' h' : 'Por hora' }}
+                            @else
+                                {{ $s->duracion_minutos }} min
+                            @endif
                         </td>
                         <td class="py-1.5 px-3 border-r border-outline">
                             <button wire:click="cambiarEstado({{ $s->id }})"
@@ -122,8 +129,13 @@
                                 class="w-2 h-2 rounded-full shrink-0 {{ $s->activo ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
                         </div>
                         <div class="text-xs text-ink-muted truncate">
-                            {{ $s->tipo_servicio ?: 'Musical' }} - Bs {{ number_format($s->precio_base, 2) }} -
-                            {{ $s->duracion_minutos }} min
+                            {{ $s->tipo_servicio ?: 'Musical' }} - Bs {{ number_format($s->precio_base, 2) }}
+                            @if ($s->por_hora)
+                                por
+                                hora{{ $s->horas_minimas ? ' (mín. ' . rtrim(rtrim(number_format($s->horas_minimas, 1), '0'), '.') . ' h)' : '' }}
+                            @else
+                                - {{ $s->duracion_minutos }} min
+                            @endif
                         </div>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
@@ -182,6 +194,28 @@
 
                 <x-ui.input type="number" label="Duración Estimada (min)" required name="duracion_minutos"
                     wire:model="duracion_minutos" placeholder="60" />
+
+                <div class="sm:col-span-2 flex flex-wrap items-center gap-x-5 gap-y-2">
+                    <label
+                        class="inline-flex items-center gap-2 text-sm font-semibold text-ink-primary cursor-pointer">
+                        <input type="checkbox" wire:model.live="por_hora"
+                            class="w-4 h-4 rounded border-outline text-gold-500 focus:ring-gold-500">
+                        Se cobra por hora
+                    </label>
+                    @if ($por_hora)
+                        <div class="flex items-center gap-2 text-sm text-ink-secondary">
+                            <span>Horas mínimas:</span>
+                            <input type="number" step="0.5" min="0.5" wire:model="horas_minimas"
+                                placeholder="5"
+                                class="w-20 h-8 px-2 bg-surface-sunken border border-outline rounded-lg text-sm text-ink-primary text-right focus:border-gold-500 focus:outline-none">
+                        </div>
+                        <span class="text-xs text-ink-muted basis-full">El precio base es el valor de 1 hora. En el
+                            evento, el monto = precio × horas.</span>
+                    @endif
+                    @error('horas_minimas')
+                        <span class="text-xs text-rose-400 basis-full">{{ $message }}</span>
+                    @enderror
+                </div>
 
                 <x-ui.textarea class="sm:col-span-2" label="Descripción del Servicio" name="descripcion"
                     wire:model="descripcion" rows="1"

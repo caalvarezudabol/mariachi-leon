@@ -215,10 +215,37 @@ trait ManejaFormularioEvento
         if ($srv && $srv->duracion_minutos) {
             $this->duracion_horas = round($srv->duracion_minutos / 60, 2);
         }
+        // Servicio por hora: la duración arranca en las horas mínimas
+        if ($srv && $srv->por_hora && (float) $srv->horas_minimas > 0) {
+            $this->duracion_horas = (float) $srv->horas_minimas;
+        }
         // El monto del contrato sale del precio del servicio (editable)
         if ($srv) {
-            $this->monto_contrato = number_format((float) $srv->precio_base, 2, '.', '');
+            $this->monto_contrato = $this->montoSegunHoras($srv, $this->duracion_horas);
         }
+    }
+
+    // Servicio por hora: al cambiar la duración se recalcula el monto (sigue editable)
+    public function updatedDuracionHoras($value)
+    {
+        if ($this->isEdit || empty($this->servicio_id) || !is_numeric($value)) {
+            return;
+        }
+        $srv = Servicio::find($this->servicio_id);
+        if ($srv && $srv->por_hora) {
+            $this->monto_contrato = $this->montoSegunHoras($srv, (float) $value);
+        }
+    }
+
+    // Precio fijo: el precio base. Por hora: precio x horas (nunca menos que las horas mínimas).
+    private function montoSegunHoras(Servicio $srv, $horas): string
+    {
+        $monto = (float) $srv->precio_base;
+        if ($srv->por_hora) {
+            $horasCobradas = max((float) $horas, (float) $srv->horas_minimas);
+            $monto = $monto * $horasCobradas;
+        }
+        return number_format($monto, 2, '.', '');
     }
 
     // ---------------------------------------------------------------------

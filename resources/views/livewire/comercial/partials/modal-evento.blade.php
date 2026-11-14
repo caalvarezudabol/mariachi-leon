@@ -116,10 +116,11 @@
                                     fn($sv) => [
                                         'id' => $sv->id,
                                         'label' => $sv->nombre,
-                                        'meta' =>
-                                            'Bs ' .
-                                            number_format($sv->precio_base, 2) .
-                                            ($sv->duracion_minutos ? ' - ' . $sv->duracion_minutos . ' min' : ''),
+                                        'meta' => $sv->por_hora
+                                            ? 'Bs ' . number_format($sv->precio_base, 0) . ' por hora'
+                                            : 'Bs ' .
+                                                number_format($sv->precio_base, 2) .
+                                                ($sv->duracion_minutos ? ' - ' . $sv->duracion_minutos . ' min' : ''),
                                         'search' => mb_strtolower($sv->nombre),
                                     ],
                                 )
@@ -301,9 +302,19 @@
 
                     <div class="min-w-0 sm:col-span-2">
                         <x-ui.input type="number" step="0.5" label="Duración (horas)" required
-                            name="duracion_horas" wire:model="duracion_horas" placeholder="1.0" />
+                            name="duracion_horas" wire:model.live.debounce.400ms="duracion_horas"
+                            placeholder="1.0" />
                         @php $servicioSeleccionado = $servicios->firstWhere('id', $servicio_id); @endphp
-                        @if ($servicioSeleccionado)
+                        @if ($servicioSeleccionado && $servicioSeleccionado->por_hora)
+                            <p class="text-xs text-ink-muted mt-1">
+                                Bs {{ number_format($servicioSeleccionado->precio_base, 0) }} por hora
+                                @if ($servicioSeleccionado->horas_minimas)
+                                    - mínimo
+                                    {{ rtrim(rtrim(number_format($servicioSeleccionado->horas_minimas, 1), '0'), '.') }}
+                                    h
+                                @endif
+                            </p>
+                        @elseif ($servicioSeleccionado)
                             <p class="text-xs text-ink-muted mt-1">
                                 Del servicio: {{ $servicioSeleccionado->duracion_minutos }} min
                             </p>

@@ -18,6 +18,8 @@ class GestionServicios extends Component
     public $precio_base = 0.00;
     public $duracion_minutos = 60;
     public $activo = true;
+    public $por_hora = false;
+    public $horas_minimas = '';
 
     public $search = '';
     public $tipo_filtro = '';
@@ -30,6 +32,7 @@ class GestionServicios extends Component
         'descripcion' => 'nullable|string',
         'precio_base' => 'required|numeric|min:0',
         'duracion_minutos' => 'required|integer|min:15',
+        'horas_minimas' => 'nullable|numeric|min:0.5|max:24',
     ];
 
     public function updatingSearch()
@@ -44,7 +47,7 @@ class GestionServicios extends Component
 
     public function abrirModal()
     {
-        $this->reset(['servicio_id', 'nombre', 'descripcion', 'precio_base', 'duracion_minutos', 'isEdit']);
+        $this->reset(['servicio_id', 'nombre', 'descripcion', 'precio_base', 'duracion_minutos', 'isEdit', 'por_hora', 'horas_minimas']);
         $this->tipo_servicio = 'Musical';
         $this->activo = true;
         $this->modalOpen = true;
@@ -60,6 +63,8 @@ class GestionServicios extends Component
         $this->precio_base = $s->precio_base;
         $this->duracion_minutos = $s->duracion_minutos;
         $this->activo = $s->activo;
+        $this->por_hora = (bool) ($s->por_hora ?? false);
+        $this->horas_minimas = $s->horas_minimas ?? '';
         $this->isEdit = true;
         $this->modalOpen = true;
     }
@@ -79,6 +84,7 @@ class GestionServicios extends Component
                 'activo' => $this->activo,
                 'observaciones' => null,
             ]);
+            $this->guardarCobroPorHora($s);
             $this->registrarAuditoria('Configuración', 'Editar Servicio', 'Se actualizó el servicio: ' . $s->nombre);
             session()->flash('success', 'Servicio actualizado correctamente.');
         } else {
@@ -91,11 +97,23 @@ class GestionServicios extends Component
                 'activo' => $this->activo,
                 'observaciones' => null,
             ]);
+            $this->guardarCobroPorHora($s);
             $this->registrarAuditoria('Configuración', 'Crear Servicio', 'Se creó el servicio: ' . $s->nombre);
             session()->flash('success', 'Servicio registrado correctamente.');
         }
 
         $this->modalOpen = false;
+    }
+
+    // Cobro por hora (columnas por_hora y horas_minimas)
+    private function guardarCobroPorHora(Servicio $s): void
+    {
+        $s->forceFill([
+            'por_hora' => (bool) $this->por_hora,
+            'horas_minimas' => ($this->por_hora && $this->horas_minimas !== '' && $this->horas_minimas !== null)
+                ? $this->horas_minimas
+                : null,
+        ])->save();
     }
 
     public function cambiarEstado($id)
