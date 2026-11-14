@@ -192,6 +192,15 @@
         </style>
     </noscript>
     @livewireStyles
+    <!-- PWA (temporal: solo para generar el APK con PWABuilder; quitar después) -->
+    <link rel="manifest" href="{{ route('pwa.manifest') }}">
+    <meta name="theme-color" content="#f59e0b">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('{{ route('pwa.sw', [], false) }}')
+                .catch(() => {}));
+        }
+    </script>
 </head>
 
 <body

@@ -18,7 +18,7 @@ class PwaController extends Controller
 
         $manifest = [
             'name' => $nombre . ' - Sistema',
-            'short_name' => mb_strimwidth($nombre, 0, 12, ''),
+            'short_name' => 'Mariachi León',
             'description' => 'Sistema de gestión de ' . $nombre,
             'start_url' => route('admin.dashboard', [], false),
             'scope' => '/',
