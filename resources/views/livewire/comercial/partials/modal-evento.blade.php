@@ -46,7 +46,7 @@
                 </h3>
             </x-slot:header>
 
-            <div class="px-6 py-6 space-y-6">
+            <div class="px-5 py-4 space-y-4">
                 <!-- Banner Alerta Superior de Errores de Validación -->
                 @if ($errors->any() || session()->has('modal_error') || session()->has('participante_error'))
                     <div
@@ -71,7 +71,7 @@
                     </div>
                 @endif
 
-                <div class="grid grid-cols-1 sm:grid-cols-6 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-6 gap-3">
                     <div class="min-w-0 sm:col-span-3">
                         <div class="flex items-center justify-between mb-1">
                             <label class="block text-sm font-semibold text-ink-primary">Cliente: <span
@@ -364,8 +364,15 @@
                     </div>
 
                     <div class="sm:col-span-2 min-w-0">
-                        <x-ui.textarea label="Observaciones" wire:model="observaciones" rows="1"
-                            class="overflow-hidden" placeholder="Vestimenta, canciones..." />
+                        <x-ui.select label="Estado del evento" wire:model="estado">
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="Cotizado">Cotizado</option>
+                            <option value="Reservado">Reservado</option>
+                            <option value="Confirmado">Confirmado</option>
+                            <option value="Realizado">Realizado</option>
+                            <option value="Cancelado">Cancelado</option>
+                            <option value="Finalizado">Finalizado</option>
+                        </x-ui.select>
                     </div>
 
                     <!-- Datos secundarios (plegados): el contacto y teléfono se toman del cliente -->
@@ -374,29 +381,17 @@
                             class="text-xs font-semibold text-ink-secondary hover:text-ink-primary flex items-center gap-1.5">
                             <i class="fa-solid fa-chevron-right text-[10px] transition-transform"
                                 :class="mas && 'rotate-90'"></i>
-                            <span>Más datos - contacto, teléfono y estado</span>
+                            <span>Más datos - contacto y teléfono</span>
                         </button>
-                        <div x-show="mas" x-cloak class="grid grid-cols-1 sm:grid-cols-6 gap-4 mt-3">
-                            <div class="min-w-0 sm:col-span-2">
+                        <div x-show="mas" x-cloak class="grid grid-cols-1 sm:grid-cols-6 gap-3 mt-2">
+                            <div class="min-w-0 sm:col-span-3">
                                 <x-ui.input label="Contacto del evento" wire:model="contacto_evento"
                                     placeholder="Nombre de quien recibe" />
                             </div>
 
-                            <div class="min-w-0 sm:col-span-2">
+                            <div class="min-w-0 sm:col-span-3">
                                 <x-ui.input label="Teléfono de contacto" wire:model="telefono_contacto"
                                     placeholder="ej. 70000000" />
-                            </div>
-
-                            <div class="min-w-0 sm:col-span-2">
-                                <x-ui.select label="Estado del evento" wire:model="estado">
-                                    <option value="Pendiente">Pendiente</option>
-                                    <option value="Cotizado">Cotizado</option>
-                                    <option value="Reservado">Reservado</option>
-                                    <option value="Confirmado">Confirmado</option>
-                                    <option value="Realizado">Realizado</option>
-                                    <option value="Cancelado">Cancelado</option>
-                                    <option value="Finalizado">Finalizado</option>
-                                </x-ui.select>
                             </div>
                         </div>
                     </div>
@@ -441,6 +436,12 @@
                         fn($pe) => (float) ($pe['monto_asignado'] ?? 0),
                     );
                     $restoEvento = (float) $precioReferencia - $totalAsignadoEquipo;
+                    $nMusicosTarifa = $incluidosEquipo
+                        ->filter(
+                            fn($pe) => $estiloTipo($pe['funcion'] ?? '')[2] === 'musico' &&
+                                ($pe['modalidad'] ?? 'por_evento') !== 'mensual',
+                        )
+                        ->count();
                 @endphp
                 <div class="pt-3 border-t border-outline space-y-2" x-data="{ q: '', cat: 'todos' }">
                     <div class="flex items-center justify-between gap-3">
@@ -554,9 +555,31 @@
                         </div>
                     @endif
 
-                    <!-- Equipo del evento -->
+                    <!-- Misma tarifa para todos los músicos -->
+                    @if ($nMusicosTarifa > 1)
+                        <div class="flex flex-wrap items-center gap-2 text-sm" x-data="{ t: '' }">
+                            <span class="text-ink-secondary">Misma tarifa a los {{ $nMusicosTarifa }} músicos:</span>
+                            <div class="relative w-24">
+                                <span
+                                    class="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] font-bold text-ink-muted">Bs</span>
+                                <input type="number" step="0.50" min="0" inputmode="decimal"
+                                    x-model="t" @keydown.enter.prevent="$wire.aplicarTarifaMusicos(t)"
+                                    placeholder="350"
+                                    class="w-full h-8 pl-6 pr-2 bg-surface-sunken border border-outline rounded-lg text-ink-primary font-bold text-[14px] text-right tabular-nums focus:border-gold-500 focus:outline-none">
+                            </div>
+                            <button type="button" @click="$wire.aplicarTarifaMusicos(t)"
+                                :disabled="t === ''"
+                                class="h-8 px-3 rounded-lg border border-gold-500 bg-gold-500/10 text-ink-primary text-xs font-semibold hover:bg-gold-500/20 disabled:opacity-40 transition-colors">
+                                Aplicar a músicos
+                            </button>
+                            <span class="text-xs text-ink-muted hidden sm:inline">No cambia transporte, sonido ni
+                                mensuales</span>
+                        </div>
+                    @endif
+
+                    <!-- Equipo del evento (2 columnas en pantalla ancha) -->
                     <div
-                        class="border border-outline rounded-xl bg-surface-card overflow-hidden divide-y divide-outline">
+                        class="border border-outline rounded-xl bg-surface-card overflow-hidden grid grid-cols-1 sm:grid-cols-2">
                         @foreach ($participantesSugeridos as $idx => $pe)
                             @if (empty($pe['incluido']))
                                 @continue
@@ -566,7 +589,7 @@
                                 $esMensual = ($pe['modalidad'] ?? 'por_evento') === 'mensual';
                                 $sinTarifa = !$esMensual && (float) ($pe['monto_asignado'] ?? 0) <= 0;
                             @endphp
-                            <div class="flex items-center gap-2 pl-2.5 pr-1 py-1.5"
+                            <div class="flex items-center gap-2 pl-2.5 pr-1 py-1.5 border-b border-outline sm:[&:nth-child(odd)]:border-r"
                                 wire:key="equipo-{{ $pe['persona_id'] }}">
                                 <span
                                     class="w-6 h-6 rounded-md flex items-center justify-center shrink-0 {{ $clsPe }}">
@@ -590,7 +613,7 @@
                                             title="Ya tiene pagos por Bs {{ number_format($pe['total_pagado'], 2) }}"></i>
                                     @endif
                                 </div>
-                                <div class="relative w-24 shrink-0">
+                                <div class="relative w-20 shrink-0">
                                     <span
                                         class="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] font-bold text-ink-muted">Bs</span>
                                     <input type="number" step="0.50" min="0" inputmode="decimal"
@@ -606,12 +629,12 @@
                         @endforeach
 
                         @if ($incluidosEquipo->count() === 0)
-                            <div class="px-3 py-2.5 text-center text-[13px] text-ink-muted">
+                            <div class="sm:col-span-2 px-3 py-2.5 text-center text-[13px] text-ink-muted">
                                 Toca una persona para agregarla al evento.
                             </div>
                         @else
                             <div
-                                class="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 px-3 py-2 bg-surface-sunken text-sm text-ink-secondary">
+                                class="sm:col-span-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 px-3 py-2 bg-surface-sunken text-sm text-ink-secondary">
                                 <span>
                                     Pagarás <strong class="text-ink-primary tabular-nums">Bs
                                         {{ number_format($totalAsignadoEquipo, 0) }}</strong>
@@ -706,6 +729,12 @@
                         @endif
                     </div>
                 @endif
+
+                <!-- Observaciones (al final) -->
+                <div class="min-w-0">
+                    <x-ui.textarea label="Observaciones" wire:model="observaciones" rows="1"
+                        placeholder="Vestimenta, canciones, indicaciones..." />
+                </div>
 
                 <!-- Banner Inferior de Advertencia Visible cuando se está abajo -->
                 @if ($errors->any() || session()->has('participante_error') || session()->has('modal_error'))

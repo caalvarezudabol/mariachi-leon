@@ -36,7 +36,7 @@ trait ManejaFormularioEvento
     public $direccion_evento = '';
     public $latitud = null;
     public $longitud = null;
-    public $estado = 'Pendiente';
+    public $estado = 'Confirmado';
     public $observaciones = '';
 
     // Contrato y adelanto (solo al crear un evento nuevo)
@@ -163,7 +163,7 @@ trait ManejaFormularioEvento
         $this->hora_evento = $fecha ? '20:00' : '';
         $this->duracion_horas = 1.00;
         $this->duracion_min = 60;
-        $this->estado = 'Pendiente';
+        $this->estado = 'Confirmado';
         $this->cargarEquipoPorDefecto();
         $this->modalOpen = true;
     }
@@ -329,6 +329,42 @@ trait ManejaFormularioEvento
         }
 
         $this->participantesSugeridos[] = $this->itemDesdePersona($persona);
+    }
+
+    // Misma tarifa para todos los músicos del equipo (no toca transporte, sonido ni mensualistas)
+    public function aplicarTarifaMusicos($monto)
+    {
+        if (!is_numeric($monto) || (float) $monto < 0) {
+            session()->flash('participante_error', 'Escriba un monto válido para los músicos.');
+            return;
+        }
+        $monto = round((float) $monto, 2);
+
+        foreach ($this->participantesSugeridos as $i => $p) {
+            if (empty($p['incluido'])) {
+                continue;
+            }
+            if (($p['modalidad'] ?? 'por_evento') === 'mensual') {
+                continue;
+            }
+            if (!$this->esFuncionMusico($p['funcion'] ?? '')) {
+                continue;
+            }
+            // Si ya tiene pagos, no se puede bajar de lo ya pagado
+            if (!empty($p['tiene_pagos']) && $monto < (float) ($p['total_pagado'] ?? 0)) {
+                continue;
+            }
+            $this->participantesSugeridos[$i]['monto_asignado'] = $monto;
+        }
+    }
+
+    private function esFuncionMusico($funcion): bool
+    {
+        $t = mb_strtolower((string) $funcion);
+        if (str_contains($t, 'transp') || str_contains($t, 'bus') || str_contains($t, 'chofer') || str_contains($t, 'sonid')) {
+            return false;
+        }
+        return $t === '' || str_contains($t, 'músic') || str_contains($t, 'music') || str_contains($t, 'cantan');
     }
 
     public function toggleIncluidoParticipante($index)
