@@ -71,34 +71,41 @@
     // Indicadores en una sola franja
     $stats = [];
     if ($puedeFinanzas) {
+        $efe = (float) ($caja['Efectivo'] ?? 0);
+        $qr = (float) ($caja['QR'] ?? 0);
+        $cajaTotal = $efe + $qr;
         $stats[] = [
-            'label' => 'Efectivo',
-            'valor' => 'Bs ' . number_format($caja['Efectivo'] ?? 0, 2),
-            'icon' => 'fa-money-bill-wave',
+            'label' => 'Caja total',
+            'valor' => 'Bs ' . number_format($cajaTotal, 2),
+            'sub' => 'Efectivo ' . number_format($efe, 0) . ' · QR ' . number_format($qr, 0),
+            'icon' => 'fa-vault',
+            'tono' => $cajaTotal >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400',
             'href' => route('admin.finanzas.movimientos'),
-        ];
-        $stats[] = [
-            'label' => 'QR',
-            'valor' => 'Bs ' . number_format($caja['QR'] ?? 0, 2),
-            'icon' => 'fa-qrcode',
-            'href' => route('admin.finanzas.movimientos'),
-        ];
-        $stats[] = [
-            'label' => 'Debes al personal',
-            'valor' => 'Bs ' . number_format($deudaPersonal, 2),
-            'icon' => 'fa-hand-holding-dollar',
-            'rojo' => $deudaPersonal > 0,
-            'href' => route('admin.pagos-personal'),
         ];
         $stats[] = [
             'label' => 'Cobrado este mes',
             'valor' => $moneda . ' ' . number_format($cobradoMes, 2),
+            'sub' => 'ingresos de contratos',
+            'icon' => 'fa-circle-check',
+            'tono' => 'text-emerald-700 dark:text-emerald-400',
             'href' => route('admin.pagos'),
         ];
         $stats[] = [
             'label' => 'Por cobrar',
             'valor' => $moneda . ' ' . number_format($porCobrar, 2),
+            'sub' => $contratosConSaldo . ' contratos con saldo',
+            'icon' => 'fa-hourglass-half',
+            'tono' => 'text-sky-700 dark:text-sky-400',
             'href' => route('admin.contratos'),
+        ];
+        $stats[] = [
+            'label' => 'Pendiente a personal',
+            'valor' => 'Bs ' . number_format($deudaPersonal, 2),
+            'sub' => $deudaPersonal > 0 ? 'por pagar a músicos' : 'todo al día',
+            'icon' => 'fa-hand-holding-dollar',
+            'tono' =>
+                $deudaPersonal > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400',
+            'href' => route('admin.pagos-personal'),
         ];
     }
     $stats[] = ['label' => 'Eventos del mes', 'valor' => $eventosMes, 'href' => route('admin.agenda')];
@@ -222,11 +229,14 @@
                 class="px-3 py-1.5 -mb-px -mr-px hover:bg-gold-500/5 transition-colors min-w-0">
                 <span class="block text-[11px] text-ink-secondary truncate">
                     @if (!empty($t['icon']))
-                        <i class="fa-solid {{ $t['icon'] }} mr-1"></i>
+                        <i class="fa-solid {{ $t['icon'] }} mr-1 {{ $t['tono'] ?? '' }}"></i>
                     @endif{{ $t['label'] }}
                 </span>
                 <span
-                    class="block text-base font-bold leading-tight tabular-nums truncate {{ !empty($t['rojo']) ? 'text-rose-700 dark:text-rose-400' : (!empty($t['alerta']) ? 'text-amber-700 dark:text-amber-400' : 'text-ink-primary') }}">{{ $t['valor'] }}</span>
+                    class="block text-base font-bold leading-tight tabular-nums truncate {{ $t['tono'] ?? (!empty($t['alerta']) ? 'text-amber-700 dark:text-amber-400' : 'text-ink-primary') }}">{{ $t['valor'] }}</span>
+                @if (!empty($t['sub']))
+                    <span class="block text-[11px] text-ink-secondary truncate">{{ $t['sub'] }}</span>
+                @endif
             </a>
         @endforeach
     </div>
