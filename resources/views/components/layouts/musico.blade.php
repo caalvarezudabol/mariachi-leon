@@ -8,8 +8,8 @@
     <script>
         (function() {
             var stored = localStorage.getItem('theme');
-            var theme = stored ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-            document.documentElement.classList.add('dark'); // el panel del músico siempre va en oscuro (negro y dorado)
+            var theme = stored ?? 'light'; // por defecto claro; el músico puede cambiar a oscuro
+            document.documentElement.classList.toggle('dark', theme === 'dark');
         })();
     </script>
     <title>{{ $title ?? 'Mi panel - Mariachi León' }}</title>
@@ -175,7 +175,7 @@
 </head>
 
 <body class="min-h-full bg-surface-page text-ink-primary font-sans antialiased"
-    style="background-image: radial-gradient(70% 45% at 50% 0%, rgba(245, 158, 11, .20), transparent 70%); background-attachment: fixed;">
+    style="background-image: radial-gradient(70% 45% at 50% 0%, rgba(245, 158, 11, .14), transparent 70%); background-attachment: fixed;">
     @php $empresaMusico = $empresaFavicon; @endphp
     <div class="min-h-full flex flex-col">
         <header class="sticky top-0 z-30 bg-surface-card/95 backdrop-blur border-b-2 border-gold-500">
@@ -188,17 +188,26 @@
                     <div class="min-w-0 leading-tight">
                         <div class="text-sm lg:text-base font-bold text-ink-primary truncate">
                             {{ $empresaMusico->nombre_comercial ?? 'Mariachi León' }}</div>
-                        <div class="text-[11px] lg:text-xs text-gold-400 truncate">{{ Auth::user()->name ?? '' }}</div>
+                        <div class="text-[11px] lg:text-xs text-gold-700 dark:text-gold-400 truncate">
+                            {{ Auth::user()->name ?? '' }}</div>
                     </div>
                 </div>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit"
-                        class="h-9 px-3 rounded-lg bg-surface-sunken border border-outline text-sm font-semibold text-ink-primary hover:border-gold-500/60 inline-flex items-center gap-2">
-                        <i class="fa-solid fa-right-from-bracket text-ink-muted"></i>
-                        <span>Salir</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" x-data="{ theme: localStorage.getItem('theme') ?? 'light' }"
+                        @click="theme = theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('theme', theme); document.documentElement.classList.toggle('dark', theme === 'dark');"
+                        class="w-9 h-9 rounded-lg flex items-center justify-center bg-surface-sunken border border-outline text-ink-secondary hover:border-gold-500/60"
+                        title="Cambiar a claro u oscuro">
+                        <i class="fa-solid" :class="theme === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
                     </button>
-                </form>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit"
+                            class="h-9 px-3 rounded-lg bg-surface-sunken border border-outline text-sm font-semibold text-ink-primary hover:border-gold-500/60 inline-flex items-center gap-2">
+                            <i class="fa-solid fa-right-from-bracket text-ink-muted"></i>
+                            <span>Salir</span>
+                        </button>
+                    </form>
+                </div>
             </div>
         </header>
 

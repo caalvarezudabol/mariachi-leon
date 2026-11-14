@@ -106,7 +106,7 @@
     {{-- Saludo --}}
     <div class="px-1">
         <h1 class="text-xl lg:text-3xl font-extrabold text-ink-primary">Hola, <span
-                class="text-gold-400">{{ $primerNombre }}</span></h1>
+                class="text-gold-600 dark:text-gold-400">{{ $primerNombre }}</span></h1>
         <p class="text-sm text-ink-secondary">{{ ucfirst(now()->translatedFormat('l, d \d\e F')) }}</p>
     </div>
 
