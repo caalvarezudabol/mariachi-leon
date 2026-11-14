@@ -222,9 +222,11 @@
                     @enderror
                 </div>
 
-                <x-ui.textarea class="sm:col-span-2" label="Descripción del Servicio" name="descripcion"
-                    wire:model="descripcion" rows="1"
-                    placeholder="Detalles de repertorio, número de canciones o equipamiento incluido..." />
+                <div class="sm:col-span-2 min-w-0">
+                    <x-ui.textarea label="Descripción del Servicio" name="descripcion" wire:model="descripcion"
+                        rows="2"
+                        placeholder="Detalles de repertorio, número de canciones o equipamiento incluido..." />
+                </div>
 
             </div>
 
