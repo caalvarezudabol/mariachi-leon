@@ -5,8 +5,11 @@ namespace App\Livewire\Comercial;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\MusicoPersonal;
+use App\Models\User;
 use App\Support\Texto;
 use App\Traits\Auditable;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class GestionMusicosPersonal extends Component
@@ -29,6 +32,15 @@ class GestionMusicosPersonal extends Component
     public $porcentaje_evento = '';
     public $estado = 'Activo';
     public $observaciones = '';
+
+    // Acceso al panel del músico (usuario y contraseña)
+    public $accesoOpen = false;
+    public $accesoPersonaId = null;
+    public $accesoNombre = '';
+    public $accesoEmail = '';
+    public $accesoPassword = '';
+    public $accesoExiste = false;   // true = ya tiene usuario (solo cambiar contraseña)
+    public $accesoCreado = false;   // true = recién guardado, mostrar datos para pasarle
 
     public $modalOpen = false;
     public $isEdit = false;
@@ -227,6 +239,9 @@ class GestionMusicosPersonal extends Component
         $p = MusicoPersonal::findOrFail($id);
         $nuevo = $p->estado === 'Activo' ? 'Inactivo' : 'Activo';
         $p->update(['estado' => $nuevo]);
+        if ($p->user_id) {
+            User::where('id', $p->user_id)->update(['activo' => $nuevo === 'Activo']);
+        }
 
         $this->registrarAuditoria(
             'Gestión Comercial',
@@ -245,6 +260,74 @@ class GestionMusicosPersonal extends Component
         session()->flash('success', $p->va_en_todos_eventos
             ? $p->nombre_completo . ' se agregará solo a cada evento nuevo.'
             : $p->nombre_completo . ' ya no se agrega solo a los eventos.');
+    }
+
+    // ------------------------------------------------------------------
+    //  Acceso al panel del músico
+    // ------------------------------------------------------------------
+
+    public function abrirAcceso($id)
+    {
+        $p = MusicoPersonal::findOrFail($id);
+        $this->resetValidation();
+        $this->accesoPersonaId = $p->id;
+        $this->accesoNombre = $p->nombre_completo;
+        $this->accesoCreado = false;
+        $this->accesoPassword = Str::lower(Str::random(8));
+
+        $user = $p->user_id ? User::find($p->user_id) : null;
+        $this->accesoExiste = (bool) $user;
+        $this->accesoEmail = $user ? $user->email : '';
+        $this->accesoOpen = true;
+    }
+
+    public function cerrarAcceso()
+    {
+        $this->accesoOpen = false;
+        $this->accesoPassword = '';
+        $this->resetValidation();
+    }
+
+    public function guardarAcceso()
+    {
+        $p = MusicoPersonal::findOrFail($this->accesoPersonaId);
+        $this->accesoEmail = trim($this->accesoEmail);
+
+        if ($this->accesoExiste) {
+            $this->validate(
+                ['accesoPassword' => 'required|string|min:6|max:60'],
+                ['accesoPassword.required' => 'Escribe la nueva contraseña.', 'accesoPassword.min' => 'Mínimo 6 caracteres.']
+            );
+            $user = User::findOrFail($p->user_id);
+            $user->update(['password' => Hash::make($this->accesoPassword)]);
+            $this->registrarAuditoria('Gestión Comercial', 'Cambiar clave de músico', 'Se cambió la contraseña de acceso de ' . $p->nombre_completo);
+        } else {
+            $this->validate([
+                'accesoEmail' => 'required|email|max:150|unique:users,email',
+                'accesoPassword' => 'required|string|min:6|max:60',
+            ], [
+                'accesoEmail.required' => 'Escribe el correo con el que entrará.',
+                'accesoEmail.email' => 'El correo no es válido.',
+                'accesoEmail.unique' => 'Ese correo ya lo usa otro usuario.',
+                'accesoPassword.required' => 'Escribe una contraseña.',
+                'accesoPassword.min' => 'Mínimo 6 caracteres.',
+            ]);
+
+            $user = User::create([
+                'name' => $p->nombre_completo,
+                'email' => $this->accesoEmail,
+                'telefono' => $p->telefono,
+                'activo' => $p->estado === 'Activo',
+                'password' => Hash::make($this->accesoPassword),
+            ]);
+            $user->assignRole('Músico');
+            $p->forceFill(['user_id' => $user->id])->save();
+
+            $this->registrarAuditoria('Gestión Comercial', 'Crear acceso de músico', 'Se creó el acceso de ' . $p->nombre_completo . ' (' . $user->email . ')');
+            $this->accesoExiste = true;
+        }
+
+        $this->accesoCreado = true;
     }
 
     public function render()

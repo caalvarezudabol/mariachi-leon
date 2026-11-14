@@ -44,6 +44,9 @@ use App\Livewire\Comercial\GestionCotizaciones;
 use App\Livewire\Comercial\GestionContratos;
 use App\Livewire\Comercial\GestionPagos;
 use App\Livewire\Comercial\GestionParticipantesEvento;
+use App\Livewire\Comercial\GestionPagosPersonal;
+use App\Livewire\Comercial\GestionMusicosPersonal;
+use App\Livewire\Musico\PanelMusico;
 use App\Http\Controllers\Comercial\ContratoPdfController;
 use App\Http\Controllers\Comercial\ReciboPdfController;
 use App\Http\Controllers\Comercial\VerificacionQrController;
@@ -113,6 +116,9 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
     Route::get('/dashboard', Dashboard::class)->name('admin.dashboard');
     Route::get('/reporte-ejecutivo/pdf', [ReporteEjecutivoController::class, 'exportarPdf'])->name('admin.reporte-ejecutivo.pdf');
 
+    // Panel del músico (solo ve sus shows y sus pagos)
+    Route::get('/musico', PanelMusico::class)->name('musico.panel');
+
     Route::get('/usuarios', GestionUsuarios::class)->name('admin.usuarios');
     Route::get('/roles', GestionRoles::class)->name('admin.roles');
     Route::get('/auditoria', GestionAuditoria::class)->name('admin.auditoria');
@@ -161,6 +167,8 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
         Route::get('/contratos', GestionContratos::class)->name('admin.contratos');
         Route::get('/contratos/pdf/{token}', [ContratoPdfController::class, 'exportarPdf'])->name('admin.contratos.pdf');
         Route::get('/pagos', GestionPagos::class)->name('admin.pagos');
+        Route::get('/pagos-personal', GestionPagosPersonal::class)->name('admin.pagos-personal');
+        Route::get('/musicos-personal', GestionMusicosPersonal::class)->name('admin.musicos');
     });
 
     // SPRINT 3: Módulo de Gestión Financiera
@@ -204,10 +212,6 @@ Route::get('/admin/comercial/clientes/estado-cuenta/pdf', fn() => redirect()->ro
 Route::get('/admin/comercial/clientes/historial-contratos/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/activos-fijos/kardex/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/activos-fijos/comprobante', fn() => redirect()->route('web.home'));
-Route::get('/admin/comercial/musicos-personal', \App\Livewire\Comercial\GestionMusicosPersonal::class)->name('admin.musicos');
-
-Route::get('/comercial/pagos-personal', \App\Livewire\Comercial\GestionPagosPersonal::class)->name('admin.pagos-personal');
-
 // Redirección global de respaldo: cualquier ruta inválida o no registrada va al index principal
 Route::fallback(function () {
     return redirect()->route('web.home');

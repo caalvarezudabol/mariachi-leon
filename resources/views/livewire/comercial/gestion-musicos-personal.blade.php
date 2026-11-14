@@ -109,6 +109,12 @@
                                                 <i class="fa-solid fa-crown text-[10px]"></i> Dueño
                                             </span>
                                         @endif
+                                        @if ($p->user_id)
+                                            <span class="ml-1 text-emerald-700 dark:text-emerald-400"
+                                                title="Tiene usuario para entrar a su panel">
+                                                <i class="fa-solid fa-key text-[10px]"></i> Con acceso
+                                            </span>
+                                        @endif
                                         @if ($p->va_en_todos_eventos)
                                             <span class="ml-1 text-gold-700 dark:text-gold-400"
                                                 title="Se agrega solo a cada evento nuevo">
@@ -160,6 +166,10 @@
                                     <x-ui.action-menu-item icon="fa-solid fa-thumbtack"
                                         wire:click="alternarEnTodos({{ $p->id }})">
                                         {{ $p->va_en_todos_eventos ? 'Quitar de "En todos los eventos"' : 'Agregar a todos los eventos' }}
+                                    </x-ui.action-menu-item>
+                                    <x-ui.action-menu-item icon="fa-solid fa-key"
+                                        wire:click="abrirAcceso({{ $p->id }})">
+                                        {{ $p->user_id ? 'Cambiar contraseña de acceso' : 'Crear acceso (usuario)' }}
                                     </x-ui.action-menu-item>
                                     <x-ui.action-menu-item
                                         icon="fa-solid {{ $activo ? 'fa-user-slash' : 'fa-user-check' }}"
@@ -224,6 +234,9 @@
                         <x-ui.action-menu-item icon="fa-solid fa-thumbtack"
                             wire:click="alternarEnTodos({{ $p->id }})">
                             {{ $p->va_en_todos_eventos ? 'Quitar de todos los eventos' : 'Agregar a todos los eventos' }}
+                        </x-ui.action-menu-item>
+                        <x-ui.action-menu-item icon="fa-solid fa-key" wire:click="abrirAcceso({{ $p->id }})">
+                            {{ $p->user_id ? 'Cambiar contraseña de acceso' : 'Crear acceso (usuario)' }}
                         </x-ui.action-menu-item>
                         <x-ui.action-menu-item icon="fa-solid {{ $activo ? 'fa-user-slash' : 'fa-user-check' }}"
                             wire:click="cambiarEstado({{ $p->id }})">
@@ -359,6 +372,67 @@
                         <i class="fa-solid fa-spinner fa-spin" wire:loading wire:target="guardar"></i>
                         <span>Guardar</span>
                     </x-ui.button>
+                </x-slot:footer>
+            </x-ui.modal>
+        </form>
+    @endif
+    {{-- Modal: acceso al panel del músico --}}
+    @if ($accesoOpen)
+        <form wire:submit.prevent="guardarAcceso">
+            <x-ui.modal icon="fa-solid fa-key" :title="$accesoExiste && !$accesoCreado ? 'Cambiar contraseña' : 'Acceso del músico'" maxWidth="max-w-md" onClose="cerrarAcceso">
+                <div class="px-5 py-4 space-y-3">
+                    <p class="text-sm text-ink-secondary -mt-1">{{ $accesoNombre }} - entrará a un panel donde solo ve
+                        sus shows y sus pagos.</p>
+
+                    @if ($accesoCreado)
+                        <div class="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 space-y-1.5">
+                            <div class="text-sm font-semibold text-emerald-700 dark:text-emerald-400"><i
+                                    class="fa-solid fa-circle-check mr-1"></i>Listo. Pásale estos datos:</div>
+                            <div class="text-sm text-ink-primary">Usuario: <b
+                                    class="select-all">{{ $accesoEmail }}</b></div>
+                            <div class="text-sm text-ink-primary">Contraseña: <b
+                                    class="select-all">{{ $accesoPassword }}</b></div>
+                            <div class="text-xs text-ink-secondary">Entra en {{ url('/') }} con el botón
+                                "Ingresar". Anótala ahora: después no se puede volver a ver.</div>
+                        </div>
+                    @else
+                        <div>
+                            <label class="block text-sm font-semibold text-ink-primary mb-1">Correo (usuario): <span
+                                    class="text-rose-500 font-black text-base leading-none">*</span></label>
+                            <input type="email" wire:model="accesoEmail" @disabled($accesoExiste)
+                                placeholder="ej: ariel@gmail.com" autocomplete="off"
+                                class="w-full h-10 px-3 bg-surface-sunken border border-outline rounded-lg text-sm text-ink-primary focus:border-gold-500 focus:outline-none disabled:opacity-60">
+                            @error('accesoEmail')
+                                <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div>
+                            <label
+                                class="block text-sm font-semibold text-ink-primary mb-1">{{ $accesoExiste ? 'Nueva contraseña:' : 'Contraseña:' }}
+                                <span class="text-rose-500 font-black text-base leading-none">*</span></label>
+                            <input type="text" wire:model="accesoPassword" autocomplete="off"
+                                class="w-full h-10 px-3 bg-surface-sunken border border-outline rounded-lg text-sm font-semibold text-ink-primary focus:border-gold-500 focus:outline-none">
+                            @error('accesoPassword')
+                                <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span>
+                            @enderror
+                            <p class="text-xs text-ink-secondary mt-1">Ya viene una sugerida; puedes cambiarla.</p>
+                        </div>
+                    @endif
+                </div>
+
+                <x-slot:footer>
+                    @if ($accesoCreado)
+                        <x-ui.button type="button" wire:click="cerrarAcceso"><i
+                                class="fa-solid fa-check"></i><span>Listo</span></x-ui.button>
+                    @else
+                        <x-ui.button type="button" variant="secondary" wire:click="cerrarAcceso"><i
+                                class="fa-solid fa-xmark"></i><span>Cancelar</span></x-ui.button>
+                        <x-ui.button type="submit" wire:loading.attr="disabled" wire:target="guardarAcceso">
+                            <i class="fa-solid fa-key" wire:loading.remove wire:target="guardarAcceso"></i>
+                            <i class="fa-solid fa-spinner fa-spin" wire:loading wire:target="guardarAcceso"></i>
+                            <span>{{ $accesoExiste ? 'Cambiar contraseña' : 'Crear acceso' }}</span>
+                        </x-ui.button>
+                    @endif
                 </x-slot:footer>
             </x-ui.modal>
         </form>

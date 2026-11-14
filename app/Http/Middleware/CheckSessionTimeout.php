@@ -31,6 +31,16 @@ class CheckSessionTimeout
             }
 
             session(['last_activity_timestamp' => time()]);
+
+            // Los músicos solo pueden usar su propio panel: cualquier otra pantalla del sistema los devuelve ahí
+            $u = Auth::user();
+            if (
+                $u && $u->hasRole('Músico') && !$u->hasRole('Administrador')
+                && !$request->routeIs('musico.*', 'logout')
+                && !$request->is('livewire/*', 'livewire-*')
+            ) {
+                return redirect()->route('musico.panel');
+            }
         }
 
         return $next($request);
