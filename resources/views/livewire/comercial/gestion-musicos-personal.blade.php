@@ -104,6 +104,11 @@
                                     </div>
                                     <div class="text-xs text-ink-secondary truncate">
                                         {{ $p->telefono ?: 'Sin teléfono' }}
+                                        @if ($p->es_dueno)
+                                            <span class="ml-1 font-semibold text-gold-700 dark:text-gold-400">
+                                                <i class="fa-solid fa-crown text-[10px]"></i> Dueño
+                                            </span>
+                                        @endif
                                         @if ($p->va_en_todos_eventos)
                                             <span class="ml-1 text-gold-700 dark:text-gold-400"
                                                 title="Se agrega solo a cada evento nuevo">
@@ -188,7 +193,11 @@
                         <div class="text-[14.5px] font-semibold text-ink-primary truncate">{{ $p->nombre_completo }}
                         </div>
                         <div class="text-[13px] text-ink-secondary truncate">
-                            {{ $p->tipo ?: 'Músico' }} -
+                            {{ $p->tipo ?: 'Músico' }}
+                            @if ($p->es_dueno)
+                                <span class="font-semibold text-gold-700 dark:text-gold-400">- Dueño</span>
+                            @endif
+                            -
                             @if ($mensual)
                                 <span class="text-sky-600 dark:text-sky-400">Mensual Bs
                                     {{ number_format((float) $p->sueldo_mensual, 0) }}</span>
@@ -293,13 +302,20 @@
                         </x-ui.select>
                     </div>
 
-                    <div class="sm:col-span-2 flex items-end pb-1.5">
+                    <div class="sm:col-span-2 flex flex-col justify-end gap-1.5 pb-1.5">
                         <label
                             class="inline-flex items-center gap-2 text-sm font-semibold text-ink-primary cursor-pointer"
                             title="Se agrega solo al crear un evento. Úsalo para el equipo base y los mensualistas.">
                             <input type="checkbox" wire:model="va_en_todos_eventos"
                                 class="w-4 h-4 rounded border-outline accent-amber-500">
                             <span>En todos los eventos</span>
+                        </label>
+                        <label
+                            class="inline-flex items-center gap-2 text-sm font-semibold text-ink-primary cursor-pointer"
+                            title="Los dueños tienen su propia tarifa al armar el equipo de un evento.">
+                            <input type="checkbox" wire:model="es_dueno"
+                                class="w-4 h-4 rounded border-outline accent-amber-500">
+                            <span>Es dueño</span>
                         </label>
                     </div>
 
