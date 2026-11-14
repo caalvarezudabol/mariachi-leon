@@ -61,7 +61,7 @@ JS;
         $size = $size >= 512 ? 512 : 192;
         $maskable = request()->boolean('m');
         $empresa = Empresa::obtener();
-        $origen = $this->buscarArchivo($empresa->logo_url);
+        $origen = $this->buscarArchivo($empresa->logo_url) ?: $this->ultimoLogoSubido();
         $cabeceras = ['Content-Type' => 'image/png', 'Cache-Control' => 'public, max-age=86400'];
 
         // No se encontró el archivo en disco: redirigir a la misma URL que usa el sitio para mostrar el logo
@@ -124,6 +124,24 @@ JS;
         foreach ($candidatos as $c) {
             if (is_file($c)) {
                 return $c;
+            }
+        }
+        return null;
+    }
+
+    /** Si Empresa no tiene logo asignado, usa el más reciente de storage/logos. */
+    private function ultimoLogoSubido(): ?string
+    {
+        $carpetas = [
+            public_path('storage/logos'),
+            storage_path('app/public/logos'),
+            rtrim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''), '/') . '/storage/logos',
+        ];
+        foreach ($carpetas as $dir) {
+            $archivos = glob($dir . '/*.{png,jpg,jpeg,webp}', GLOB_BRACE) ?: [];
+            if ($archivos) {
+                usort($archivos, fn($a, $b) => filemtime($b) <=> filemtime($a));
+                return $archivos[0];
             }
         }
         return null;
