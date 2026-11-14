@@ -113,6 +113,25 @@ trait ManejaFormularioEvento
         'estado.required' => 'El estado del evento es obligatorio.',
     ];
 
+    // Siguiente número correlativo (CTR-00003, REC-00007...). Mira todos los registros,
+    // incluso los eliminados, para no repetir un número que ya existe.
+    private function siguienteNumero(string $tabla, string $columna, string $prefijo): string
+    {
+        $max = 0;
+        foreach (DB::table($tabla)->pluck($columna) as $numero) {
+            if (preg_match('/(\d+)\s*$/', (string) $numero, $m)) {
+                $max = max($max, (int) $m[1]);
+            }
+        }
+        $n = $max + 1;
+        do {
+            $candidato = $prefijo . str_pad($n, 5, '0', STR_PAD_LEFT);
+            $n++;
+        } while (DB::table($tabla)->where($columna, $candidato)->exists());
+
+        return $candidato;
+    }
+
     public function generarCodigoAutomatico()
     {
         $maxNum = 0;
@@ -559,8 +578,7 @@ trait ManejaFormularioEvento
 
                     // Contrato y adelanto en el mismo guardado
                     if ($conContrato) {
-                        $ultimoContrato = Contrato::orderBy('id', 'desc')->first();
-                        $numeroContrato = 'CTR-' . str_pad($ultimoContrato ? $ultimoContrato->id + 1 : 1, 5, '0', STR_PAD_LEFT);
+                        $numeroContrato = $this->siguienteNumero('contratos', 'numero_contrato', 'CTR-');
 
                         $contrato = Contrato::create([
                             'numero_contrato' => $numeroContrato,
@@ -583,8 +601,7 @@ trait ManejaFormularioEvento
                         $mensaje = "Evento registrado con contrato {$numeroContrato}";
 
                         if ($adelanto > 0) {
-                            $ultimoPago = Pago::orderBy('id', 'desc')->first();
-                            $numeroRecibo = 'REC-' . str_pad($ultimoPago ? $ultimoPago->id + 1 : 1, 5, '0', STR_PAD_LEFT);
+                            $numeroRecibo = $this->siguienteNumero('pagos', 'numero_recibo', 'REC-');
 
                             Pago::create([
                                 'numero_recibo' => $numeroRecibo,
