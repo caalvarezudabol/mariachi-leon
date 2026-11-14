@@ -195,25 +195,30 @@
                 <x-ui.input type="number" label="Duración Estimada (min)" required name="duracion_minutos"
                     wire:model="duracion_minutos" placeholder="60" />
 
-                <div class="sm:col-span-2 flex flex-wrap items-center gap-x-5 gap-y-2">
-                    <label
-                        class="inline-flex items-center gap-2 text-sm font-semibold text-ink-primary cursor-pointer">
-                        <input type="checkbox" wire:model.live="por_hora"
-                            class="w-4 h-4 rounded border-outline text-gold-500 focus:ring-gold-500">
-                        Se cobra por hora
-                    </label>
+                <div class="min-w-0">
+                    <label class="block text-sm font-semibold text-ink-primary mb-1">Cobro:</label>
+                    <div
+                        class="h-9 px-3 bg-surface-sunken border border-outline rounded-lg flex items-center justify-between gap-3">
+                        <label class="inline-flex items-center gap-2 text-sm text-ink-primary cursor-pointer">
+                            <input type="checkbox" wire:model.live="por_hora"
+                                class="w-4 h-4 rounded border-outline text-gold-500 focus:ring-gold-500">
+                            Por hora
+                        </label>
+                        @if ($por_hora)
+                            <div class="flex items-center gap-1.5 text-sm text-ink-secondary">
+                                <span>Mín.</span>
+                                <input type="number" step="0.5" min="0.5" wire:model="horas_minimas"
+                                    placeholder="5"
+                                    class="w-14 h-7 px-1.5 bg-surface-card border border-outline rounded-md text-sm text-ink-primary text-right focus:border-gold-500 focus:outline-none">
+                                <span>h</span>
+                            </div>
+                        @endif
+                    </div>
                     @if ($por_hora)
-                        <div class="flex items-center gap-2 text-sm text-ink-secondary">
-                            <span>Horas mínimas:</span>
-                            <input type="number" step="0.5" min="0.5" wire:model="horas_minimas"
-                                placeholder="5"
-                                class="w-20 h-8 px-2 bg-surface-sunken border border-outline rounded-lg text-sm text-ink-primary text-right focus:border-gold-500 focus:outline-none">
-                        </div>
-                        <span class="text-xs text-ink-muted basis-full">El precio base es el valor de 1 hora. En el
-                            evento, el monto = precio × horas.</span>
+                        <p class="text-xs text-ink-muted mt-1">El precio base es el de 1 hora.</p>
                     @endif
                     @error('horas_minimas')
-                        <span class="text-xs text-rose-400 basis-full">{{ $message }}</span>
+                        <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span>
                     @enderror
                 </div>
 
