@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Musico;
 
+use App\Models\Evento;
 use App\Models\EventoParticipante;
 use App\Models\MusicoPersonal;
 use Illuminate\Support\Facades\Auth;
@@ -29,19 +30,41 @@ class PanelMusico extends Component
         $persona = $this->persona();
         $hoy = now()->toDateString();
 
+        $esMensual = $persona->modalidad_pago === 'mensual';
+
         // ---- Mis shows ----
-        $shows = EventoParticipante::with(['evento.cliente', 'evento.servicio'])
-            ->where('persona_id', $persona->id)
-            ->whereHas('evento', function ($q) use ($hoy) {
-                $q->where('estado', '!=', 'Cancelado');
-                $this->verPasados
-                    ? $q->where('fecha_evento', '<', $hoy)
-                    : $q->where('fecha_evento', '>=', $hoy);
-            })
-            ->get()
-            ->sortBy(fn ($ep) => ($ep->evento->fecha_evento?->format('Y-m-d') ?? '') . ' ' . $ep->evento->hora_evento, SORT_REGULAR, $this->verPasados)
-            ->take(40)
-            ->values();
+        // El mensualista ve TODA la agenda (trabaja en todos los shows); el resto, solo los suyos.
+        if ($esMensual) {
+            $eventos = Evento::with(['cliente', 'servicio'])
+                ->where('estado', '!=', 'Cancelado')
+                ->where('fecha_evento', $this->verPasados ? '<' : '>=', $hoy)
+                ->orderBy('fecha_evento', $this->verPasados ? 'desc' : 'asc')
+                ->orderBy('hora_evento', $this->verPasados ? 'desc' : 'asc')
+                ->limit(40)
+                ->get();
+            $mios = EventoParticipante::where('persona_id', $persona->id)
+                ->whereIn('evento_id', $eventos->pluck('id'))
+                ->get()
+                ->keyBy('evento_id');
+            $shows = $eventos->map(function ($ev) use ($mios, $persona) {
+                $ep = $mios[$ev->id] ?? (new EventoParticipante())->forceFill(['evento_id' => $ev->id, 'persona_id' => $persona->id]);
+                $ep->setRelation('evento', $ev);
+                return $ep;
+            })->values();
+        } else {
+            $shows = EventoParticipante::with(['evento.cliente', 'evento.servicio'])
+                ->where('persona_id', $persona->id)
+                ->whereHas('evento', function ($q) use ($hoy) {
+                    $q->where('estado', '!=', 'Cancelado');
+                    $this->verPasados
+                        ? $q->where('fecha_evento', '<', $hoy)
+                        : $q->where('fecha_evento', '>=', $hoy);
+                })
+                ->get()
+                ->sortBy(fn($ep) => ($ep->evento->fecha_evento?->format('Y-m-d') ?? '') . ' ' . $ep->evento->hora_evento, SORT_REGULAR, $this->verPasados)
+                ->take(40)
+                ->values();
+        }
 
         // Compañeros de cada show (solo nombres)
         $companeros = [];
@@ -59,7 +82,6 @@ class PanelMusico extends Component
         }
 
         // ---- Mis pagos ----
-        $esMensual = $persona->modalidad_pago === 'mensual';
         $asignadoQ = DB::table('evento_participantes as ep')
             ->join('eventos as e', 'e.id', '=', 'ep.evento_id')
             ->where('ep.persona_id', $persona->id)
@@ -72,7 +94,7 @@ class PanelMusico extends Component
             ->leftJoin('evento_participantes as ep', 'ep.id', '=', 'pp.evento_participante_id')
             ->where('pp.estado', 'Valido')
             ->whereRaw('COALESCE(pp.persona_id, ep.persona_id) = ?', [$persona->id])
-            ->when($esMensual, fn ($q) => $q->where('pp.fecha_pago', '>=', now()->startOfMonth()->toDateTimeString()));
+            ->when($esMensual, fn($q) => $q->where('pp.fecha_pago', '>=', now()->startOfMonth()->toDateTimeString()));
 
         $recibido = (float) (clone $pagosQ)->sum('pp.monto');
         $saldo = round($asignado - $recibido, 2);
@@ -87,15 +109,24 @@ class PanelMusico extends Component
         if (!$esMensual && $this->tab === 'pagos') {
             $showsPago = EventoParticipante::with(['evento.cliente', 'evento.servicio'])
                 ->where('persona_id', $persona->id)
-                ->whereHas('evento', fn ($q) => $q->where('estado', '!=', 'Cancelado'))
+                ->whereHas('evento', fn($q) => $q->where('estado', '!=', 'Cancelado'))
                 ->get()
-                ->sortByDesc(fn ($ep) => $ep->evento->fecha_evento)
+                ->sortByDesc(fn($ep) => $ep->evento->fecha_evento)
                 ->take(20)
                 ->values();
         }
 
         return view('livewire.musico.panel-musico', compact(
-            'persona', 'shows', 'companeros', 'esMensual', 'totalShows', 'asignado', 'recibido', 'saldo', 'pagos', 'showsPago'
+            'persona',
+            'shows',
+            'companeros',
+            'esMensual',
+            'totalShows',
+            'asignado',
+            'recibido',
+            'saldo',
+            'pagos',
+            'showsPago'
         ))->layout('components.layouts.musico', ['title' => 'Mi panel - Mariachi León']);
     }
 }
