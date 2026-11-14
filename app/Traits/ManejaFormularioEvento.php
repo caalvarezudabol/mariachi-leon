@@ -32,6 +32,7 @@ trait ManejaFormularioEvento
     public $fecha_evento = '';
     public $hora_evento = '';
     public $duracion_horas = 1.00;
+    public $duracion_min = 60; // lo que se escribe en pantalla; se guarda como horas
     public $direccion_evento = '';
     public $latitud = null;
     public $longitud = null;
@@ -71,7 +72,7 @@ trait ManejaFormularioEvento
             'telefono_contacto' => 'nullable|string|max:50',
             'fecha_evento' => 'required|date',
             'hora_evento' => 'required',
-            'duracion_horas' => 'required|numeric|min:0.5',
+            'duracion_horas' => 'required|numeric|min:0.25',
             'direccion_evento' => 'required|string',
             'latitud' => 'nullable|numeric',
             'longitud' => 'nullable|numeric',
@@ -106,7 +107,7 @@ trait ManejaFormularioEvento
         'fecha_evento.date' => 'La fecha del evento debe tener un formato válido.',
         'hora_evento.required' => 'La hora del evento es obligatoria.',
         'duracion_horas.required' => 'La duración en horas es obligatoria.',
-        'duracion_horas.min' => 'La duración mínima debe ser de al menos 0.5 horas (30 minutos).',
+        'duracion_horas.min' => 'La duración mínima es de 15 minutos.',
         'duracion_horas.numeric' => 'La duración debe ser un valor numérico.',
         'direccion_evento.required' => 'Debe ingresar la dirección completa o lugar exacto del evento.',
         'estado.required' => 'El estado del evento es obligatorio.',
@@ -161,6 +162,7 @@ trait ManejaFormularioEvento
         $this->fecha_evento = ($fecha && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) ? $fecha : date('Y-m-d');
         $this->hora_evento = $fecha ? '20:00' : '';
         $this->duracion_horas = 1.00;
+        $this->duracion_min = 60;
         $this->estado = 'Pendiente';
         $this->cargarEquipoPorDefecto();
         $this->modalOpen = true;
@@ -219,21 +221,29 @@ trait ManejaFormularioEvento
         if ($srv && $srv->por_hora && (float) $srv->horas_minimas > 0) {
             $this->duracion_horas = (float) $srv->horas_minimas;
         }
+        $this->duracion_min = (int) round(((float) $this->duracion_horas) * 60);
         // El monto del contrato sale del precio del servicio (editable)
         if ($srv) {
             $this->monto_contrato = $this->montoSegunHoras($srv, $this->duracion_horas);
         }
     }
 
-    // Servicio por hora: al cambiar la duración se recalcula el monto (sigue editable)
-    public function updatedDuracionHoras($value)
+    // La duración se escribe en minutos (25, 60, 300...) y se guarda en horas.
+    // Servicio por hora: al cambiarla se recalcula el monto (sigue editable).
+    public function updatedDuracionMin($value)
     {
-        if ($this->isEdit || empty($this->servicio_id) || !is_numeric($value)) {
+        if (!is_numeric($value) || (float) $value <= 0) {
+            return;
+        }
+        $horas = ((float) $value) / 60;
+        $this->duracion_horas = round($horas, 2);
+
+        if ($this->isEdit || empty($this->servicio_id)) {
             return;
         }
         $srv = Servicio::find($this->servicio_id);
         if ($srv && $srv->por_hora) {
-            $this->monto_contrato = $this->montoSegunHoras($srv, (float) $value);
+            $this->monto_contrato = $this->montoSegunHoras($srv, $horas);
         }
     }
 
@@ -367,6 +377,7 @@ trait ManejaFormularioEvento
         $this->fecha_evento = $e->fecha_evento ? $e->fecha_evento->format('Y-m-d') : '';
         $this->hora_evento = $e->hora_evento;
         $this->duracion_horas = $e->duracion_horas;
+        $this->duracion_min = (int) round(((float) $e->duracion_horas) * 60);
         $this->direccion_evento = $e->direccion_evento;
         $this->latitud = $e->latitud;
         $this->longitud = $e->longitud;

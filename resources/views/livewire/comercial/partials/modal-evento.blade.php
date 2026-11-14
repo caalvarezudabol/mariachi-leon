@@ -301,9 +301,9 @@
                     </div>
 
                     <div class="min-w-0 sm:col-span-2">
-                        <x-ui.input type="number" step="0.5" label="Duración (horas)" required
-                            name="duracion_horas" wire:model.live.debounce.400ms="duracion_horas"
-                            placeholder="1.0" />
+                        <x-ui.input type="number" step="1" min="1" inputmode="numeric"
+                            label="Duración (min)" required name="duracion_horas"
+                            wire:model.live.debounce.400ms="duracion_min" placeholder="60" />
                         @php $servicioSeleccionado = $servicios->firstWhere('id', $servicio_id); @endphp
                         @if ($servicioSeleccionado && $servicioSeleccionado->por_hora)
                             <p class="text-xs text-ink-muted mt-1">
@@ -312,6 +312,7 @@
                                     - mínimo
                                     {{ rtrim(rtrim(number_format($servicioSeleccionado->horas_minimas, 1), '0'), '.') }}
                                     h
+                                    ({{ (int) round($servicioSeleccionado->horas_minimas * 60) }} min)
                                 @endif
                             </p>
                         @elseif ($servicioSeleccionado)
