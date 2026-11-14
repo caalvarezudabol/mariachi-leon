@@ -47,6 +47,7 @@ trait ManejaFormularioEvento
 
     public $modalOpen = false;
     public $isEdit = false;
+    public $confirmarGuardado = false; // modal pequeño "¿Guardar?"
 
     // =========================================================================
     // EQUIPO DEL EVENTO (personas del catálogo "Músicos y personal")
@@ -177,6 +178,7 @@ trait ManejaFormularioEvento
             'metodo_adelanto',
         ]);
         $this->resetValidation();
+        $this->confirmarGuardado = false;
         $this->codigo_evento = $this->generarCodigoAutomatico();
         $this->fecha_evento = ($fecha && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) ? $fecha : date('Y-m-d');
         $this->hora_evento = $fecha ? '20:00' : '';
@@ -297,6 +299,7 @@ trait ManejaFormularioEvento
             'monto_sugerido' => $monto,
             'monto_asignado' => $monto,
             'modalidad' => $mensual ? 'mensual' : 'por_evento',
+            'es_dueno' => (bool) ($persona->es_dueno ?? false),
             'incluido' => true,
             'origen' => 'adicional',
             'tiene_pagos' => false,
@@ -350,14 +353,17 @@ trait ManejaFormularioEvento
         $this->participantesSugeridos[] = $this->itemDesdePersona($persona);
     }
 
-    // Misma tarifa para todos los músicos del equipo (no toca transporte, sonido ni mensualistas)
-    public function aplicarTarifaMusicos($monto)
+    // Tarifa directa para los músicos y para los dueños del equipo.
+    // No toca transporte, sonido ni mensualistas. Un campo vacío no cambia a nadie.
+    public function aplicarTarifas($musico, $dueno)
     {
-        if (!is_numeric($monto) || (float) $monto < 0) {
-            session()->flash('participante_error', 'Escriba un monto válido para los músicos.');
+        $musico = is_numeric($musico) && (float) $musico >= 0 ? round((float) $musico, 2) : null;
+        $dueno = is_numeric($dueno) && (float) $dueno >= 0 ? round((float) $dueno, 2) : null;
+
+        if ($musico === null && $dueno === null) {
+            session()->flash('participante_error', 'Escriba un monto válido para aplicar.');
             return;
         }
-        $monto = round((float) $monto, 2);
 
         foreach ($this->participantesSugeridos as $i => $p) {
             if (empty($p['incluido'])) {
@@ -367,6 +373,10 @@ trait ManejaFormularioEvento
                 continue;
             }
             if (!$this->esFuncionMusico($p['funcion'] ?? '')) {
+                continue;
+            }
+            $monto = !empty($p['es_dueno']) ? $dueno : $musico;
+            if ($monto === null) {
                 continue;
             }
             // Si ya tiene pagos, no se puede bajar de lo ya pagado
@@ -420,6 +430,7 @@ trait ManejaFormularioEvento
     {
         $e = Evento::findOrFail($id);
         $this->resetValidation();
+        $this->confirmarGuardado = false;
         $this->contrato_opcion = 'no';
         $this->monto_contrato = '';
         $this->adelanto = '';
@@ -462,6 +473,7 @@ trait ManejaFormularioEvento
                     'monto_asignado' => (float)$ep->monto_asignado,
                     'incluido' => true,
                     'modalidad' => $ep->persona->modalidad_pago ?? 'por_evento',
+                    'es_dueno' => (bool) ($ep->persona->es_dueno ?? false),
                     'origen' => 'existente',
                     'tiene_pagos' => $tienePagos,
                     'total_pagado' => $pagado,
@@ -473,8 +485,38 @@ trait ManejaFormularioEvento
         $this->modalOpen = true;
     }
 
+    // El botón Guardar primero valida y abre un modal pequeño de confirmación
+    public function pedirConfirmacion()
+    {
+        $this->confirmarGuardado = false;
+
+        if (!$this->isEdit) {
+            if (empty($this->codigo_evento) || Evento::where('codigo_evento', $this->codigo_evento)->exists()) {
+                $this->codigo_evento = $this->generarCodigoAutomatico();
+            }
+        }
+
+        try {
+            $this->validate();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errores = $e->validator->errors()->all();
+            session()->flash('modal_error', 'Por favor complete todos los campos obligatorios del evento: ' . implode(', ', $errores));
+            $this->dispatch('evento-error-validacion');
+            throw $e;
+        }
+
+        $this->confirmarGuardado = true;
+    }
+
+    public function cancelarConfirmacion()
+    {
+        $this->confirmarGuardado = false;
+    }
+
     public function guardar()
     {
+        $this->confirmarGuardado = false;
+
         if (!$this->isEdit) {
             if (empty($this->codigo_evento) || Evento::where('codigo_evento', $this->codigo_evento)->exists()) {
                 $this->codigo_evento = $this->generarCodigoAutomatico();

@@ -35,7 +35,8 @@
 
 <!-- Modal Crear/Editar Evento -->
 @if ($modalOpen)
-    <form wire:submit.prevent="guardar" id="formEvento" x-data
+    <form wire:submit.prevent="pedirConfirmacion" id="formEvento" x-data
+        @keydown.enter="if ($event.target.tagName !== 'TEXTAREA' && $event.target.tagName !== 'BUTTON') $event.preventDefault()"
         x-on:evento-error-validacion.window="document.getElementById('modalEventoBody')?.scrollTo({top: 0, behavior: 'smooth'})">
         <x-ui.modal maxWidth="max-w-3xl" bodyId="modalEventoBody" onClose="$set('modalOpen', false)">
             <x-slot:header>
@@ -436,12 +437,12 @@
                         fn($pe) => (float) ($pe['monto_asignado'] ?? 0),
                     );
                     $restoEvento = (float) $precioReferencia - $totalAsignadoEquipo;
-                    $nMusicosTarifa = $incluidosEquipo
-                        ->filter(
-                            fn($pe) => $estiloTipo($pe['funcion'] ?? '')[2] === 'musico' &&
-                                ($pe['modalidad'] ?? 'por_evento') !== 'mensual',
-                        )
-                        ->count();
+                    $musicosTarifa = $incluidosEquipo->filter(
+                        fn($pe) => $estiloTipo($pe['funcion'] ?? '')[2] === 'musico' &&
+                            ($pe['modalidad'] ?? 'por_evento') !== 'mensual',
+                    );
+                    $nDuenos = $musicosTarifa->filter(fn($pe) => !empty($pe['es_dueno']))->count();
+                    $nMusicosTarifa = $musicosTarifa->count() - $nDuenos;
                 @endphp
                 <div class="pt-3 border-t border-outline space-y-2" x-data="{ q: '', cat: 'todos' }">
                     <div class="flex items-center justify-between gap-3">
@@ -555,25 +556,42 @@
                         </div>
                     @endif
 
-                    <!-- Misma tarifa para todos los músicos -->
-                    @if ($nMusicosTarifa > 1)
-                        <div class="flex flex-wrap items-center gap-2 text-sm" x-data="{ t: '' }">
-                            <span class="text-ink-secondary">Misma tarifa a los {{ $nMusicosTarifa }} músicos:</span>
-                            <div class="relative w-24">
-                                <span
-                                    class="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] font-bold text-ink-muted">Bs</span>
-                                <input type="number" step="0.50" min="0" inputmode="decimal"
-                                    x-model="t" @keydown.enter.prevent="$wire.aplicarTarifaMusicos(t)"
-                                    placeholder="350"
-                                    class="w-full h-8 pl-6 pr-2 bg-surface-sunken border border-outline rounded-lg text-ink-primary font-bold text-[14px] text-right tabular-nums focus:border-gold-500 focus:outline-none">
-                            </div>
-                            <button type="button" @click="$wire.aplicarTarifaMusicos(t)"
-                                :disabled="t === ''"
+                    <!-- Tarifa directa: músicos y dueños (no toca transporte, sonido ni mensuales) -->
+                    @if ($nMusicosTarifa + $nDuenos > 1)
+                        <div class="flex flex-wrap items-end gap-2" x-data="{ m: '', d: '' }">
+                            @if ($nMusicosTarifa > 0)
+                                <div>
+                                    <div class="text-[11px] font-semibold text-ink-secondary mb-0.5">Tarifa músico
+                                        ({{ $nMusicosTarifa }})</div>
+                                    <div class="relative w-24">
+                                        <span
+                                            class="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] font-bold text-ink-muted">Bs</span>
+                                        <input type="number" step="0.50" min="0" inputmode="decimal"
+                                            x-model="m" @keydown.enter.prevent="$wire.aplicarTarifas(m, d)"
+                                            placeholder="350"
+                                            class="w-full h-8 pl-6 pr-2 bg-surface-sunken border border-outline rounded-lg text-ink-primary font-bold text-[14px] text-right tabular-nums focus:border-gold-500 focus:outline-none">
+                                    </div>
+                                </div>
+                            @endif
+                            @if ($nDuenos > 0)
+                                <div>
+                                    <div class="text-[11px] font-semibold text-ink-secondary mb-0.5">Tarifa dueño
+                                        ({{ $nDuenos }})</div>
+                                    <div class="relative w-24">
+                                        <span
+                                            class="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] font-bold text-ink-muted">Bs</span>
+                                        <input type="number" step="0.50" min="0" inputmode="decimal"
+                                            x-model="d" @keydown.enter.prevent="$wire.aplicarTarifas(m, d)"
+                                            placeholder="400"
+                                            class="w-full h-8 pl-6 pr-2 bg-surface-sunken border border-outline rounded-lg text-ink-primary font-bold text-[14px] text-right tabular-nums focus:border-gold-500 focus:outline-none">
+                                    </div>
+                                </div>
+                            @endif
+                            <button type="button" @click="$wire.aplicarTarifas(m, d)"
+                                :disabled="m === '' && d === ''"
                                 class="h-8 px-3 rounded-lg border border-gold-500 bg-gold-500/10 text-ink-primary text-xs font-semibold hover:bg-gold-500/20 disabled:opacity-40 transition-colors">
-                                Aplicar a músicos
+                                Aplicar
                             </button>
-                            <span class="text-xs text-ink-muted hidden sm:inline">No cambia transporte, sonido ni
-                                mensuales</span>
                         </div>
                     @endif
 
@@ -603,6 +621,10 @@
                                     @if ($esMensual)
                                         <span
                                             class="text-[12px] text-sky-600 dark:text-sky-400 whitespace-nowrap shrink-0 hidden sm:inline">Mensual</span>
+                                    @endif
+                                    @if (!empty($pe['es_dueno']))
+                                        <span
+                                            class="text-[12px] font-semibold text-gold-700 dark:text-gold-400 whitespace-nowrap shrink-0">Dueño</span>
                                     @endif
                                     @if ($sinTarifa)
                                         <i class="fa-solid fa-triangle-exclamation text-[11px] text-amber-500 shrink-0"
@@ -778,4 +800,67 @@
             </x-slot:footer>
         </x-ui.modal>
     </form>
+@endif
+
+{{-- Modal pequeño: confirmar antes de guardar --}}
+@if ($modalOpen && $confirmarGuardado)
+    @php
+        $cfCliente = optional($clientes->firstWhere('id', $cliente_id))->nombre_completo;
+        $cfServicio = optional($servicios->firstWhere('id', $servicio_id))->nombre;
+        $cfFecha = $fecha_evento ? \Carbon\Carbon::parse($fecha_evento)->format('d/m/Y') : '-';
+        $cfMin = (int) round(((float) $duracion_horas) * 60);
+        $cfDur =
+            $cfMin >= 60
+                ? intdiv($cfMin, 60) . ' h' . ($cfMin % 60 ? ' ' . $cfMin % 60 . ' min' : '')
+                : $cfMin . ' min';
+        $cfConContrato = !$isEdit && $contrato_opcion === 'si';
+        $cfMonto = is_numeric($monto_contrato) ? (float) $monto_contrato : 0;
+        $cfAdelanto = is_numeric($adelanto) ? (float) $adelanto : 0;
+        $cfEquipo = collect($participantesSugeridos)->filter(fn($pe) => !empty($pe['incluido']));
+        $cfEquipoTotal = (float) $cfEquipo->sum(fn($pe) => (float) ($pe['monto_asignado'] ?? 0));
+    @endphp
+    <x-ui.modal title="{{ $isEdit ? 'Confirmar cambios' : 'Confirmar evento' }}" icon="fa-solid fa-circle-question"
+        maxWidth="max-w-md" :nested="true" onClose="cancelarConfirmacion">
+        <div class="px-5 py-4 space-y-2 text-sm">
+            <div class="flex justify-between gap-3"><span class="text-ink-secondary">Cliente</span><span
+                    class="font-semibold text-ink-primary text-right">{{ $cfCliente }}</span></div>
+            <div class="flex justify-between gap-3"><span class="text-ink-secondary">Servicio</span><span
+                    class="font-semibold text-ink-primary text-right">{{ $cfServicio }}</span></div>
+            <div class="flex justify-between gap-3"><span class="text-ink-secondary">Cuándo</span><span
+                    class="font-semibold text-ink-primary text-right">{{ $cfFecha }} - {{ $hora_evento }} -
+                    {{ $cfDur }}</span></div>
+            <div class="flex justify-between gap-3"><span class="text-ink-secondary">Estado</span><span
+                    class="font-semibold text-ink-primary text-right">{{ $estado }}</span></div>
+            @if ($cfConContrato)
+                <div class="flex justify-between gap-3"><span class="text-ink-secondary">Contrato</span><span
+                        class="font-semibold text-ink-primary tabular-nums">Bs {{ number_format($cfMonto, 2) }}</span>
+                </div>
+                <div class="flex justify-between gap-3"><span class="text-ink-secondary">Adelanto</span><span
+                        class="font-semibold tabular-nums {{ $cfAdelanto > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-ink-primary' }}">Bs
+                        {{ number_format($cfAdelanto, 2) }}@if ($cfAdelanto > 0)
+                            ({{ $metodo_adelanto }})
+                        @endif
+                    </span></div>
+            @elseif (!$isEdit)
+                <div class="flex justify-between gap-3"><span class="text-ink-secondary">Contrato</span><span
+                        class="text-ink-primary">Sin contrato (solo reservar)</span></div>
+            @endif
+            <div class="flex justify-between gap-3"><span class="text-ink-secondary">Equipo</span><span
+                    class="font-semibold text-ink-primary tabular-nums">{{ $cfEquipo->count() }} personas - Bs
+                    {{ number_format($cfEquipoTotal, 0) }}</span></div>
+        </div>
+
+        <x-slot:footer>
+            <x-ui.button variant="secondary" size="sm" type="button" wire:click="cancelarConfirmacion">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Volver</span>
+            </x-ui.button>
+            <x-ui.button variant="primary" size="sm" type="button" wire:click="guardar"
+                wire:loading.attr="disabled" wire:target="guardar">
+                <i class="fa-solid fa-floppy-disk" wire:loading.remove wire:target="guardar"></i>
+                <i class="fa-solid fa-spinner fa-spin" wire:loading wire:target="guardar"></i>
+                <span>Sí, guardar</span>
+            </x-ui.button>
+        </x-slot:footer>
+    </x-ui.modal>
 @endif
