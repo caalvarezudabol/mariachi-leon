@@ -61,14 +61,12 @@ JS;
         $size = $size >= 512 ? 512 : 192;
         $maskable = request()->boolean('m');
         $empresa = Empresa::obtener();
-        $origen = $empresa->logo_url ? public_path($empresa->logo_url) : null;
+        $origen = $this->buscarArchivo($empresa->logo_url);
         $cabeceras = ['Content-Type' => 'image/png', 'Cache-Control' => 'public, max-age=86400'];
 
-        // Sin logo: usar el favicon del sitio
-        if (!$origen || !is_file($origen)) {
-            $fallback = public_path('favicon.png');
-            abort_unless(is_file($fallback), 404);
-            return response()->file($fallback, $cabeceras);
+        // No se encontró el archivo en disco: redirigir a la misma URL que usa el sitio para mostrar el logo
+        if (!$origen) {
+            return redirect($empresa->logo_url ? asset($empresa->logo_url) : asset('favicon.png'));
         }
 
         $cache = storage_path('app/pwa-icon-' . $size . ($maskable ? 'm' : '') . '-' . filemtime($origen) . '.png');
@@ -107,5 +105,27 @@ JS;
             $mime = mime_content_type($origen) ?: 'image/png';
             return response()->file($origen, ['Content-Type' => $mime, 'Cache-Control' => 'public, max-age=3600']);
         }
+    }
+
+    /** Busca el archivo del logo en las carpetas posibles (Hostinger puede usar public_html). */
+    private function buscarArchivo(?string $ruta): ?string
+    {
+        if (!$ruta) {
+            return null;
+        }
+        $ruta = ltrim($ruta, '/');
+        $candidatos = [
+            public_path($ruta),
+            base_path('public/' . $ruta),
+            base_path('../public_html/' . $ruta),
+            rtrim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''), '/') . '/' . $ruta,
+            storage_path('app/public/' . preg_replace('#^storage/#', '', $ruta)),
+        ];
+        foreach ($candidatos as $c) {
+            if (is_file($c)) {
+                return $c;
+            }
+        }
+        return null;
     }
 }
