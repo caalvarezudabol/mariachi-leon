@@ -1,17 +1,76 @@
 @php
-    // Colores por estado del evento (barra lateral, fondo suave y punto)
+    // Colores por estado: bloques sólidos para que se vean de lejos
     $estadoCfg = function ($estado) {
-        if (in_array($estado, ['Confirmado', 'Realizado', 'Finalizado'])) {
-            return ['bar' => 'border-emerald-500', 'bg' => 'bg-emerald-500/10', 'dot' => 'bg-emerald-500'];
+        if ($estado === 'Confirmado') {
+            return [
+                'bar' => 'border-emerald-800',
+                'bg' => 'bg-emerald-600',
+                'txt' => 'text-white',
+                'dot' => 'bg-emerald-500',
+                'badge' => 'bg-emerald-600 text-white',
+            ];
         }
-        if (in_array($estado, ['Reservado', 'Cotizado'])) {
-            return ['bar' => 'border-amber-500', 'bg' => 'bg-amber-500/10', 'dot' => 'bg-amber-500'];
+        if (in_array($estado, ['Reservado', 'Cotizado', 'Pendiente'])) {
+            return [
+                'bar' => 'border-amber-700',
+                'bg' => 'bg-amber-400',
+                'txt' => 'text-slate-900',
+                'dot' => 'bg-amber-500',
+                'badge' => 'bg-amber-400 text-slate-900',
+            ];
         }
-        if ($estado === 'Cancelado') {
-            return ['bar' => 'border-rose-500', 'bg' => 'bg-rose-500/10', 'dot' => 'bg-rose-500'];
+        if (in_array($estado, ['Realizado', 'Finalizado'])) {
+            return [
+                'bar' => 'border-sky-800',
+                'bg' => 'bg-sky-600',
+                'txt' => 'text-white',
+                'dot' => 'bg-sky-500',
+                'badge' => 'bg-sky-600 text-white',
+            ];
         }
-        return ['bar' => 'border-sky-500', 'bg' => 'bg-sky-500/10', 'dot' => 'bg-sky-500'];
+        return [
+            'bar' => 'border-slate-500',
+            'bg' => 'bg-slate-300 dark:bg-slate-700',
+            'txt' => 'text-slate-600 dark:text-slate-300',
+            'dot' => 'bg-rose-500',
+            'badge' => 'bg-rose-600 text-white',
+        ];
     };
+
+    // Alerta de hora (eventos por realizar): en curso / falta poco / ya pasó
+    $alertaAg = function ($ev) {
+        if (!in_array($ev->estado, ['Confirmado', 'Reservado', 'Pendiente', 'Cotizado'])) {
+            return null;
+        }
+        $ini = $ev->fecha_evento->copy()->setTimeFromTimeString(substr($ev->hora_evento, 0, 8));
+        $fin = $ini->copy()->addMinutes((int) round(((float) $ev->duracion_horas) * 60));
+        $ahora = now();
+        if ($ahora->gte($ini) && $ahora->lt($fin)) {
+            return ['EN CURSO', 'ring-2 ring-lime-300 animate-pulse', 'fa-music', 'bg-lime-300 text-slate-900'];
+        }
+        if ($ahora->gte($fin)) {
+            return ['PASÓ', 'ring-2 ring-rose-500', 'fa-circle-exclamation', 'bg-rose-600 text-white'];
+        }
+        $m = (int) ceil(($ini->timestamp - $ahora->timestamp) / 60);
+        if ($m <= 30) {
+            return [
+                'EN ' . $m . ' MIN',
+                'ring-2 ring-red-500 animate-pulse',
+                'fa-bell',
+                'bg-red-600 text-white animate-pulse',
+            ];
+        }
+        if ($m <= 240) {
+            return [
+                'EN ' . intdiv($m, 60) . 'H ' . $m % 60 . 'M',
+                'ring-2 ring-orange-400',
+                'fa-clock',
+                'bg-orange-500 text-white',
+            ];
+        }
+        return null;
+    };
+    $sePuedeRefrescar = !$modalOpen && !$eventoDetalle;
 
     // Enlace de WhatsApp del cliente de un evento (null si no hay teléfono)
     $waEvento = function ($ev) {
@@ -51,7 +110,7 @@
     }
 @endphp
 
-<div class="space-y-3">
+<div class="space-y-3" @if ($sePuedeRefrescar) wire:poll.60s @endif>
 
     @if (session()->has('success'))
         <div
@@ -138,8 +197,11 @@
                         class="text-ink-primary tabular-nums">{{ $resumen['confirmados'] }}</strong> confirmados</span>
                 <span class="inline-flex items-center gap-1.5"><span
                         class="w-2 h-2 rounded-full bg-amber-500"></span><strong
-                        class="text-ink-primary tabular-nums">{{ $resumen['porConfirmar'] }}</strong> por
-                    confirmar</span>
+                        class="text-ink-primary tabular-nums">{{ $resumen['porConfirmar'] }}</strong> reservados</span>
+                <span class="inline-flex items-center gap-1.5"><span
+                        class="w-2 h-2 rounded-full bg-sky-500"></span><strong
+                        class="text-ink-primary tabular-nums">{{ $resumen['realizados'] ?? 0 }}</strong>
+                    realizados</span>
                 @if (count($conflictos) > 0)
                     <span class="inline-flex items-center gap-1.5 font-semibold text-rose-700 dark:text-rose-400"><i
                             class="fa-solid fa-triangle-exclamation"></i>{{ count($conflictos) }} con conflicto</span>
@@ -188,18 +250,21 @@
                                     @php
                                         $c = $estadoCfg($ev->estado);
                                         $conf = isset($conflictos[$ev->id]);
+                                        $al = $alertaAg($ev);
                                     @endphp
                                     <button type="button" wire:key="chip-{{ $ev->id }}"
                                         wire:click="verDetalleEvento({{ $ev->id }})"
                                         title="{{ $ev->hora_txt }} - {{ $ev->cliente->nombre_completo ?? $ev->codigo_evento }} - {{ $ev->servicio->nombre ?? 'Servicio' }}"
-                                        class="w-full flex items-center gap-1 px-1.5 py-0.5 rounded border-l-[3px] {{ $c['bar'] }} {{ $c['bg'] }} {{ $conf ? 'ring-1 ring-rose-500' : '' }} {{ $ev->estado === 'Cancelado' ? 'opacity-60 line-through' : '' }} text-left text-xs hover:brightness-95 dark:hover:brightness-125 transition">
+                                        class="w-full flex items-center gap-1 px-1.5 py-0.5 rounded border-l-[4px] {{ $c['bar'] }} {{ $c['bg'] }} {{ $c['txt'] }} {{ $conf ? 'ring-2 ring-rose-600' : $al[1] ?? '' }} {{ $ev->estado === 'Cancelado' ? 'line-through' : 'shadow-sm' }} text-left text-xs font-medium hover:brightness-110 transition">
+                                        @if ($al)
+                                            <i class="fa-solid {{ $al[2] }} text-[10px] shrink-0"></i>
+                                        @endif
+                                        <span class="tabular-nums font-bold shrink-0">{{ $ev->hora_txt }}</span>
                                         <span
-                                            class="tabular-nums font-semibold shrink-0 text-ink-primary">{{ $ev->hora_txt }}</span>
-                                        <span
-                                            class="truncate text-ink-primary">{{ $ev->cliente->nombre_completo ?? $ev->codigo_evento }}</span>
+                                            class="truncate">{{ $ev->cliente->nombre_completo ?? $ev->codigo_evento }}</span>
                                         @if ($conf)
                                             <i
-                                                class="fa-solid fa-triangle-exclamation text-rose-600 dark:text-rose-400 text-[10px] ml-auto shrink-0"></i>
+                                                class="fa-solid fa-triangle-exclamation text-rose-600 bg-white rounded-full text-[10px] ml-auto shrink-0"></i>
                                         @endif
                                     </button>
                                 @endforeach
@@ -259,25 +324,32 @@
                                 @php
                                     $c = $estadoCfg($ev->estado);
                                     $conf = isset($conflictos[$ev->id]);
+                                    $al = $alertaAg($ev);
                                 @endphp
                                 <button type="button" wire:key="sev-{{ $ev->id }}"
                                     wire:click="verDetalleEvento({{ $ev->id }})"
-                                    class="w-full text-left px-2 py-1.5 rounded-lg border-l-[3px] {{ $c['bar'] }} {{ $c['bg'] }} {{ $conf ? 'ring-1 ring-rose-500' : '' }} {{ $ev->estado === 'Cancelado' ? 'opacity-60' : '' }} hover:brightness-95 dark:hover:brightness-125 transition space-y-0.5">
+                                    class="w-full text-left px-2 py-1.5 rounded-lg border-l-[5px] {{ $c['bar'] }} {{ $c['bg'] }} {{ $c['txt'] }} {{ $conf ? 'ring-2 ring-rose-600' : $al[1] ?? '' }} shadow-sm hover:brightness-110 transition space-y-0.5">
+                                    @if ($al)
+                                        <div><span
+                                                class="inline-flex items-center gap-1 px-1.5 py-px rounded text-[10px] font-extrabold {{ $al[3] }}"><i
+                                                    class="fa-solid {{ $al[2] }}"></i>{{ $al[0] }}</span>
+                                        </div>
+                                    @endif
                                     <div class="flex items-center justify-between gap-1 text-xs">
-                                        <span class="font-semibold tabular-nums text-ink-primary">{{ $ev->hora_txt }}
-                                            - {{ $ev->hora_fin_txt }}</span>
+                                        <span class="font-bold tabular-nums">{{ $ev->hora_txt }} -
+                                            {{ $ev->hora_fin_txt }}</span>
                                         @if ($conf)
                                             <i
-                                                class="fa-solid fa-triangle-exclamation text-rose-600 dark:text-rose-400"></i>
+                                                class="fa-solid fa-triangle-exclamation text-rose-600 bg-white rounded-full"></i>
                                         @endif
                                     </div>
                                     <div
-                                        class="text-sm font-semibold text-ink-primary leading-tight truncate {{ $ev->estado === 'Cancelado' ? 'line-through' : '' }}">
+                                        class="text-sm font-bold leading-tight truncate {{ $ev->estado === 'Cancelado' ? 'line-through' : '' }}">
                                         {{ $ev->cliente->nombre_completo ?? 'N/A' }}</div>
-                                    <div class="text-xs text-ink-secondary truncate">
-                                        {{ $ev->servicio->nombre ?? 'Servicio' }}</div>
+                                    <div class="text-xs opacity-90 truncate">{{ $ev->servicio->nombre ?? 'Servicio' }}
+                                    </div>
                                     @if ($ev->direccion_evento)
-                                        <div class="text-xs text-ink-muted truncate"><i
+                                        <div class="text-xs opacity-80 truncate"><i
                                                 class="fa-solid fa-location-dot mr-1"></i>{{ $ev->direccion_evento }}
                                         </div>
                                     @endif
@@ -299,9 +371,10 @@
                         $c = $estadoCfg($ev->estado);
                         $conf = isset($conflictos[$ev->id]);
                         $wa = $waEvento($ev);
+                        $al = $alertaAg($ev);
                     @endphp
                     <div wire:key="dev-{{ $ev->id }}"
-                        class="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 border-l-[3px] {{ $conf ? 'border-rose-500 bg-rose-500/5' : $c['bar'] }} {{ $ev->estado === 'Cancelado' ? 'opacity-70' : '' }} hover:bg-gold-500/5 transition-colors">
+                        class="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 border-l-[8px] {{ $conf ? 'border-rose-600 bg-rose-500/10' : $c['bar'] }} {{ $al && !$conf ? 'bg-orange-500/10' : '' }} {{ $ev->estado === 'Cancelado' ? 'opacity-70' : '' }} hover:bg-gold-500/5 transition-colors">
 
                         <div class="flex items-center gap-4 flex-1 min-w-0">
                             <div class="w-20 shrink-0 text-center">
@@ -314,10 +387,13 @@
                                 <div class="flex items-center gap-2 flex-wrap text-sm">
                                     <span
                                         class="font-semibold text-gold-700 dark:text-gold-400">{{ $ev->codigo_evento }}</span>
-                                    <span class="inline-flex items-center gap-1.5 text-ink-primary">
+                                    <span
+                                        class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold {{ $c['badge'] }}">{{ $ev->estado }}</span>
+                                    @if ($al)
                                         <span
-                                            class="w-2 h-2 rounded-full {{ $c['dot'] }}"></span>{{ $ev->estado }}
-                                    </span>
+                                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-extrabold {{ $al[3] }}"><i
+                                                class="fa-solid {{ $al[2] }}"></i>{{ $al[0] }}</span>
+                                    @endif
                                     @if ($conf)
                                         <span
                                             class="inline-flex items-center gap-1 text-xs font-semibold text-rose-700 dark:text-rose-400">
@@ -368,13 +444,15 @@
         <x-slot:footer>
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-secondary">
                 <span class="inline-flex items-center gap-1.5"><span
-                        class="w-2 h-2 rounded-full bg-emerald-500"></span>Confirmado</span>
+                        class="w-3 h-3 rounded bg-emerald-600"></span>Confirmado</span>
                 <span class="inline-flex items-center gap-1.5"><span
-                        class="w-2 h-2 rounded-full bg-amber-500"></span>Reservado</span>
+                        class="w-3 h-3 rounded bg-amber-400"></span>Reservado</span>
                 <span class="inline-flex items-center gap-1.5"><span
-                        class="w-2 h-2 rounded-full bg-sky-500"></span>Pendiente</span>
+                        class="w-3 h-3 rounded bg-sky-600"></span>Realizado</span>
                 <span class="inline-flex items-center gap-1.5"><span
-                        class="w-2 h-2 rounded-full bg-rose-500"></span>Cancelado</span>
+                        class="w-3 h-3 rounded bg-slate-300 dark:bg-slate-700"></span>Cancelado</span>
+                <span class="inline-flex items-center gap-1.5"><span
+                        class="w-3 h-3 rounded bg-red-600 animate-pulse"></span>Falta poco / en curso</span>
             </div>
             @if (count($conflictos) > 0)
                 <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700 dark:text-rose-400">
@@ -426,9 +504,8 @@
                     </div>
                     <div>
                         <span class="block text-xs text-ink-secondary">Estado:</span>
-                        <span class="inline-flex items-center gap-1.5 text-sm text-ink-primary">
-                            <span class="w-2 h-2 rounded-full {{ $cDet['dot'] }}"></span>{{ $det->estado }}
-                        </span>
+                        <span
+                            class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold {{ $cDet['badge'] }}">{{ $det->estado }}</span>
                     </div>
                     <div>
                         <span class="block text-xs text-ink-secondary">Fecha y hora:</span>

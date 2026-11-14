@@ -17,79 +17,114 @@
         return 'bg-sky-500';
     };
 
-    // Accesos directos a lo más usado
+    // Accesos directos (compactos): etiqueta corta + número si corresponde
     $accesos = [
         [
-            'label' => 'Gestión de eventos',
-            'sub' => $eventosSemana . ' en 7 días',
+            'label' => 'Eventos',
+            'n' => $eventosSemana,
+            'tip' => $eventosSemana . ' en los próximos 7 días',
             'icon' => 'fa-calendar-plus',
-            'tono' => 'bg-gold-500 text-gray-900',
+            'tono' => 'text-gray-900',
             'principal' => true,
             'href' => route('admin.eventos'),
         ],
         [
             'label' => 'Agenda',
-            'sub' => $eventosMes . ' este mes',
+            'n' => $eventosMes,
+            'tip' => $eventosMes . ' este mes',
             'icon' => 'fa-calendar-days',
-            'tono' => 'bg-sky-500/15 text-sky-700 dark:text-sky-400',
+            'tono' => 'text-sky-600 dark:text-sky-400',
             'href' => route('admin.agenda'),
         ],
     ];
     if ($puedeFinanzas) {
         $accesos[] = [
             'label' => 'Cobros',
-            'sub' => $contratosConSaldo . ' con saldo',
+            'n' => $contratosConSaldo,
+            'tip' => $contratosConSaldo . ' contratos con saldo',
             'icon' => 'fa-money-bill-wave',
-            'tono' => 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
+            'tono' => 'text-emerald-600 dark:text-emerald-400',
             'href' => route('admin.pagos'),
         ];
         $accesos[] = [
             'label' => 'Pagos a personal',
-            'sub' => 'Músicos y equipo',
             'icon' => 'fa-hand-holding-dollar',
-            'tono' => 'bg-violet-500/15 text-violet-700 dark:text-violet-400',
+            'tono' => 'text-violet-600 dark:text-violet-400',
             'href' => route('admin.pagos-personal'),
         ];
         $accesos[] = [
             'label' => 'Ingresos / Egresos',
-            'sub' => 'Registrar gasto',
-            'icon' => 'fa-arrow-trend-down',
-            'tono' => 'bg-rose-500/15 text-rose-700 dark:text-rose-400',
+            'icon' => 'fa-money-bill-transfer',
+            'tono' => 'text-rose-600 dark:text-rose-400',
             'href' => route('admin.finanzas.movimientos'),
         ];
     }
     $accesos[] = [
-        'label' => 'Músicos y personal',
-        'sub' => $personasActivas . ' activos',
+        'label' => 'Personal',
+        'n' => $personasActivas,
+        'tip' => $personasActivas . ' activos',
         'icon' => 'fa-users',
-        'tono' => 'bg-gray-500/15 text-ink-secondary',
+        'tono' => 'text-ink-secondary',
         'href' => route('admin.musicos'),
     ];
 
-    // Indicadores (pocos y claros)
-    $tarjetas = [];
+    // Indicadores en una sola franja
+    $stats = [];
     if ($puedeFinanzas) {
-        $tarjetas[] = [
+        $stats[] = [
+            'label' => 'Efectivo',
+            'valor' => 'Bs ' . number_format($caja['Efectivo'] ?? 0, 2),
+            'icon' => 'fa-money-bill-wave',
+            'href' => route('admin.finanzas.movimientos'),
+        ];
+        $stats[] = [
+            'label' => 'QR',
+            'valor' => 'Bs ' . number_format($caja['QR'] ?? 0, 2),
+            'icon' => 'fa-qrcode',
+            'href' => route('admin.finanzas.movimientos'),
+        ];
+        $stats[] = [
+            'label' => 'Debes al personal',
+            'valor' => 'Bs ' . number_format($deudaPersonal, 2),
+            'icon' => 'fa-hand-holding-dollar',
+            'rojo' => $deudaPersonal > 0,
+            'href' => route('admin.pagos-personal'),
+        ];
+        $stats[] = [
             'label' => 'Cobrado este mes',
             'valor' => $moneda . ' ' . number_format($cobradoMes, 2),
             'href' => route('admin.pagos'),
         ];
-        $tarjetas[] = [
+        $stats[] = [
             'label' => 'Por cobrar',
             'valor' => $moneda . ' ' . number_format($porCobrar, 2),
             'href' => route('admin.contratos'),
         ];
     }
-    $tarjetas[] = ['label' => 'Eventos del mes', 'valor' => $eventosMes, 'href' => route('admin.agenda')];
-    $tarjetas[] = [
-        'label' => 'Solicitudes web nuevas',
+    $stats[] = ['label' => 'Eventos del mes', 'valor' => $eventosMes, 'href' => route('admin.agenda')];
+    $stats[] = [
+        'label' => 'Solicitudes web',
         'valor' => $contactosNuevos,
-        'href' => route('admin.solicitudes-web'),
         'alerta' => $contactosNuevos > 0,
+        'href' => route('admin.solicitudes-web'),
     ];
+
+    // Estado del evento como etiqueta de color
+    $badgeEstado = fn($e) => match ($e) {
+        'Confirmado' => 'bg-emerald-600',
+        'Realizado', 'Finalizado' => 'bg-sky-600',
+        'Cancelado' => 'bg-rose-600',
+        default => 'bg-amber-500',
+    };
+
+    // Campanita
+    $nRojas = collect($alertas)->where('nivel', 'rojo')->count();
+    $nAlertas = collect($alertas)
+        ->whereIn('nivel', ['rojo', 'ambar'])
+        ->count();
 @endphp
 
-<div class="space-y-3">
+<div class="space-y-3" wire:poll.60s>
 
     {{-- Saludo --}}
     <div class="flex flex-wrap items-center justify-between gap-3">
@@ -108,6 +143,47 @@
             </div>
         </div>
         <div class="flex items-center gap-2">
+            {{-- Campanita de alertas --}}
+            <div class="relative" x-data="{ open: false }" @click.outside="open = false"
+                @keydown.escape.window="open = false">
+                <button type="button" @click="open = !open" title="Alertas"
+                    class="relative h-8 w-9 inline-flex items-center justify-center rounded-lg border transition-colors {{ $nRojas > 0 ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400' : ($nAlertas > 0 ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'border-outline bg-surface-card text-ink-secondary') }}">
+                    <i class="fa-solid fa-bell {{ $nRojas > 0 ? 'animate-pulse' : '' }}"></i>
+                    @if ($nAlertas > 0)
+                        <span
+                            class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center {{ $nRojas > 0 ? 'bg-rose-600' : 'bg-amber-500' }}">{{ $nAlertas }}</span>
+                    @endif
+                </button>
+                <div x-show="open" x-cloak x-transition.opacity
+                    class="absolute right-0 z-30 mt-1.5 w-[min(92vw,22rem)] max-h-[70vh] overflow-y-auto rounded-lg border border-outline bg-surface-card shadow-xl">
+                    <div class="px-3 py-2 border-b border-outline text-sm font-semibold text-ink-primary">Alertas</div>
+                    @forelse ($alertas as $al)
+                        @php
+                            $cAl = match ($al['nivel']) {
+                                'rojo' => 'bg-rose-600',
+                                'ambar' => 'bg-amber-500',
+                                default => 'bg-emerald-600',
+                            };
+                        @endphp
+                        <a href="{{ $al['href'] }}" wire:navigate
+                            class="flex items-center gap-2.5 px-3 py-2 border-b border-outline last:border-0 hover:bg-gold-500/5">
+                            <span
+                                class="w-7 h-7 rounded-md flex items-center justify-center shrink-0 text-white {{ $cAl }}"><i
+                                    class="fa-solid {{ $al['icono'] }} text-xs"></i></span>
+                            <span class="min-w-0">
+                                <span
+                                    class="block text-sm font-semibold text-ink-primary truncate">{{ $al['titulo'] }}</span>
+                                <span class="block text-xs text-ink-secondary">{{ $al['texto'] }}</span>
+                            </span>
+                        </a>
+                    @empty
+                        <div class="px-3 py-6 text-center text-sm text-ink-secondary">
+                            <i class="fa-solid fa-circle-check text-xl text-emerald-500 block mb-1"></i>
+                            Todo en orden, sin alertas.
+                        </div>
+                    @endforelse
+                </div>
+            </div>
             @if ($puedeFinanzas)
                 <x-ui.button size="sm" variant="secondary" href="{{ route('admin.reporte-ejecutivo.pdf') }}"
                     target="_blank">
@@ -122,39 +198,35 @@
         </div>
     </div>
 
-    {{-- Accesos directos --}}
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+    {{-- Accesos directos (compactos) --}}
+    <div class="flex flex-wrap gap-1.5">
         @foreach ($accesos as $a)
-            <a href="{{ $a['href'] }}" wire:navigate
-                class="flex items-center gap-2.5 px-3 py-3 rounded-lg border transition-colors
-                    {{ !empty($a['principal']) ? 'border-gold-500 bg-gold-500 hover:bg-gold-600' : 'border-outline bg-surface-card hover:border-gold-500/60' }}">
-                <span
-                    class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 {{ !empty($a['principal']) ? 'bg-white/35 text-gray-900' : $a['tono'] }}">
-                    <i class="fa-solid {{ $a['icon'] }}"></i>
-                </span>
-                <span class="min-w-0">
+            <a href="{{ $a['href'] }}" wire:navigate title="{{ $a['tip'] ?? $a['label'] }}"
+                class="h-9 px-3 flex-1 basis-[130px] inline-flex items-center justify-center gap-2 rounded-lg border text-sm font-semibold whitespace-nowrap transition-colors
+                    {{ !empty($a['principal']) ? 'border-gold-500 bg-gold-500 hover:bg-gold-600 text-gray-900' : 'border-outline bg-surface-card hover:border-gold-500/60 text-ink-primary' }}">
+                <i class="fa-solid {{ $a['icon'] }} text-sm {{ $a['tono'] }}"></i>
+                <span>{{ $a['label'] }}</span>
+                @if (isset($a['n']))
                     <span
-                        class="block text-sm font-semibold leading-tight {{ !empty($a['principal']) ? 'text-gray-900' : 'text-ink-primary' }}">{{ $a['label'] }}</span>
-                    <span
-                        class="block text-xs {{ !empty($a['principal']) ? 'text-gray-800' : 'text-ink-secondary' }}">{{ $a['sub'] }}</span>
-                </span>
+                        class="px-1.5 min-w-[20px] text-center rounded-full text-[11px] font-bold tabular-nums {{ !empty($a['principal']) ? 'bg-white/40' : 'bg-surface-sunken text-ink-secondary' }}">{{ $a['n'] }}</span>
+                @endif
             </a>
         @endforeach
     </div>
 
-    {{-- Caja --}}
-    @if ($puedeFinanzas)
-        <x-ui.caja-resumen />
-    @endif
-
-    {{-- Indicadores --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
-        @foreach ($tarjetas as $t)
+    {{-- Indicadores y caja en una franja --}}
+    <div
+        class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-{{ min(count($stats), 7) }} rounded-lg border border-outline bg-surface-card overflow-hidden divide-x divide-y divide-outline">
+        @foreach ($stats as $t)
             <a href="{{ $t['href'] }}" wire:navigate
-                class="px-3 py-2.5 rounded-lg border border-outline bg-surface-card hover:border-gold-500/60 transition-colors">
-                <span class="block text-xs text-ink-secondary truncate">{{ $t['label'] }}</span>
+                class="px-3 py-1.5 -mb-px -mr-px hover:bg-gold-500/5 transition-colors min-w-0">
+                <span class="block text-[11px] text-ink-secondary truncate">
+                    @if (!empty($t['icon']))
+                        <i class="fa-solid {{ $t['icon'] }} mr-1"></i>
+                    @endif{{ $t['label'] }}
+                </span>
                 <span
-                    class="block text-lg font-bold leading-tight tabular-nums truncate {{ !empty($t['alerta']) ? 'text-amber-700 dark:text-amber-400' : 'text-ink-primary' }}">{{ $t['valor'] }}</span>
+                    class="block text-base font-bold leading-tight tabular-nums truncate {{ !empty($t['rojo']) ? 'text-rose-700 dark:text-rose-400' : (!empty($t['alerta']) ? 'text-amber-700 dark:text-amber-400' : 'text-ink-primary') }}">{{ $t['valor'] }}</span>
             </a>
         @endforeach
     </div>
@@ -182,8 +254,8 @@
                                 ? 'Mañana'
                                 : null);
                     @endphp
-                    <div class="flex items-center gap-3 px-4 py-2">
-                        <div class="w-11 shrink-0 text-center leading-tight">
+                    <div class="flex items-center gap-2.5 px-3 py-1">
+                        <div class="w-10 shrink-0 text-center leading-tight">
                             <div
                                 class="text-base font-bold tabular-nums {{ $cuando === 'Hoy' ? 'text-gold-700 dark:text-gold-400' : 'text-ink-primary' }}">
                                 {{ $ev->fecha_evento->format('d') }}</div>
@@ -201,10 +273,8 @@
                                 @endif
                             </div>
                         </div>
-                        <span class="inline-flex items-center gap-1.5 text-xs text-ink-secondary shrink-0">
-                            <span class="w-2 h-2 rounded-full {{ $estadoDot($ev->estado) }}"></span>
-                            <span class="hidden sm:inline">{{ $ev->estado }}</span>
-                        </span>
+                        <span
+                            class="px-2 py-0.5 rounded text-[11px] font-bold text-white shrink-0 {{ $badgeEstado($ev->estado) }}">{{ $ev->estado }}</span>
                     </div>
                 @empty
                     <div class="py-8 text-center text-sm text-ink-secondary">
@@ -232,24 +302,23 @@
                 <div class="divide-y divide-outline">
                     @forelse ($contratosSaldo as $c)
                         @php $pct = (float) $c->monto_total > 0 ? min(100, round(((float) $c->total_pagado / (float) $c->monto_total) * 100)) : 0; @endphp
-                        <div class="px-4 py-2">
+                        <div class="px-3 py-1">
                             <div class="flex items-center justify-between gap-3">
-                                <div class="min-w-0">
+                                <div class="min-w-0 flex-1">
                                     <div class="text-sm font-semibold text-ink-primary truncate">
                                         {{ $c->cliente->nombre_completo ?? 'N/A' }}</div>
-                                    <div class="text-xs text-ink-secondary truncate">
+                                    <div class="flex items-center gap-2">
+                                        <div class="h-1 flex-1 rounded-full bg-surface-sunken overflow-hidden">
+                                            <div class="h-full rounded-full bg-emerald-500"
+                                                style="width: {{ $pct }}%"></div>
+                                        </div>
                                         <span
-                                            class="text-gold-700 dark:text-gold-400 font-semibold">{{ $c->numero_contrato }}</span>
-                                        - Pagado {{ $pct }}%
+                                            class="text-[11px] text-ink-secondary tabular-nums">{{ $pct }}%</span>
                                     </div>
                                 </div>
                                 <span
                                     class="text-sm font-semibold tabular-nums text-amber-700 dark:text-amber-400 shrink-0">{{ $moneda }}
                                     {{ number_format($c->saldo_pendiente, 2) }}</span>
-                            </div>
-                            <div class="mt-1.5 h-1 rounded-full bg-surface-sunken overflow-hidden">
-                                <div class="h-full rounded-full bg-emerald-500" style="width: {{ $pct }}%">
-                                </div>
                             </div>
                         </div>
                     @empty

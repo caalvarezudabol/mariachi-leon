@@ -45,8 +45,13 @@ trait ManejaFormularioEvento
     public $adelanto = '';
     public $metodo_adelanto = 'Efectivo'; // Efectivo | QR
 
+    // Tarifa por persona (se ve en la línea "Equipo"); sale del % del servicio o del equipo
+    public $tarifa_musico = '';
+    public $tarifa_dueno = '';
+
     public $modalOpen = false;
     public $isEdit = false;
+    public $eventoTieneContrato = false; // con contrato, cliente y servicio quedan bloqueados al editar
     public $confirmarGuardado = false; // modal pequeño "¿Guardar?"
 
     // =========================================================================
@@ -171,11 +176,14 @@ trait ManejaFormularioEvento
             'longitud',
             'observaciones',
             'isEdit',
+            'eventoTieneContrato',
             'participantesSugeridos',
             'contrato_opcion',
             'monto_contrato',
             'adelanto',
             'metodo_adelanto',
+            'tarifa_musico',
+            'tarifa_dueno',
         ]);
         $this->resetValidation();
         $this->confirmarGuardado = false;
@@ -186,6 +194,7 @@ trait ManejaFormularioEvento
         $this->duracion_min = 60;
         $this->estado = 'Confirmado';
         $this->cargarEquipoPorDefecto();
+        $this->completarTarifasVisibles();
         $this->modalOpen = true;
     }
 
@@ -246,6 +255,52 @@ trait ManejaFormularioEvento
         // El monto del contrato sale del precio del servicio (editable)
         if ($srv) {
             $this->monto_contrato = $this->montoSegunHoras($srv, $this->duracion_horas);
+            $this->recalcularTarifasPorPorcentaje();
+        }
+    }
+
+    // Si cambia el monto del contrato (evento nuevo), el pago por persona sigue al porcentaje
+    public function updatedMontoContrato($value)
+    {
+        if (!$this->isEdit) {
+            $this->recalcularTarifasPorPorcentaje();
+        }
+    }
+
+    // Cada persona con "% del evento" cobra: monto del contrato x %, redondeado a Bs enteros.
+    // Los que no tienen % (o son mensuales) no cambian.
+    private function recalcularTarifasPorPorcentaje(): void
+    {
+        $monto = is_numeric($this->monto_contrato) ? (float) $this->monto_contrato : 0;
+        if ($monto <= 0) {
+            return;
+        }
+        foreach ($this->participantesSugeridos as $i => $p) {
+            if (!empty($p['tiene_pagos'])) {
+                continue;
+            }
+            $pct = $p['porcentaje'] ?? null;
+            if (is_numeric($pct) && (float) $pct > 0) {
+                $this->participantesSugeridos[$i]['monto_asignado'] = (float) round($monto * (float) $pct / 100);
+            }
+        }
+        // Los campos Músico / Dueño pasan a mostrar el valor nuevo
+        $this->tarifa_musico = '';
+        $this->tarifa_dueno = '';
+        $this->completarTarifasVisibles();
+    }
+
+    // Que los campos Músico / Dueño muestren un valor por defecto: el del primero del equipo
+    private function completarTarifasVisibles(): void
+    {
+        foreach ($this->participantesSugeridos as $p) {
+            if (empty($p['incluido']) || ($p['modalidad'] ?? 'por_evento') === 'mensual' || !$this->esFuncionMusico($p['funcion'] ?? '')) {
+                continue;
+            }
+            $campo = !empty($p['es_dueno']) ? 'tarifa_dueno' : 'tarifa_musico';
+            if ($this->$campo === '' || $this->$campo === null) {
+                $this->$campo = rtrim(rtrim(number_format((float) $p['monto_asignado'], 2, '.', ''), '0'), '.');
+            }
         }
     }
 
@@ -265,6 +320,7 @@ trait ManejaFormularioEvento
         $srv = Servicio::find($this->servicio_id);
         if ($srv && $srv->por_hora) {
             $this->monto_contrato = $this->montoSegunHoras($srv, $horas);
+            $this->recalcularTarifasPorPorcentaje();
         }
     }
 
@@ -287,6 +343,13 @@ trait ManejaFormularioEvento
     {
         $mensual = ($persona->modalidad_pago ?? 'por_evento') === 'mensual';
         $monto = $montoForzado ?? ($mensual ? 0.0 : (float) ($persona->tarifa_evento ?? 0));
+        $pct = (is_numeric($persona->porcentaje_evento ?? null) && (float) $persona->porcentaje_evento > 0)
+            ? (float) $persona->porcentaje_evento
+            : null;
+        // Evento nuevo con % y monto de contrato: entra ya calculado
+        if ($montoForzado === null && $pct !== null && !$this->isEdit && is_numeric($this->monto_contrato) && (float) $this->monto_contrato > 0) {
+            $monto = (float) round((float) $this->monto_contrato * $pct / 100);
+        }
 
         return [
             'persona_id' => $persona->id,
@@ -300,6 +363,7 @@ trait ManejaFormularioEvento
             'monto_asignado' => $monto,
             'modalidad' => $mensual ? 'mensual' : 'por_evento',
             'es_dueno' => (bool) ($persona->es_dueno ?? false),
+            'porcentaje' => $pct,
             'incluido' => true,
             'origen' => 'adicional',
             'tiene_pagos' => false,
@@ -351,6 +415,7 @@ trait ManejaFormularioEvento
         }
 
         $this->participantesSugeridos[] = $this->itemDesdePersona($persona);
+        $this->completarTarifasVisibles();
     }
 
     // Tarifa directa para los músicos y para los dueños del equipo.
@@ -434,6 +499,7 @@ trait ManejaFormularioEvento
         $this->contrato_opcion = 'no';
         $this->monto_contrato = '';
         $this->adelanto = '';
+        $this->eventoTieneContrato = $e->contrato()->exists();
         $this->evento_id = $e->id;
         $this->codigo_evento = $e->codigo_evento;
         $this->cliente_id = $e->cliente_id;
@@ -482,13 +548,29 @@ trait ManejaFormularioEvento
             }
         }
 
+        $this->tarifa_musico = '';
+        $this->tarifa_dueno = '';
+        $this->completarTarifasVisibles();
         $this->modalOpen = true;
     }
 
     // El botón Guardar primero valida y abre un modal pequeño de confirmación
+    // Con contrato, el cliente y el servicio no se cambian (el contrato y los pagos ya están a su nombre)
+    private function aplicarBloqueos(): void
+    {
+        if ($this->isEdit && $this->eventoTieneContrato && $this->evento_id) {
+            $orig = Evento::find($this->evento_id);
+            if ($orig) {
+                $this->cliente_id = $orig->cliente_id;
+                $this->servicio_id = $orig->servicio_id;
+            }
+        }
+    }
+
     public function pedirConfirmacion()
     {
         $this->confirmarGuardado = false;
+        $this->aplicarBloqueos();
 
         if (!$this->isEdit) {
             if (empty($this->codigo_evento) || Evento::where('codigo_evento', $this->codigo_evento)->exists()) {
@@ -516,6 +598,7 @@ trait ManejaFormularioEvento
     public function guardar()
     {
         $this->confirmarGuardado = false;
+        $this->aplicarBloqueos();
 
         if (!$this->isEdit) {
             if (empty($this->codigo_evento) || Evento::where('codigo_evento', $this->codigo_evento)->exists()) {

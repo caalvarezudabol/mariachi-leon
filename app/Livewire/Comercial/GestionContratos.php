@@ -29,11 +29,11 @@ class GestionContratos extends Component
     public $pago_inicial = 0.00;
     public $total_pagado = 0.00;
     public $saldo_pendiente = 0.00;
-    public $estado = 'Pendiente de Confirmacion';
+    public $estado = 'Confirmado';
     public $observaciones = '';
 
     public $search = '';
-    public $estado_filtro = '';
+    public $estado_filtro = 'saldo'; // saldo (por cobrar) | pagados | '' (todos)
     public $modalOpen = false;
     public $isEdit = false;
 
@@ -58,7 +58,18 @@ class GestionContratos extends Component
     {
         return [
             'numero_contrato' => 'required|string|max:50|unique:contratos,numero_contrato,' . ($this->contrato_id ?? 'NULL') . ',id',
-            'evento_id' => 'required|exists:eventos,id',
+            'evento_id' => [
+                'required',
+                'exists:eventos,id',
+                function ($attribute, $value, $fail) {
+                    $yaTiene = Contrato::where('evento_id', $value)
+                        ->when($this->contrato_id, fn($q) => $q->where('id', '!=', $this->contrato_id))
+                        ->exists();
+                    if ($yaTiene) {
+                        $fail('Este evento ya tiene un contrato. Edítalo desde la lista en vez de crear otro.');
+                    }
+                },
+            ],
             'fecha_contrato' => 'required|date',
             'monto_total' => 'required|numeric|min:0',
             'pago_inicial' => 'required|numeric|min:0',
@@ -79,9 +90,25 @@ class GestionContratos extends Component
 
     public function generarNumeroAutomatico()
     {
-        $last = Contrato::orderBy('id', 'desc')->first();
-        $nextNum = $last ? ($last->id + 1) : 1;
-        return 'CTR-' . str_pad($nextNum, 5, '0', STR_PAD_LEFT);
+        return $this->siguienteNumero('contratos', 'numero_contrato', 'CTR-');
+    }
+
+    // Siguiente número libre: toma el mayor que existe (aunque haya borrados) y verifica que no se repita
+    private function siguienteNumero(string $tabla, string $columna, string $prefijo): string
+    {
+        $max = 0;
+        foreach (\Illuminate\Support\Facades\DB::table($tabla)->pluck($columna) as $numero) {
+            if (preg_match('/(\d+)\s*$/', (string) $numero, $m)) {
+                $max = max($max, (int) $m[1]);
+            }
+        }
+        $n = $max + 1;
+        do {
+            $candidato = $prefijo . str_pad($n, 5, '0', STR_PAD_LEFT);
+            $n++;
+        } while (\Illuminate\Support\Facades\DB::table($tabla)->where($columna, $candidato)->exists());
+
+        return $candidato;
     }
 
     public function abrirModal()
@@ -103,7 +130,7 @@ class GestionContratos extends Component
         $this->numero_contrato = $this->generarNumeroAutomatico();
         $this->fecha_contrato = date('Y-m-d');
         $this->hora_contrato = date('H:i');
-        $this->estado = 'Pendiente de Confirmacion';
+        $this->estado = 'Confirmado';
         $this->modalOpen = true;
     }
 
@@ -218,9 +245,7 @@ class GestionContratos extends Component
 
             // Si se especificó un pago inicial mayor a cero, genera el primer recibo de pago automáticamente
             if ((float)$this->pago_inicial > 0) {
-                $lastPago = Pago::orderBy('id', 'desc')->first();
-                $nextRec = $lastPago ? ($lastPago->id + 1) : 1;
-                $numRecibo = 'REC-' . str_pad($nextRec, 5, '0', STR_PAD_LEFT);
+                $numRecibo = $this->siguienteNumero('pagos', 'numero_recibo', 'REC-');
 
                 Pago::create([
                     'numero_recibo' => $numRecibo,
@@ -539,18 +564,45 @@ class GestionContratos extends Component
             ->groupBy('estado')
             ->pluck('total', 'estado');
 
+        $conteos = [
+            'saldo' => (clone $this->contratosQuery())->where('saldo_pendiente', '>', 0)->count(),
+            'pagados' => (clone $this->contratosQuery())->where('saldo_pendiente', '<=', 0)->count(),
+        ];
+
         $query = $this->contratosQuery();
 
-        if ($this->estado_filtro) {
+        if ($this->estado_filtro === 'saldo') {
+            $query->where('saldo_pendiente', '>', 0);
+        } elseif ($this->estado_filtro === 'pagados') {
+            $query->where('saldo_pendiente', '<=', 0);
+        } elseif ($this->estado_filtro) {
             $query->where('estado', $this->estado_filtro);
         }
 
         $contratos = $query->orderBy('fecha_contrato', 'desc')->paginate(10);
 
+        // Totales de TODOS los contratos del filtro (no solo de la página). El saldo no cuenta los cancelados.
+        $base = (clone $query)->setEagerLoads([])->reorder();
+        $sumas = (clone $base)->selectRaw('COALESCE(SUM(monto_total),0) as contratado, COALESCE(SUM(total_pagado),0) as abonado')->first();
+        $totales = [
+            'contratado' => (float) ($sumas->contratado ?? 0),
+            'abonado' => (float) ($sumas->abonado ?? 0),
+            'saldo' => (float) (clone $base)
+                ->whereDoesntHave('evento', fn($e) => $e->where('estado', 'Cancelado'))
+                ->sum('saldo_pendiente'),
+        ];
+
         // Opciones del selector con buscador: solo se cargan cuando el modal está abierto
         $eventosOptions = [];
         if ($this->modalOpen) {
+            // Solo eventos sin contrato (al editar, también el propio)
             $eventosOptions = Evento::with(['cliente', 'servicio'])
+                ->where(function ($q) {
+                    $q->doesntHave('contrato');
+                    if ($this->evento_id) {
+                        $q->orWhere('id', $this->evento_id);
+                    }
+                })
                 ->orderBy('fecha_evento', 'desc')
                 ->get()
                 ->map(function ($ev) {
@@ -570,6 +622,8 @@ class GestionContratos extends Component
         }
 
         return view('livewire.comercial.gestion-contratos', [
+            'conteos' => $conteos,
+            'totales' => $totales,
             'contratos' => $contratos,
             'estados' => $estados,
             'eventosOptions' => $eventosOptions,

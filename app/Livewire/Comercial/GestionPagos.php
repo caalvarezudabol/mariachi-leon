@@ -29,6 +29,12 @@ class GestionPagos extends Component
     public $estado_filtro = '';
     public $modalOpen = false;
 
+    // Vista: por contrato (por defecto) o detalle de cada pago
+    public $verDetalle = false;
+    public $contrato_estado = 'saldo'; // saldo | pagados | '' (todos) - solo en la vista por contrato
+    public $contrato_filtro = null;    // al ver los pagos de un contrato puntual
+    public $abiertos = [];             // contratos desplegados (flechita >) en la vista por contrato
+
     // Modal de Anulación
     public $modalAnularOpen = false;
     public $pagoIdAnular = null;
@@ -64,11 +70,71 @@ class GestionPagos extends Component
         $this->resetPage();
     }
 
+    public function updatingVerDetalle()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingContratoEstado()
+    {
+        $this->resetPage();
+    }
+
+    // Flechita >: despliega o cierra el detalle de cobros de un contrato
+    public function toggleContrato($id)
+    {
+        $id = (int) $id;
+        $this->abiertos = in_array($id, $this->abiertos)
+            ? array_values(array_diff($this->abiertos, [$id]))
+            : array_merge($this->abiertos, [$id]);
+    }
+
+    // Abre "Nuevo pago" con el contrato ya elegido y el saldo como monto sugerido
+    public function cobrarContrato($id)
+    {
+        $this->abrirModal();
+        $this->contrato_id = $id;
+        $this->updatedContratoId($id);
+    }
+
+    // Pasa al detalle mostrando solo los pagos de ese contrato
+    public function verPagosDeContrato($id)
+    {
+        $this->contrato_filtro = $id;
+        $this->estado_filtro = '';
+        $this->metodo_filtro = '';
+        $this->search = '';
+        $this->verDetalle = true;
+        $this->resetPage();
+    }
+
+    public function quitarFiltroContrato()
+    {
+        $this->contrato_filtro = null;
+        $this->resetPage();
+    }
+
     public function generarNumeroAutomatico()
     {
-        $last = Pago::orderBy('id', 'desc')->first();
-        $nextNum = $last ? ($last->id + 1) : 1;
-        return 'REC-' . str_pad($nextNum, 5, '0', STR_PAD_LEFT);
+        return $this->siguienteNumero('pagos', 'numero_recibo', 'REC-');
+    }
+
+    // Siguiente número libre: toma el mayor que existe (aunque haya borrados) y verifica que no se repita
+    private function siguienteNumero(string $tabla, string $columna, string $prefijo): string
+    {
+        $max = 0;
+        foreach (\Illuminate\Support\Facades\DB::table($tabla)->pluck($columna) as $numero) {
+            if (preg_match('/(\d+)\s*$/', (string) $numero, $m)) {
+                $max = max($max, (int) $m[1]);
+            }
+        }
+        $n = $max + 1;
+        do {
+            $candidato = $prefijo . str_pad($n, 5, '0', STR_PAD_LEFT);
+            $n++;
+        } while (\Illuminate\Support\Facades\DB::table($tabla)->where($columna, $candidato)->exists());
+
+        return $candidato;
     }
 
     public function abrirModal()
@@ -266,6 +332,31 @@ class GestionPagos extends Component
             $query->where('metodo_pago', $this->metodo_filtro);
         }
 
+        if ($this->contrato_filtro) {
+            $query->where('contrato_id', $this->contrato_filtro);
+        }
+
+        return $query;
+    }
+
+    /** Consulta base de contratos para la vista por contrato (aplica el buscador). */
+    private function contratosQuery(bool $extras = true)
+    {
+        $query = Contrato::query();
+        if ($extras) {
+            $query->with(['cliente', 'servicio', 'evento', 'pagos' => fn($q) => $q->orderBy('fecha_pago')])
+                ->withCount(['pagos as pagos_validos' => fn($q) => $q->where('estado', 'Valido')])
+                ->withMax(['pagos as ultimo_pago' => fn($q) => $q->where('estado', 'Valido')], 'fecha_pago');
+        }
+
+        if ($this->search) {
+            $query->where(function ($q) {
+                $q->where('numero_contrato', 'like', '%' . $this->search . '%')
+                    ->orWhereHas('cliente', fn($c) => $c->where('nombre_completo', 'like', '%' . $this->search . '%'))
+                    ->orWhereHas('evento', fn($e) => $e->where('codigo_evento', 'like', '%' . $this->search . '%'));
+            });
+        }
+
         return $query;
     }
 
@@ -284,7 +375,50 @@ class GestionPagos extends Component
             $query->where('estado', $this->estado_filtro);
         }
 
-        $pagos = $query->orderBy('fecha_pago', 'desc')->paginate(10);
+        $pagos = $this->verDetalle
+            ? $query->orderBy('fecha_pago', 'desc')->paginate(10)
+            : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
+
+        // Total de los pagos válidos del filtro (vista detalle)
+        $totalPagosValidos = 0.0;
+        if ($this->verDetalle) {
+            $totalPagosValidos = (float) $this->pagosQuery()->setEagerLoads([])->reorder()
+                ->when($this->estado_filtro, fn($q) => $q->where('estado', $this->estado_filtro))
+                ->where('estado', 'Valido')->sum('monto');
+        }
+
+        // Vista por contrato
+        $contratosLista = null;
+        $totalesContratos = ['contratado' => 0.0, 'abonado' => 0.0, 'saldo' => 0.0];
+        $conteosContratos = ['saldo' => 0, 'pagados' => 0, 'todos' => 0];
+        if (!$this->verDetalle) {
+            $conteosContratos = [
+                'saldo' => $this->contratosQuery(false)->where('saldo_pendiente', '>', 0)->count(),
+                'pagados' => $this->contratosQuery(false)->where('saldo_pendiente', '<=', 0)->count(),
+                'todos' => $this->contratosQuery(false)->count(),
+            ];
+            $filtroEstado = function ($q) {
+                if ($this->contrato_estado === 'saldo') {
+                    $q->where('saldo_pendiente', '>', 0);
+                } elseif ($this->contrato_estado === 'pagados') {
+                    $q->where('saldo_pendiente', '<=', 0);
+                }
+                return $q;
+            };
+            $contratosLista = $filtroEstado($this->contratosQuery())->orderBy('fecha_contrato', 'desc')->paginate(10);
+
+            // Totales de TODOS los contratos del filtro (el saldo no cuenta los cancelados)
+            $sumas = $filtroEstado($this->contratosQuery(false))
+                ->selectRaw('COALESCE(SUM(monto_total),0) as contratado, COALESCE(SUM(total_pagado),0) as abonado')
+                ->first();
+            $totalesContratos = [
+                'contratado' => (float) ($sumas->contratado ?? 0),
+                'abonado' => (float) ($sumas->abonado ?? 0),
+                'saldo' => (float) $filtroEstado($this->contratosQuery(false))
+                    ->whereDoesntHave('evento', fn($e) => $e->where('estado', 'Cancelado'))
+                    ->sum('saldo_pendiente'),
+            ];
+        }
 
         // Opciones del selector con buscador: solo se cargan cuando el modal está abierto
         $contratosOptions = [];
@@ -312,6 +446,10 @@ class GestionPagos extends Component
 
         return view('livewire.comercial.gestion-pagos', [
             'pagos' => $pagos,
+            'contratosLista' => $contratosLista,
+            'totalesContratos' => $totalesContratos,
+            'conteosContratos' => $conteosContratos,
+            'totalPagosValidos' => $totalPagosValidos,
             'estados' => $estados,
             'contratosOptions' => $contratosOptions,
         ])->layout('components.layouts.app', [

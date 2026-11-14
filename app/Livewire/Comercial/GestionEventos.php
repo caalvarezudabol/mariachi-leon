@@ -30,7 +30,7 @@ class GestionEventos extends Component
     #[Url(as: 'cliente_id')]
     public $cliente_filtro = '';
 
-    public $estado_filtro = '';
+    public $estado_filtro = 'porrealizar'; // porrealizar | realizados | cancelados | '' (todos)
     public $modalMapOpen = false;
     public $eventoMapa = null;
 
@@ -39,6 +39,13 @@ class GestionEventos extends Component
     public $eventoHistorial = null;
     public $pagosHistorial = [];
     public $resumenFinanciero = [];
+
+    // Modal de Cobro rápido (desde la lista de eventos)
+    public $modalCobroOpen = false;
+    public $cobro_evento_id = null;
+    public $cobro_monto = '';
+    public $cobro_metodo = 'EFECTIVO';
+    public $cobro_obs = '';
 
     public function mount()
     {
@@ -97,7 +104,7 @@ class GestionEventos extends Component
 
         $nuevo = $e->contrato
             ? ((float) $e->contrato->total_pagado > 0 ? 'Confirmado' : 'Reservado')
-            : 'Pendiente';
+            : 'Reservado';
         $e->update(['estado' => $nuevo]);
         $this->registrarAuditoria('Gestión Comercial', 'Reactivar Evento', 'Se reactivó el evento ' . $e->codigo_evento . ' como ' . $nuevo);
         session()->flash('success', 'Evento ' . $e->codigo_evento . ' reactivado como ' . $nuevo . '.');
@@ -140,6 +147,112 @@ class GestionEventos extends Component
 
         $this->registrarAuditoria('Gestión Comercial', 'Eliminar Evento', 'Se eliminó el evento ' . $e->codigo_evento);
         session()->flash('success', 'Evento ' . $e->codigo_evento . ' eliminado.');
+    }
+
+    public function abrirCobro($id)
+    {
+        $e = Evento::with('contrato')->findOrFail($id);
+
+        if (!$e->contrato) {
+            session()->flash('error', 'Este evento no tiene contrato. Créalo primero en Contratos.');
+            return;
+        }
+        if ($e->estado === 'Cancelado') {
+            session()->flash('error', 'El evento está cancelado: no se pueden registrar cobros.');
+            return;
+        }
+        $saldo = (float) $e->contrato->saldo_pendiente;
+        if ($saldo <= 0.001) {
+            session()->flash('error', 'El contrato de ' . $e->codigo_evento . ' ya está pagado por completo.');
+            return;
+        }
+
+        $this->resetValidation();
+        $this->cobro_evento_id = $e->id;
+        $this->cobro_monto = round($saldo, 2);
+        $this->cobro_metodo = 'EFECTIVO';
+        $this->cobro_obs = '';
+        $this->modalCobroOpen = true;
+    }
+
+    public function cerrarCobro()
+    {
+        $this->modalCobroOpen = false;
+        $this->cobro_evento_id = null;
+        $this->resetValidation();
+    }
+
+    public function guardarCobro()
+    {
+        $this->validate([
+            'cobro_monto' => 'required|numeric|gt:0',
+            'cobro_metodo' => 'required|in:EFECTIVO,QR',
+            'cobro_obs' => 'nullable|string|max:255',
+        ], [
+            'cobro_monto.required' => 'Ingrese el monto a cobrar.',
+            'cobro_monto.numeric' => 'El monto debe ser un número.',
+            'cobro_monto.gt' => 'El monto debe ser mayor a cero.',
+        ]);
+
+        $e = Evento::with('contrato')->findOrFail($this->cobro_evento_id);
+        if (!$e->contrato) {
+            $this->cerrarCobro();
+            return;
+        }
+
+        $codigo = null;
+        DB::transaction(function () use ($e, &$codigo) {
+            $contrato = Contrato::lockForUpdate()->findOrFail($e->contrato->id);
+            $montoPago = round((float) $this->cobro_monto, 2);
+
+            if ($montoPago > (float) $contrato->saldo_pendiente + 0.001) {
+                $this->addError('cobro_monto', 'El monto (Bs ' . number_format($montoPago, 2) . ') es mayor al saldo pendiente (Bs ' . number_format($contrato->saldo_pendiente, 2) . ').');
+                return;
+            }
+
+            $pago = Pago::create([
+                'numero_recibo' => $this->siguienteNumero('pagos', 'numero_recibo', 'REC-'),
+                'contrato_id' => $contrato->id,
+                'cliente_id' => $contrato->cliente_id,
+                'evento_id' => $contrato->evento_id,
+                'fecha_pago' => date('Y-m-d H:i:s'),
+                'monto' => $montoPago,
+                'metodo_pago' => $this->cobro_metodo,
+                'observaciones' => trim((string) $this->cobro_obs),
+                'codigo_verificacion' => Str::random(40),
+                'estado' => 'Valido',
+                'user_id' => Auth::id(),
+            ]);
+
+            $nuevoTotalPagado = (float) $contrato->total_pagado + $montoPago;
+            $nuevoSaldo = max(0, (float) $contrato->monto_total - $nuevoTotalPagado);
+            $nuevoEstado = in_array($contrato->estado, ['Borrador', 'Pendiente de Confirmacion'])
+                ? 'Confirmado'
+                : $contrato->estado;
+
+            $contrato->update([
+                'total_pagado' => $nuevoTotalPagado,
+                'saldo_pendiente' => $nuevoSaldo,
+                'estado' => $nuevoEstado,
+            ]);
+
+            if (in_array($e->estado, ['Pendiente', 'Reservado'])) {
+                $e->update(['estado' => 'Confirmado']);
+            }
+
+            $this->registrarAuditoria('Gestión Comercial', 'Registrar Pago Cliente', 'Cobro rápido desde Eventos: recibo ' . $pago->numero_recibo . ' por Bs ' . number_format($montoPago, 2) . ' del evento ' . $e->codigo_evento);
+
+            $codigo = $pago->codigo_verificacion;
+        });
+
+        if (!$codigo) {
+            return;
+        }
+
+        $this->cerrarCobro();
+        // Se queda en el listado; el recibo se abre solo si lo pides desde el aviso
+        session()->flash('success', 'Cobro registrado en ' . $e->codigo_evento . '.');
+        session()->flash('recibo_codigo', $codigo);
     }
 
     public function abrirHistorialPagos($id)
@@ -190,6 +303,34 @@ class GestionEventos extends Component
         $this->resumenFinanciero = [];
     }
 
+    private const GRUPOS_ESTADO = [
+        'porrealizar' => ['Pendiente', 'Cotizado', 'Reservado', 'Confirmado'],
+        'realizados' => ['Realizado', 'Finalizado'],
+        'cancelados' => ['Cancelado'],
+    ];
+
+    private function filtroEstado($q)
+    {
+        if (isset(self::GRUPOS_ESTADO[$this->estado_filtro])) {
+            $q->whereIn('estado', self::GRUPOS_ESTADO[$this->estado_filtro]);
+        } elseif ($this->estado_filtro) {
+            $q->where('estado', $this->estado_filtro);
+        }
+        return $q;
+    }
+
+    // Marcar el show como realizado (el cliente ya lo recibió)
+    public function marcarRealizado($id)
+    {
+        $e = Evento::findOrFail($id);
+        if (in_array($e->estado, ['Cancelado', 'Realizado', 'Finalizado'])) {
+            return;
+        }
+        $e->update(['estado' => 'Realizado']);
+        $this->registrarAuditoria('Gestión Comercial', 'Marcar Realizado', 'Se marcó como realizado el evento ' . $e->codigo_evento);
+        session()->flash('success', 'Evento ' . $e->codigo_evento . ' marcado como realizado.');
+    }
+
     private function eventosQuery()
     {
         return Evento::query()
@@ -213,8 +354,8 @@ class GestionEventos extends Component
     {
         $eventos = $this->eventosQuery()
             ->with(['cliente', 'servicio', 'user', 'contrato.pagos', 'pagos', 'participantes.persona'])
-            ->when($this->estado_filtro, fn($q) => $q->where('estado', $this->estado_filtro))
-            ->orderBy('fecha_evento', 'desc')->orderBy('hora_evento', 'asc')
+            ->tap(fn($q) => $this->filtroEstado($q))
+            ->orderBy('fecha_evento', $this->estado_filtro === 'porrealizar' ? 'asc' : 'desc')->orderBy('hora_evento', 'asc')
             ->paginate(10);
 
         $estados = $this->eventosQuery()
@@ -223,12 +364,39 @@ class GestionEventos extends Component
             ->orderBy('estado')
             ->pluck('total', 'estado');
 
+        $conteos = [];
+        foreach (self::GRUPOS_ESTADO as $clave => $lista) {
+            $conteos[$clave] = (int) collect($estados)->only($lista)->sum();
+        }
+
+        // Totales de TODOS los eventos del filtro (no solo de la página). El saldo no cuenta los cancelados.
+        $idsFiltro = $this->eventosQuery()
+            ->tap(fn($q) => $this->filtroEstado($q))
+            ->select('eventos.id');
+        $idsActivos = $this->eventosQuery()
+            ->tap(fn($q) => $this->filtroEstado($q))
+            ->where('estado', '!=', 'Cancelado')
+            ->select('eventos.id');
+        $sumas = Contrato::whereIn('evento_id', $idsFiltro)
+            ->selectRaw('COALESCE(SUM(monto_total),0) as contratado, COALESCE(SUM(total_pagado),0) as abonado')
+            ->first();
+        $totales = [
+            'contratado' => (float) ($sumas->contratado ?? 0),
+            'abonado' => (float) ($sumas->abonado ?? 0),
+            'saldo' => (float) Contrato::whereIn('evento_id', $idsActivos)->sum('saldo_pendiente'),
+        ];
+
         $clientes = Cliente::where('estado', 'Activo')->orderBy('nombre_completo', 'asc')->get();
         return view('livewire.comercial.gestion-eventos', [
+            'totales' => $totales,
+            'conteos' => $conteos,
             'eventos' => $eventos,
             'totalEventos' => $this->eventosQuery()->count(),
             'estados' => $estados,
             'clientes' => $clientes,
+            'eventoCobro' => ($this->modalCobroOpen && $this->cobro_evento_id)
+                ? Evento::with(['cliente', 'contrato'])->find($this->cobro_evento_id)
+                : null,
         ] + $this->datosFormularioEvento())->layout('components.layouts.app', [
             'title' => 'Gestión de Eventos - Mariachi León Guanajuato',
             'themed' => true,

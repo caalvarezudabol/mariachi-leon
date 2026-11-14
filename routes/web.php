@@ -65,6 +65,11 @@ use App\Livewire\Reportes\ReporteFinanciero;
 use App\Http\Controllers\Finanzas\FinanzasPdfController;
 use App\Http\Controllers\Finanzas\FinanzasExcelController;
 use App\Http\Controllers\Reportes\ReportesPdfController;
+use App\Http\Controllers\PwaController;
+
+Route::get('/manifest.webmanifest', [PwaController::class, 'manifest'])->name('pwa.manifest');
+Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('pwa.sw');
+Route::get('/pwa-icon/{size}.png', [PwaController::class, 'icono'])->whereNumber('size')->name('pwa.icono');
 
 Route::get('/', PaginaInicio::class)->name('web.home');
 Route::get('/nosotros', PaginaNosotros::class)->name('web.nosotros');

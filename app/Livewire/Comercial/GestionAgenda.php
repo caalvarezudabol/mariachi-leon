@@ -12,7 +12,7 @@ class GestionAgenda extends Component
 {
     use Auditable, ManejaFormularioEvento;
 
-    public $vistaModo = 'mes'; // 'dia', 'semana', 'mes'
+    public $vistaModo = 'semana'; // 'dia', 'semana', 'mes'
     public $fechaSeleccionada = '';
     public $eventoIdDetalle = null;
     public $modalDetalleOpen = false;
@@ -210,16 +210,18 @@ class GestionAgenda extends Component
         $activos = $eventos->reject(fn($e) => $e->estado === 'Cancelado');
         $resumen = [
             'total' => $activos->count(),
-            'confirmados' => $activos->whereIn('estado', ['Confirmado', 'Realizado', 'Finalizado'])->count(),
+            'confirmados' => $activos->where('estado', 'Confirmado')->count(),
             'porConfirmar' => $activos->whereIn('estado', ['Pendiente', 'Cotizado', 'Reservado'])->count(),
+            'realizados' => $activos->whereIn('estado', ['Realizado', 'Finalizado'])->count(),
         ];
         // En vista mes, el resumen cuenta solo el mes que se está viendo
         if ($this->vistaModo === 'mes') {
             $delMes = $activos->filter(fn($e) => $e->fecha_evento->month === $dt->month && $e->fecha_evento->year === $dt->year);
             $resumen = [
                 'total' => $delMes->count(),
-                'confirmados' => $delMes->whereIn('estado', ['Confirmado', 'Realizado', 'Finalizado'])->count(),
+                'confirmados' => $delMes->where('estado', 'Confirmado')->count(),
                 'porConfirmar' => $delMes->whereIn('estado', ['Pendiente', 'Cotizado', 'Reservado'])->count(),
+                'realizados' => $delMes->whereIn('estado', ['Realizado', 'Finalizado'])->count(),
             ];
         }
 

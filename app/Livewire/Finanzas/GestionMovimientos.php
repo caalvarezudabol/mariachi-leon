@@ -134,6 +134,21 @@ class GestionMovimientos extends Component
         $this->resetPage();
     }
 
+    // Atajos de periodo: hoy | semana | mes | todo
+    public function periodo($p)
+    {
+        $hoy = now();
+        [$d, $h] = match ($p) {
+            'hoy' => [$hoy->copy()->startOfDay(), $hoy->copy()->endOfDay()],
+            'semana' => [$hoy->copy()->startOfWeek(), $hoy->copy()->endOfWeek()],
+            'todo' => [null, null],
+            default => [$hoy->copy()->startOfMonth(), $hoy->copy()->endOfMonth()],
+        };
+        $this->fecha_desde = $d ? $d->format('Y-m-d') : '';
+        $this->fecha_hasta = $h ? $h->format('Y-m-d') : '';
+        $this->resetPage();
+    }
+
     public function limpiarFiltros()
     {
         $this->search = '';
@@ -358,18 +373,21 @@ class GestionMovimientos extends Component
         // Datos del modal (solo se cargan cuando hacen falta)
         $eventosOptions = [];
         if ($this->modalOpen && $this->clasificacion === 'EVENTO') {
-            $eventosOptions = Evento::with('cliente')
-                ->orderBy('fecha_evento', 'desc')
+            $eventosOptions = Evento::with(['cliente', 'servicio'])
+                ->whereNotIn('estado', ['Realizado', 'Finalizado', 'Cancelado'])
+                ->orderBy('fecha_evento')
                 ->limit(200)
                 ->get()
                 ->map(function ($e) {
                     $cliente = $e->cliente->nombre_completo ?? 'Cliente S/N';
+                    $servicio = $e->servicio->nombre ?? 'Servicio';
                     $fecha = \Carbon\Carbon::parse($e->fecha_evento)->format('d/m/Y');
+                    $hora = substr((string) $e->hora_evento, 0, 5);
                     return [
                         'id' => $e->id,
-                        'label' => $e->codigo_evento,
-                        'meta' => $fecha . ' - ' . $cliente,
-                        'search' => mb_strtolower($e->codigo_evento . ' ' . $cliente . ' ' . $fecha),
+                        'label' => $cliente,
+                        'meta' => $fecha . ' ' . $hora . ' - ' . $servicio,
+                        'search' => mb_strtolower($cliente . ' ' . $servicio . ' ' . $fecha . ' ' . $e->codigo_evento),
                     ];
                 })
                 ->values()
@@ -395,6 +413,7 @@ class GestionMovimientos extends Component
             'contTipos' => $contTipos,
             'eventosOptions' => $eventosOptions,
             'categoriasModal' => $categoriasModal,
+            'caja' => $this->modalOpen ? \App\Support\Caja::saldos() : [],
         ])->layout('components.layouts.app', [
             'title' => 'Ingresos y Gastos - Mariachi León Guanajuato',
             'themed' => true,

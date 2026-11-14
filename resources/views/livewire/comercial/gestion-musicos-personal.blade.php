@@ -136,6 +136,10 @@
                             @elseif ($p->tarifa_evento !== null && (float) $p->tarifa_evento > 0)
                                 <span class="font-semibold text-ink-primary">Bs
                                     {{ number_format((float) $p->tarifa_evento, 2) }}</span>
+                                @if ($p->porcentaje_evento !== null && (float) $p->porcentaje_evento > 0)
+                                    <span class="text-xs text-gold-700 dark:text-gold-400 font-semibold">·
+                                        {{ rtrim(rtrim(number_format((float) $p->porcentaje_evento, 1), '0'), '.') }}%</span>
+                                @endif
                             @else
                                 <span class="text-amber-600 dark:text-amber-400">Sin tarifa</span>
                             @endif
@@ -203,6 +207,9 @@
                                     {{ number_format((float) $p->sueldo_mensual, 0) }}</span>
                             @elseif ($p->tarifa_evento !== null && (float) $p->tarifa_evento > 0)
                                 Bs {{ number_format((float) $p->tarifa_evento, 0) }}
+                                @if ($p->porcentaje_evento !== null && (float) $p->porcentaje_evento > 0)
+                                    · {{ rtrim(rtrim(number_format((float) $p->porcentaje_evento, 1), '0'), '.') }}%
+                                @endif
                             @else
                                 <span class="text-amber-600 dark:text-amber-400">Sin tarifa</span>
                             @endif
@@ -283,11 +290,28 @@
 
                     <div class="sm:col-span-2 min-w-0">
                         @if ($modalidad_pago === 'mensual')
-                            <x-ui.input label="Sueldo (Bs)" required type="number" step="0.50" min="0"
-                                name="sueldo_mensual" wire:model="sueldo_mensual" placeholder="0.00" />
+                            <div class="grid grid-cols-2 gap-2">
+                                <x-ui.input label="Sueldo (Bs)" required type="number" step="0.50"
+                                    min="0" name="sueldo_mensual" wire:model="sueldo_mensual"
+                                    placeholder="0.00" />
+                                <div class="min-w-0"
+                                    title="Lo que se aparta para su sueldo en cada show: este % del monto del contrato.">
+                                    <x-ui.input label="% por show" type="number" step="0.1" min="0"
+                                        max="100" name="porcentaje_evento" wire:model="porcentaje_evento"
+                                        placeholder="opcional" />
+                                </div>
+                            </div>
                         @else
-                            <x-ui.input label="Cobra (Bs)" required type="number" step="0.50" min="0"
-                                name="tarifa_evento" wire:model="tarifa_evento" placeholder="0.00" />
+                            <div class="grid grid-cols-2 gap-2">
+                                <x-ui.input label="Cobra (Bs)" required type="number" step="0.50" min="0"
+                                    name="tarifa_evento" wire:model="tarifa_evento" placeholder="0.00" />
+                                <div class="min-w-0"
+                                    title="Si lo llenas, en cada evento nuevo cobra este % del monto del contrato (redondeado).">
+                                    <x-ui.input label="% del evento" type="number" step="0.1" min="0"
+                                        max="100" name="porcentaje_evento" wire:model="porcentaje_evento"
+                                        placeholder="opcional" />
+                                </div>
+                            </div>
                         @endif
                     </div>
 

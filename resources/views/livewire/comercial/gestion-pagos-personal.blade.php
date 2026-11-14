@@ -16,7 +16,6 @@
 @endphp
 
 <div class="space-y-3">
-
     @if (session()->has('success'))
         <div
             class="flex items-center gap-3 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-sm text-ink-primary">
@@ -63,30 +62,36 @@
             </div>
         </x-slot:filters>
 
-        <div class="divide-y divide-outline">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 p-2 items-start">
             @forelse ($personas as $p)
                 @php
                     [$icono, $tonoIcono] = $estiloTipo($p->tipo);
                     $abierto = in_array($p->id, $abiertos);
                     $debe = $p->saldo > 0.001;
                     $adelanto = $p->saldo < -0.001;
+                    $esDueno = (bool) ($p->es_dueno ?? false);
                 @endphp
-                <div wire:key="persona-{{ $p->id }}">
-                    <div class="flex items-center gap-2 px-3 py-2.5">
-                        {{-- Nombre y detalle: al tocar se despliegan los shows --}}
+                <div wire:key="persona-{{ $p->id }}"
+                    class="rounded-lg border {{ $esDueno ? 'border-gold-500 bg-gold-500/5' : 'border-outline bg-surface-card' }} overflow-hidden {{ $abierto ? 'lg:col-span-2' : '' }}">
+                    <div class="flex items-center gap-2 px-2.5 py-1.5">
                         <button type="button" wire:click="toggleAbierto({{ $p->id }})"
-                            class="flex items-center gap-2.5 min-w-0 flex-1 text-left">
+                            class="flex items-center gap-2 min-w-0 flex-1 text-left" title="Ver detalle">
                             <span
-                                class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 {{ $tonoIcono }}">
-                                <i class="fa-solid {{ $icono }} text-sm"></i>
+                                class="w-6 h-6 rounded-md flex items-center justify-center shrink-0 {{ $esDueno ? 'bg-gold-500 text-white' : $tonoIcono }}">
+                                <i class="fa-solid {{ $esDueno ? 'fa-crown' : $icono }} text-[10px]"></i>
                             </span>
                             <span class="min-w-0">
                                 <span
-                                    class="block text-sm font-semibold text-ink-primary truncate">{{ $p->nombre_completo }}</span>
-                                <span class="block text-xs text-ink-secondary truncate">
+                                    class="block text-sm font-semibold text-ink-primary truncate leading-tight">{{ $p->nombre_completo }}
+                                    @if ($esDueno)
+                                        <span
+                                            class="ml-1 px-1.5 py-px rounded text-[9px] font-bold uppercase bg-gold-500 text-white align-middle">Dueño</span>
+                                    @endif
+                                </span>
+                                <span class="block text-[11px] text-ink-secondary truncate leading-tight">
                                     {{ $p->tipo }} -
                                     @if ($p->es_mensual)
-                                        Sueldo mensual {{ $bs($p->deuda) }}
+                                        Mensual
                                     @else
                                         {{ $p->num_shows }} {{ $p->num_shows === 1 ? 'show' : 'shows' }}
                                     @endif
@@ -97,59 +102,73 @@
                             </span>
                         </button>
 
-                        {{-- Saldo --}}
-                        <div class="text-right shrink-0">
+                        <div class="text-right shrink-0 leading-tight">
                             @if ($debe)
                                 <div class="text-sm font-bold tabular-nums text-ink-primary">{{ $bs($p->saldo) }}</div>
-                                <div class="text-xs text-ink-secondary">
-                                    {{ $p->es_mensual ? 'Sueldo de ' . now()->locale('es')->monthName : 'Se le debe' }}
+                                <div class="text-[11px] text-ink-secondary">
+                                    {{ $p->es_mensual ? 'Sueldo ' . now()->locale('es')->monthName : 'Se le debe' }}
                                 </div>
                             @elseif ($adelanto)
                                 <div class="text-sm font-bold tabular-nums text-rose-700 dark:text-rose-400">-
                                     {{ $bs($p->saldo) }}</div>
-                                <div class="text-xs text-ink-secondary">Anticipo a descontar</div>
+                                <div class="text-[11px] text-ink-secondary">Anticipo a descontar</div>
                             @else
                                 <div class="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                                    {{ $p->es_mensual ? 'Sueldo pagado' : 'Al día' }}</div>
+                                    {{ $p->es_mensual ? 'Pagado' : 'Al día' }}</div>
                             @endif
                         </div>
 
-                        {{-- Acciones --}}
-                        <div class="flex items-center gap-1.5 shrink-0">
+                        <div class="flex items-center gap-1 shrink-0">
                             @if ($debe)
-                                <x-ui.button size="sm"
+                                <x-ui.button size="sm" class="!h-7 !px-2.5"
                                     wire:click="abrir({{ $p->id }}, 'pago')">Pagar</x-ui.button>
                             @endif
-                            <x-ui.button size="sm" variant="secondary"
-                                wire:click="abrir({{ $p->id }}, 'anticipo')">Anticipo</x-ui.button>
+                            <x-ui.button size="sm" variant="secondary" class="!h-7 !px-2"
+                                wire:click="abrir({{ $p->id }}, 'anticipo')"
+                                title="Dar anticipo">Anticipo</x-ui.button>
                             <button type="button" wire:click="toggleAbierto({{ $p->id }})"
-                                class="w-7 h-8 text-ink-muted hover:text-ink-primary" title="Ver detalle">
+                                class="w-6 h-7 text-ink-muted hover:text-ink-primary" title="Ver detalle">
                                 <i
-                                    class="fa-solid fa-chevron-down text-xs transition-transform {{ $abierto ? 'rotate-180' : '' }}"></i>
+                                    class="fa-solid fa-chevron-down text-[10px] transition-transform {{ $abierto ? 'rotate-180' : '' }}"></i>
                             </button>
                         </div>
                     </div>
 
-                    {{-- Desplegable: shows y pagos --}}
                     @if ($abierto)
                         @php $d = $detalle[$p->id] ?? ['shows' => collect(), 'pagos' => collect()]; @endphp
-                        <div class="bg-surface-sunken/60 px-3 py-2.5 space-y-3 border-t border-outline">
+                        <div
+                            class="bg-surface-sunken/60 px-3 py-2 border-t border-outline grid grid-cols-1 {{ $p->es_mensual ? '' : 'md:grid-cols-2' }} gap-x-6 gap-y-2">
                             @if ($p->es_mensual)
                                 <div class="text-xs text-ink-secondary">Sueldo fijo: {{ $bs($p->deuda) }} - entregado
                                     este mes: {{ $bs($p->entregado) }}. Se reinicia cada mes y no depende de los shows.
                                 </div>
                             @else
                                 <div>
-                                    <div class="text-xs font-semibold text-ink-secondary mb-1">Shows</div>
+                                    <div class="text-xs font-bold uppercase tracking-wide text-ink-secondary mb-0.5">
+                                        Shows</div>
                                     @forelse ($d['shows'] as $ep)
-                                        <div class="flex items-center justify-between gap-3 py-1 text-sm">
-                                            <span class="min-w-0 truncate text-ink-primary">
-                                                {{ optional($ep->evento->fecha_evento)->format('d/m') }} -
-                                                {{ $ep->evento->cliente->nombre_completo ?? ($ep->evento->codigo_evento ?? 'Evento') }}
-                                                <span class="text-xs text-ink-secondary">- {{ $ep->funcion }}</span>
+                                        @php
+                                            $evp = $ep->evento;
+                                            $estEv = $evp->estado ?? '';
+                                            $chip = match ($estEv) {
+                                                'Realizado', 'Finalizado' => 'bg-sky-600',
+                                                'Confirmado' => 'bg-emerald-600',
+                                                default => 'bg-amber-500',
+                                            };
+                                        @endphp
+                                        <div
+                                            class="flex items-center gap-2 py-1 border-b border-outline/60 last:border-0">
+                                            <span
+                                                class="w-11 shrink-0 text-center rounded px-1 py-0.5 text-[11px] font-bold text-white tabular-nums {{ $chip }}"
+                                                title="{{ $estEv }}">{{ optional($evp->fecha_evento)->format('d/m') }}</span>
+                                            <span class="min-w-0 flex-1 leading-tight">
+                                                <span
+                                                    class="block text-xs font-semibold text-ink-primary truncate">{{ $evp->cliente->nombre_completo ?? ($evp->codigo_evento ?? 'Evento') }}</span>
+                                                <span
+                                                    class="block text-[11px] text-ink-secondary truncate">{{ $evp->servicio->nombre ?? '' }}{{ ($evp->servicio->nombre ?? '') !== '' && $ep->funcion ? ' - ' : '' }}{{ $ep->funcion }}</span>
                                             </span>
                                             <span
-                                                class="tabular-nums shrink-0 text-ink-primary">{{ $bs($ep->monto_asignado) }}</span>
+                                                class="tabular-nums shrink-0 text-xs font-bold text-ink-primary">{{ $bs($ep->monto_asignado) }}</span>
                                         </div>
                                     @empty
                                         <div class="text-xs text-ink-muted">Sin shows asignados.</div>
@@ -158,14 +177,15 @@
                             @endif
 
                             <div>
-                                <div class="text-xs font-semibold text-ink-secondary mb-1">Entregado</div>
+                                <div class="text-xs font-bold uppercase tracking-wide text-ink-secondary mb-0.5">
+                                    Entregado</div>
                                 @forelse ($d['pagos'] as $pg)
-                                    <div class="flex items-center justify-between gap-2 py-1 text-sm"
+                                    <div class="flex items-center justify-between gap-2 py-0.5 text-xs"
                                         wire:key="pg-{{ $pg->id }}">
                                         <span class="min-w-0 truncate text-ink-primary">
                                             {{ $pg->fecha_pago->format('d/m H:i') }} -
                                             {{ $pg->glosa ?: ucfirst($pg->tipo ?? 'pago') }}
-                                            <span class="text-xs text-ink-secondary">
+                                            <span class="text-ink-secondary">
                                                 - {{ $pg->metodo_pago }}
                                                 @if ($pg->participante && $pg->participante->evento)
                                                     -
@@ -189,7 +209,7 @@
                     @endif
                 </div>
             @empty
-                <div class="py-10 text-center text-sm text-ink-secondary">
+                <div class="lg:col-span-2 py-10 text-center text-sm text-ink-secondary">
                     <i class="fa-solid fa-circle-check text-2xl text-emerald-500 block mb-2"></i>
                     @if ($filtro === 'pendientes')
                         Nadie tiene saldo pendiente.

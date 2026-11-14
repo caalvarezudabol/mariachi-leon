@@ -7,8 +7,6 @@
 
 <div class="space-y-3">
 
-    <x-ui.caja-resumen />
-
     {{-- Avisos --}}
     @if (session()->has('success_pago'))
         <div
@@ -57,12 +55,13 @@
         <x-slot:header>
             <div class="flex items-center gap-2.5 min-w-0">
                 <i class="fa-solid fa-receipt text-lg text-gold-600 dark:text-gold-400"></i>
-                <h1 class="text-base font-semibold text-ink-primary">Pagos</h1>
-                <x-ui.badge variant="neutral">{{ $estados->sum() }}</x-ui.badge>
+                <h1 class="text-base font-semibold text-ink-primary">Cobros</h1>
+                <x-ui.badge
+                    variant="neutral">{{ $verDetalle ? $estados->sum() : $conteosContratos['todos'] }}</x-ui.badge>
             </div>
             <x-ui.button size="sm" wire:click="abrirModal">
                 <i class="fa-solid fa-plus"></i>
-                <span class="hidden sm:inline">Nuevo pago</span>
+                <span class="hidden sm:inline">Nuevo cobro</span>
                 <span class="sm:hidden">Nuevo</span>
             </x-ui.button>
         </x-slot:header>
@@ -74,221 +73,471 @@
                     <i
                         class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted text-xs"></i>
                     <input type="text" wire:model.live.debounce.300ms="search"
-                        placeholder="Buscar N° recibo, N° contrato, cliente..."
+                        placeholder="{{ $verDetalle ? 'Buscar recibo, cliente...' : 'Buscar cliente o evento...' }}"
                         class="w-full h-8 pl-8 pr-3 bg-surface-sunken border border-outline rounded-lg text-sm text-ink-primary placeholder:text-ink-muted focus:border-gold-500 focus:outline-none transition-colors">
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                    <select wire:model.live="metodo_filtro"
-                        class="h-8 px-3 bg-surface-sunken border border-outline rounded-lg text-sm text-ink-primary focus:border-gold-500 focus:outline-none transition-colors">
-                        <option value="">Todos los métodos</option>
-                        @foreach ($metodosMap as $valor => $texto)
-                            <option value="{{ $valor }}">{{ $texto }}</option>
-                        @endforeach
-                    </select>
-                    <x-ui.filter-chips>
-                        <x-ui.filter-chip wire:click="$set('estado_filtro', '')" :active="$estado_filtro === ''">
-                            Todos <span class="opacity-70">{{ $estados->sum() }}</span>
-                        </x-ui.filter-chip>
-                        <x-ui.filter-chip wire:click="$set('estado_filtro', 'Valido')" :active="$estado_filtro === 'Valido'">
-                            Válidos <span class="opacity-70">{{ $estados['Valido'] ?? 0 }}</span>
-                        </x-ui.filter-chip>
-                        <x-ui.filter-chip wire:click="$set('estado_filtro', 'Anulado')" :active="$estado_filtro === 'Anulado'">
-                            Anulados <span class="opacity-70">{{ $estados['Anulado'] ?? 0 }}</span>
-                        </x-ui.filter-chip>
-                    </x-ui.filter-chips>
+                    @if ($verDetalle)
+                        <select wire:model.live="metodo_filtro"
+                            class="h-8 px-3 bg-surface-sunken border border-outline rounded-lg text-sm text-ink-primary focus:border-gold-500 focus:outline-none transition-colors">
+                            <option value="">Efectivo y QR</option>
+                            <option value="EFECTIVO">Efectivo</option>
+                            <option value="QR">QR</option>
+                        </select>
+                        <x-ui.filter-chips>
+                            <x-ui.filter-chip wire:click="$set('estado_filtro', '')" :active="$estado_filtro === ''">
+                                Todos <span class="opacity-70">{{ $estados->sum() }}</span>
+                            </x-ui.filter-chip>
+                            <x-ui.filter-chip wire:click="$set('estado_filtro', 'Valido')" :active="$estado_filtro === 'Valido'">
+                                Válidos <span class="opacity-70">{{ $estados['Valido'] ?? 0 }}</span>
+                            </x-ui.filter-chip>
+                            <x-ui.filter-chip wire:click="$set('estado_filtro', 'Anulado')" :active="$estado_filtro === 'Anulado'">
+                                Anulados <span class="opacity-70">{{ $estados['Anulado'] ?? 0 }}</span>
+                            </x-ui.filter-chip>
+                        </x-ui.filter-chips>
+                    @else
+                        <x-ui.filter-chips>
+                            <x-ui.filter-chip wire:click="$set('contrato_estado', 'saldo')" :active="$contrato_estado === 'saldo'">
+                                Con saldo <span class="opacity-70">{{ $conteosContratos['saldo'] }}</span>
+                            </x-ui.filter-chip>
+                            <x-ui.filter-chip wire:click="$set('contrato_estado', 'pagados')" :active="$contrato_estado === 'pagados'">
+                                Pagados <span class="opacity-70">{{ $conteosContratos['pagados'] }}</span>
+                            </x-ui.filter-chip>
+                            <x-ui.filter-chip wire:click="$set('contrato_estado', '')" :active="$contrato_estado === ''">
+                                Todos <span class="opacity-70">{{ $conteosContratos['todos'] }}</span>
+                            </x-ui.filter-chip>
+                        </x-ui.filter-chips>
+                    @endif
                 </div>
             </div>
+            @if ($verDetalle && $contrato_filtro)
+                @php $ctrFiltro = \App\Models\Contrato::with('cliente')->find($contrato_filtro); @endphp
+                <div
+                    class="mt-2 flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border-l-[3px] border-amber-500 text-xs text-ink-primary">
+                    <span>Pagos de <strong>{{ $ctrFiltro->cliente->nombre_completo ?? 'contrato' }}</strong></span>
+                    <button type="button" wire:click="quitarFiltroContrato"
+                        class="font-semibold text-gold-700 dark:text-gold-400 hover:underline">Ver todos</button>
+                </div>
+            @endif
         </x-slot:filters>
 
-        {{-- Tabla (escritorio) --}}
-        <div class="hidden md:block">
-            <x-ui.table>
-                <x-slot:header>
-                    <th class="px-3 py-2 border-r border-outline">Recibo</th>
-                    <th class="px-3 py-2 border-r border-outline">Cliente</th>
-                    <th class="px-3 py-2 border-r border-outline whitespace-nowrap">Fecha</th>
-                    <th class="px-3 py-2 border-r border-outline">Método</th>
-                    <th class="px-3 py-2 border-r border-outline text-right">Monto</th>
-                    <th class="px-3 py-2 border-r border-outline">Estado</th>
-                    <th class="px-3 py-2 w-px whitespace-nowrap text-right">Acciones</th>
-                </x-slot:header>
+        @if (!$verDetalle)
+            {{-- ===================== POR CONTRATO ===================== --}}
+            <div class="hidden md:block">
+                <x-ui.table>
+                    <x-slot:header>
+                        <th class="px-2 py-1 border-r border-outline">Cliente</th>
+                        <th class="px-2 py-1 border-r border-outline text-right">Contrato</th>
+                        <th class="px-2 py-1 border-r border-outline text-right">A cuenta</th>
+                        <th class="px-2 py-1 border-r border-outline text-right">Saldo</th>
+                        <th class="px-2 py-1 border-r border-outline whitespace-nowrap">Último cobro</th>
+                        <th class="px-2 py-1 w-px whitespace-nowrap text-right">Acciones</th>
+                    </x-slot:header>
 
+                    @forelse ($contratosLista as $ct)
+                        @php
+                            $cancelado = ($ct->evento->estado ?? '') === 'Cancelado';
+                            $puedeCobrar = $ct->saldo_pendiente > 0 && !$cancelado;
+                            $abierto = in_array($ct->id, $abiertos);
+                        @endphp
+                        <tr
+                            class="border-b border-outline hover:bg-gold-500/5 transition-colors {{ $cancelado ? 'opacity-60' : '' }} {{ $abierto ? 'bg-gold-500/5' : '' }}">
+                            <td class="px-2 py-0.5 border-r border-outline whitespace-nowrap">
+                                <button type="button" wire:click="toggleContrato({{ $ct->id }})"
+                                    class="inline-flex items-center gap-1.5 text-left"
+                                    title="{{ $ct->numero_contrato }} - {{ $ct->evento->codigo_evento ?? '' }}">
+                                    <i
+                                        class="fa-solid fa-chevron-right text-[10px] text-ink-muted transition-transform {{ $abierto ? 'rotate-90' : '' }}"></i>
+                                    <span
+                                        class="font-semibold text-sm text-ink-primary inline-block max-w-[170px] truncate align-bottom">{{ $ct->cliente->nombre_completo ?? 'N/A' }}</span>
+                                    <span
+                                        class="text-xs text-ink-secondary inline-block max-w-[150px] truncate align-bottom">{{ $ct->servicio->nombre ?? '' }}</span>
+                                </button>
+                            </td>
+                            <td
+                                class="px-2 py-0.5 border-r border-outline text-right whitespace-nowrap tabular-nums text-sm font-semibold text-ink-primary">
+                                {{ number_format($ct->monto_total, 2) }}</td>
+                            <td
+                                class="px-2 py-0.5 border-r border-outline text-right whitespace-nowrap tabular-nums text-sm text-emerald-600 dark:text-emerald-400">
+                                {{ number_format($ct->total_pagado, 2) }}</td>
+                            <td
+                                class="px-2 py-0.5 border-r border-outline text-right whitespace-nowrap tabular-nums text-sm font-bold {{ $cancelado ? 'text-ink-muted' : ($ct->saldo_pendiente > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400') }}">
+                                {{ $cancelado ? '-' : number_format($ct->saldo_pendiente, 2) }}
+                            </td>
+                            <td
+                                class="px-2 py-0.5 border-r border-outline whitespace-nowrap text-xs text-ink-secondary tabular-nums">
+                                {{ $ct->ultimo_pago ? \Illuminate\Support\Carbon::parse($ct->ultimo_pago)->format('d/m/y H:i') : 'Sin cobros' }}
+                                @if ($ct->pagos_validos > 1)
+                                    <span class="text-ink-muted">({{ $ct->pagos_validos }})</span>
+                                @endif
+                            </td>
+                            <td class="px-2 py-0.5 w-px whitespace-nowrap text-right">
+                                <div class="inline-flex items-center gap-0.5">
+                                    @if ($puedeCobrar)
+                                        <x-ui.icon-button class="!h-6 !w-6" variant="primary"
+                                            wire:click="cobrarContrato({{ $ct->id }})" title="Registrar cobro">
+                                            <i class="fa-solid fa-hand-holding-dollar text-xs"></i>
+                                        </x-ui.icon-button>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                        @if ($abierto)
+                            <tr class="border-b border-outline bg-surface-sunken/60">
+                                <td colspan="6" class="px-4 py-2">
+                                    @php
+                                        $pagosCt = $ct->pagos;
+                                    @endphp
+                                    @if ($pagosCt->isEmpty())
+                                        <p class="text-xs text-ink-muted py-1">Este contrato aún no tiene cobros.</p>
+                                    @else
+                                        <div class="space-y-1">
+                                            @foreach ($pagosCt as $pg)
+                                                @php
+                                                    $anuladoPg = $pg->estado === 'Anulado';
+                                                    $evPg = $ct->evento;
+                                                    $concluidoPg =
+                                                        $evPg &&
+                                                        in_array($evPg->estado, [
+                                                            'Realizado',
+                                                            'Finalizado',
+                                                            'Concluido',
+                                                        ]);
+                                                @endphp
+                                                <div class="flex items-center gap-2 text-xs {{ $anuladoPg ? 'opacity-60' : '' }}"
+                                                    wire:key="det-{{ $pg->id }}">
+                                                    <span
+                                                        class="font-semibold w-24 shrink-0 {{ $anuladoPg ? 'line-through text-rose-700 dark:text-rose-400' : 'text-gold-700 dark:text-gold-400' }}">{{ $pg->numero_recibo }}</span>
+                                                    <span
+                                                        class="tabular-nums text-ink-secondary w-28 shrink-0">{{ $pg->fecha_pago->format('d/m/y H:i') }}</span>
+                                                    <span
+                                                        class="px-1.5 py-px rounded text-[10px] font-bold text-white shrink-0 {{ $pg->metodo_pago === 'QR' ? 'bg-violet-600' : 'bg-slate-600' }}">{{ $pg->metodo_pago === 'QR' ? 'QR' : 'Efectivo' }}</span>
+                                                    <span
+                                                        class="tabular-nums font-semibold w-24 text-right shrink-0 {{ $anuladoPg ? 'line-through text-ink-muted' : 'text-emerald-600 dark:text-emerald-400' }}">Bs
+                                                        {{ number_format($pg->monto, 2) }}</span>
+                                                    @if ($anuladoPg)
+                                                        <span
+                                                            class="px-1.5 py-px rounded text-[10px] font-bold bg-rose-600 text-white"
+                                                            title="Motivo: {{ $pg->motivo_anulacion ?: 'Sin motivo' }}">Anulado</span>
+                                                    @endif
+                                                    <span class="ml-auto inline-flex items-center gap-0.5 shrink-0">
+                                                        <x-ui.icon-button class="!h-6 !w-6" variant="primary"
+                                                            href="{{ route('comercial.pagos.recibo', $pg->codigo_verificacion) }}"
+                                                            target="_blank" title="Ver e imprimir recibo">
+                                                            <i class="fa-solid fa-print text-xs"></i>
+                                                        </x-ui.icon-button>
+                                                        <x-ui.icon-button class="!h-6 !w-6"
+                                                            href="{{ route('comercial.pagos.pdf', $pg->codigo_verificacion) }}"
+                                                            target="_blank" title="Recibo en PDF">
+                                                            <i class="fa-solid fa-file-pdf text-xs text-rose-600"></i>
+                                                        </x-ui.icon-button>
+                                                        @if (!$anuladoPg && $puedeGestionarPagos && !$concluidoPg)
+                                                            <x-ui.icon-button class="!h-6 !w-6" variant="danger"
+                                                                wire:click="abrirModalAnular({{ $pg->id }})"
+                                                                title="Anular pago">
+                                                                <i class="fa-solid fa-ban text-xs"></i>
+                                                            </x-ui.icon-button>
+                                                        @endif
+                                                    </span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endif
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-8 text-sm text-ink-secondary">No hay contratos en
+                                este filtro.</td>
+                        </tr>
+                    @endforelse
+
+                    @if ($contratosLista->total() > 0)
+                        <tr class="bg-surface-sunken border-t-2 border-outline font-bold">
+                            <td class="px-2 py-1.5 text-xs text-ink-secondary uppercase tracking-wide">Total
+                                ({{ $contratosLista->total() }} contratos)</td>
+                            <td class="px-2 py-1.5 text-right tabular-nums text-sm text-ink-primary whitespace-nowrap">
+                                {{ number_format($totalesContratos['contratado'], 2) }}</td>
+                            <td
+                                class="px-2 py-1.5 text-right tabular-nums text-sm text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                                {{ number_format($totalesContratos['abonado'], 2) }}</td>
+                            <td
+                                class="px-2 py-1.5 text-right tabular-nums text-sm text-rose-600 dark:text-rose-400 whitespace-nowrap">
+                                {{ number_format($totalesContratos['saldo'], 2) }}</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    @endif
+                </x-ui.table>
+            </div>
+
+            <div class="md:hidden divide-y divide-outline">
+                @forelse ($contratosLista as $ct)
+                    @php
+                        $cancelado = ($ct->evento->estado ?? '') === 'Cancelado';
+                        $puedeCobrar = $ct->saldo_pendiente > 0 && !$cancelado;
+                        $abierto = in_array($ct->id, $abiertos);
+                    @endphp
+                    <div class="flex items-center gap-2 px-3 py-2 {{ $cancelado ? 'opacity-60' : '' }}">
+                        <div class="min-w-0 flex-1" wire:click="toggleContrato({{ $ct->id }})">
+                            <div class="font-semibold text-sm text-ink-primary truncate"><i
+                                    class="fa-solid fa-chevron-right text-[10px] text-ink-muted mr-1.5 transition-transform {{ $abierto ? 'rotate-90' : '' }}"></i>{{ $ct->cliente->nombre_completo ?? 'N/A' }}
+                            </div>
+                            <div class="text-xs text-ink-muted truncate">{{ $ct->servicio->nombre ?? '' }}</div>
+                            <div class="text-xs tabular-nums">
+                                <span class="text-ink-secondary">Bs {{ number_format($ct->monto_total, 0) }}</span>
+                                <span class="text-emerald-600 dark:text-emerald-400">- a cuenta
+                                    {{ number_format($ct->total_pagado, 0) }}</span>
+                                <span
+                                    class="font-semibold {{ $cancelado ? 'text-ink-muted' : ($ct->saldo_pendiente > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400') }}">-
+                                    saldo {{ $cancelado ? '-' : number_format($ct->saldo_pendiente, 0) }}</span>
+                            </div>
+                        </div>
+                        @if ($puedeCobrar)
+                            <x-ui.icon-button variant="primary" wire:click="cobrarContrato({{ $ct->id }})"
+                                title="Registrar cobro">
+                                <i class="fa-solid fa-hand-holding-dollar text-xs"></i>
+                            </x-ui.icon-button>
+                        @endif
+                    </div>
+                    @if ($abierto)
+                        <div class="px-3 py-2 bg-surface-sunken/60">
+                            @php
+                                $pagosCt = $ct->pagos;
+                            @endphp
+                            @if ($pagosCt->isEmpty())
+                                <p class="text-xs text-ink-muted py-1">Este contrato aún no tiene cobros.</p>
+                            @else
+                                <div class="space-y-1">
+                                    @foreach ($pagosCt as $pg)
+                                        @php
+                                            $anuladoPg = $pg->estado === 'Anulado';
+                                            $evPg = $ct->evento;
+                                            $concluidoPg =
+                                                $evPg &&
+                                                in_array($evPg->estado, ['Realizado', 'Finalizado', 'Concluido']);
+                                        @endphp
+                                        <div class="flex items-center gap-2 text-xs {{ $anuladoPg ? 'opacity-60' : '' }}"
+                                            wire:key="det-{{ $pg->id }}">
+                                            <span
+                                                class="font-semibold w-24 shrink-0 {{ $anuladoPg ? 'line-through text-rose-700 dark:text-rose-400' : 'text-gold-700 dark:text-gold-400' }}">{{ $pg->numero_recibo }}</span>
+                                            <span
+                                                class="tabular-nums text-ink-secondary w-28 shrink-0">{{ $pg->fecha_pago->format('d/m/y H:i') }}</span>
+                                            <span
+                                                class="px-1.5 py-px rounded text-[10px] font-bold text-white shrink-0 {{ $pg->metodo_pago === 'QR' ? 'bg-violet-600' : 'bg-slate-600' }}">{{ $pg->metodo_pago === 'QR' ? 'QR' : 'Efectivo' }}</span>
+                                            <span
+                                                class="tabular-nums font-semibold w-24 text-right shrink-0 {{ $anuladoPg ? 'line-through text-ink-muted' : 'text-emerald-600 dark:text-emerald-400' }}">Bs
+                                                {{ number_format($pg->monto, 2) }}</span>
+                                            @if ($anuladoPg)
+                                                <span
+                                                    class="px-1.5 py-px rounded text-[10px] font-bold bg-rose-600 text-white"
+                                                    title="Motivo: {{ $pg->motivo_anulacion ?: 'Sin motivo' }}">Anulado</span>
+                                            @endif
+                                            <span class="ml-auto inline-flex items-center gap-0.5 shrink-0">
+                                                <x-ui.icon-button class="!h-6 !w-6" variant="primary"
+                                                    href="{{ route('comercial.pagos.recibo', $pg->codigo_verificacion) }}"
+                                                    target="_blank" title="Ver e imprimir recibo">
+                                                    <i class="fa-solid fa-print text-xs"></i>
+                                                </x-ui.icon-button>
+                                                <x-ui.icon-button class="!h-6 !w-6"
+                                                    href="{{ route('comercial.pagos.pdf', $pg->codigo_verificacion) }}"
+                                                    target="_blank" title="Recibo en PDF">
+                                                    <i class="fa-solid fa-file-pdf text-xs text-rose-600"></i>
+                                                </x-ui.icon-button>
+                                                @if (!$anuladoPg && $puedeGestionarPagos && !$concluidoPg)
+                                                    <x-ui.icon-button class="!h-6 !w-6" variant="danger"
+                                                        wire:click="abrirModalAnular({{ $pg->id }})"
+                                                        title="Anular pago">
+                                                        <i class="fa-solid fa-ban text-xs"></i>
+                                                    </x-ui.icon-button>
+                                                @endif
+                                            </span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+                @empty
+                    <div class="text-center py-8 text-sm text-ink-secondary">No hay contratos en este filtro.</div>
+                @endforelse
+                @if ($contratosLista->total() > 0)
+                    <div class="px-3 py-2 bg-surface-sunken text-xs font-bold tabular-nums">
+                        <span class="text-ink-secondary uppercase">Total {{ $contratosLista->total() }}:</span>
+                        <span class="text-ink-primary">Bs
+                            {{ number_format($totalesContratos['contratado'], 0) }}</span>
+                        <span class="text-emerald-600 dark:text-emerald-400">- a cuenta
+                            {{ number_format($totalesContratos['abonado'], 0) }}</span>
+                        <span class="text-rose-600 dark:text-rose-400">- saldo
+                            {{ number_format($totalesContratos['saldo'], 0) }}</span>
+                    </div>
+                @endif
+            </div>
+        @else
+            {{-- ===================== DETALLE DE CADA PAGO ===================== --}}
+            <div class="hidden md:block">
+                <x-ui.table>
+                    <x-slot:header>
+                        <th class="px-2 py-1 border-r border-outline">Recibo</th>
+                        <th class="px-2 py-1 border-r border-outline">Cliente</th>
+                        <th class="px-2 py-1 border-r border-outline whitespace-nowrap">Fecha</th>
+                        <th class="px-2 py-1 border-r border-outline text-center">Método</th>
+                        <th class="px-2 py-1 border-r border-outline text-right">Monto</th>
+                        <th class="px-2 py-1 border-r border-outline text-center">Estado</th>
+                        <th class="px-2 py-1 w-px whitespace-nowrap text-right">Acciones</th>
+                    </x-slot:header>
+
+                    @forelse ($pagos as $p)
+                        @php
+                            $anulado = $p->estado === 'Anulado';
+                            $eventoPago = $p->evento ?: ($p->contrato ? $p->contrato->evento : null);
+                            $eventoConcluido =
+                                $eventoPago && in_array($eventoPago->estado, ['Realizado', 'Finalizado', 'Concluido']);
+                            $puedeAnular = $puedeGestionarPagos && !$eventoConcluido;
+                        @endphp
+                        <tr
+                            class="border-b border-outline hover:bg-gold-500/5 transition-colors {{ $anulado ? 'opacity-70' : '' }}">
+                            <td class="px-2 py-0.5 border-r border-outline whitespace-nowrap">
+                                <span
+                                    class="font-semibold text-sm {{ $anulado ? 'line-through text-rose-700 dark:text-rose-400' : 'text-gold-700 dark:text-gold-400' }}"
+                                    @if ($p->comprobante_referencia) title="Ref: {{ $p->comprobante_referencia }}" @endif>{{ $p->numero_recibo }}</span>
+                            </td>
+                            <td class="px-2 py-0.5 border-r border-outline whitespace-nowrap">
+                                <span
+                                    class="font-semibold text-sm text-ink-primary inline-block max-w-[190px] truncate align-bottom"
+                                    title="{{ $p->contrato->numero_contrato ?? '' }} - {{ $eventoPago->codigo_evento ?? '' }}">{{ $p->cliente->nombre_completo ?? 'N/A' }}</span>
+                            </td>
+                            <td
+                                class="px-2 py-0.5 border-r border-outline whitespace-nowrap tabular-nums text-xs text-ink-secondary">
+                                {{ $p->fecha_pago->format('d/m/y H:i') }}</td>
+                            <td class="px-2 py-0.5 border-r border-outline text-center whitespace-nowrap">
+                                <span
+                                    class="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold {{ $p->metodo_pago === 'QR' ? 'bg-violet-600 text-white' : 'bg-slate-600 text-white' }}">{{ $p->metodo_pago === 'QR' ? 'QR' : 'Efectivo' }}</span>
+                            </td>
+                            <td
+                                class="px-2 py-0.5 border-r border-outline text-right whitespace-nowrap tabular-nums text-sm font-semibold {{ $anulado ? 'line-through text-ink-muted' : 'text-emerald-600 dark:text-emerald-400' }}">
+                                {{ number_format($p->monto, 2) }}</td>
+                            <td class="px-2 py-0.5 border-r border-outline text-center whitespace-nowrap">
+                                @if ($anulado)
+                                    <span
+                                        class="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-600 text-white cursor-help"
+                                        title="Motivo: {{ $p->motivo_anulacion ?: 'Sin motivo' }} - Anulado por: {{ $p->anuladoPor ? $p->anuladoPor->name : 'Admin' }}">Anulado</span>
+                                @else
+                                    <span
+                                        class="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-600 text-white">Válido</span>
+                                @endif
+                            </td>
+                            <td class="px-2 py-0.5 w-px whitespace-nowrap text-right">
+                                <div class="inline-flex items-center gap-0.5">
+                                    <x-ui.icon-button class="!h-6 !w-6" variant="primary"
+                                        href="{{ route('comercial.pagos.recibo', $p->codigo_verificacion) }}"
+                                        target="_blank" title="Ver e imprimir recibo">
+                                        <i class="fa-solid fa-print text-xs"></i>
+                                    </x-ui.icon-button>
+                                    <x-ui.icon-button class="!h-6 !w-6"
+                                        href="{{ route('comercial.pagos.pdf', $p->codigo_verificacion) }}"
+                                        target="_blank" title="Recibo en PDF">
+                                        <i class="fa-solid fa-file-pdf text-xs text-rose-600"></i>
+                                    </x-ui.icon-button>
+                                    @if (!$anulado)
+                                        @if ($puedeAnular)
+                                            <x-ui.icon-button class="!h-6 !w-6" variant="danger"
+                                                wire:click="abrirModalAnular({{ $p->id }})"
+                                                title="Anular pago">
+                                                <i class="fa-solid fa-ban text-xs"></i>
+                                            </x-ui.icon-button>
+                                        @elseif ($eventoConcluido)
+                                            <span
+                                                class="inline-flex items-center justify-center w-6 h-6 text-ink-muted cursor-not-allowed"
+                                                title="No se puede anular: el evento ya concluyó">
+                                                <i class="fa-solid fa-lock text-xs"></i>
+                                            </span>
+                                        @endif
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-8 text-sm text-ink-secondary">No se encontraron
+                                cobros.</td>
+                        </tr>
+                    @endforelse
+
+                    @if ($pagos->total() > 0)
+                        <tr class="bg-surface-sunken border-t-2 border-outline font-bold">
+                            <td colspan="4" class="px-2 py-1.5 text-xs text-ink-secondary uppercase tracking-wide">
+                                Total cobrado, solo válidos ({{ $pagos->total() }})</td>
+                            <td
+                                class="px-2 py-1.5 text-right tabular-nums text-sm text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                                {{ number_format($totalPagosValidos, 2) }}</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    @endif
+                </x-ui.table>
+            </div>
+
+            <div class="md:hidden divide-y divide-outline">
                 @forelse ($pagos as $p)
                     @php
                         $anulado = $p->estado === 'Anulado';
-                        $clienteIdPago = $p->cliente_id ?: ($p->contrato ? $p->contrato->cliente_id : null);
-                        $clienteTokenPago = $clienteIdPago
-                            ? \App\Services\Security\DocumentToken::encodeId($clienteIdPago, 'cliente')
-                            : null;
-                        $ctrTokenPago = $p->contrato
-                            ? \App\Services\Security\DocumentToken::encodeId($p->contrato->id, 'contrato')
-                            : null;
                         $eventoPago = $p->evento ?: ($p->contrato ? $p->contrato->evento : null);
                         $eventoConcluido =
                             $eventoPago && in_array($eventoPago->estado, ['Realizado', 'Finalizado', 'Concluido']);
                         $puedeAnular = $puedeGestionarPagos && !$eventoConcluido;
                     @endphp
-                    <tr
-                        class="border-b border-outline hover:bg-gold-500/5 transition-colors {{ $anulado ? 'opacity-70' : '' }}">
-                        <td class="px-3 py-1.5 border-r border-outline whitespace-nowrap">
-                            <span
-                                class="font-semibold {{ $anulado ? 'line-through text-rose-700 dark:text-rose-400' : 'text-gold-700 dark:text-gold-400' }}">{{ $p->numero_recibo }}</span>
-                            @if ($p->comprobante_referencia)
-                                <div class="text-xs text-ink-secondary">Ref: {{ $p->comprobante_referencia }}</div>
-                            @endif
-                        </td>
-                        <td class="px-3 py-1.5 border-r border-outline">
-                            <div class="flex items-baseline gap-1.5 min-w-0">
-                                @if ($clienteTokenPago)
-                                    <a href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $clienteTokenPago, 'tipo' => 'general']) }}"
-                                        target="_blank"
-                                        class="font-semibold text-ink-primary hover:text-gold-700 dark:hover:text-gold-400 whitespace-nowrap"
-                                        title="Historial de pagos del cliente en PDF">{{ $p->cliente->nombre_completo ?? 'N/A' }}</a>
-                                @else
-                                    <span
-                                        class="font-semibold text-ink-primary whitespace-nowrap">{{ $p->cliente->nombre_completo ?? 'N/A' }}</span>
-                                @endif
-                                <span class="text-xs text-ink-secondary truncate max-w-[220px]">
-                                    -
-                                    @if ($p->contrato && $clienteTokenPago)
-                                        <a href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $clienteTokenPago, 'contrato' => $ctrTokenPago, 'tipo' => 'contrato']) }}"
-                                            target="_blank"
-                                            class="hover:text-gold-700 dark:hover:text-gold-400 hover:underline"
-                                            title="Extracto de pagos de este contrato en PDF">{{ $p->contrato->numero_contrato }}</a>
-                                    @else
-                                        {{ $p->contrato->numero_contrato ?? 'N/A' }}
-                                    @endif
-                                    @if ($p->evento)
-                                        - {{ $p->evento->codigo_evento }}
-                                    @endif
-                                </span>
-                            </div>
-                        </td>
-                        <td class="px-3 py-1.5 border-r border-outline whitespace-nowrap tabular-nums">
-                            {{ $p->fecha_pago->format('d/m/Y') }}<span class="text-ink-secondary"> -
-                                {{ $p->fecha_pago->format('H:i') }}</span>
-                        </td>
-                        <td class="px-3 py-1.5 border-r border-outline whitespace-nowrap text-ink-primary">
-                            {{ $metodosMap[$p->metodo_pago] ?? $p->metodo_pago }}</td>
-                        <td
-                            class="px-3 py-1.5 border-r border-outline text-right whitespace-nowrap tabular-nums font-semibold {{ $anulado ? 'line-through text-ink-muted' : 'text-emerald-700 dark:text-emerald-400' }}">
-                            Bs {{ number_format($p->monto, 2) }}
-                        </td>
-                        <td class="px-3 py-1.5 border-r border-outline whitespace-nowrap">
-                            @if ($anulado)
-                                <span class="inline-flex items-center gap-1.5 text-sm text-ink-primary cursor-help"
-                                    title="Motivo: {{ $p->motivo_anulacion ?: 'Sin motivo' }} - Anulado por: {{ $p->anuladoPor ? $p->anuladoPor->name : 'Admin' }}">
-                                    <span class="w-2 h-2 rounded-full bg-rose-500"></span>Anulado
-                                </span>
-                            @else
-                                <span class="inline-flex items-center gap-1.5 text-sm text-ink-primary">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>Válido
-                                </span>
-                            @endif
-                        </td>
-                        <td class="px-3 py-1.5 w-px whitespace-nowrap text-right">
-                            <div class="inline-flex items-center gap-1">
-                                <x-ui.icon-button variant="primary"
-                                    href="{{ route('comercial.pagos.recibo', $p->codigo_verificacion) }}"
-                                    target="_blank" title="Ver e imprimir recibo oficial">
-                                    <i class="fa-solid fa-print"></i>
-                                </x-ui.icon-button>
-                                @if (!$anulado)
-                                    @if ($puedeAnular)
-                                        <x-ui.icon-button variant="danger"
-                                            wire:click="abrirModalAnular({{ $p->id }})" title="Anular pago">
-                                            <i class="fa-solid fa-ban"></i>
-                                        </x-ui.icon-button>
-                                    @elseif ($eventoConcluido)
-                                        <span
-                                            class="inline-flex items-center justify-center w-9 h-9 text-ink-muted cursor-not-allowed"
-                                            title="No se puede anular: el evento ya concluyó">
-                                            <i class="fa-solid fa-lock text-xs"></i>
-                                        </span>
-                                    @endif
-                                @endif
-                                <x-ui.action-menu>
-                                    <x-ui.action-menu-item icon="fa-solid fa-file-pdf"
-                                        href="{{ route('comercial.pagos.pdf', $p->codigo_verificacion) }}"
-                                        target="_blank">Recibo en PDF</x-ui.action-menu-item>
-                                    @if ($clienteTokenPago)
-                                        <x-ui.action-menu-item icon="fa-solid fa-file-invoice-dollar"
-                                            href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $clienteTokenPago, 'tipo' => 'general']) }}"
-                                            target="_blank">Historial de pagos del cliente</x-ui.action-menu-item>
-                                    @endif
-                                </x-ui.action-menu>
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="text-center py-8 text-sm text-ink-secondary">No se encontraron
-                            registros de pagos.</td>
-                    </tr>
-                @endforelse
-            </x-ui.table>
-        </div>
-
-        {{-- Lista compacta (móvil) --}}
-        <div class="md:hidden divide-y divide-outline">
-            @forelse ($pagos as $p)
-                @php
-                    $anulado = $p->estado === 'Anulado';
-                    $clienteIdPago = $p->cliente_id ?: ($p->contrato ? $p->contrato->cliente_id : null);
-                    $clienteTokenPago = $clienteIdPago
-                        ? \App\Services\Security\DocumentToken::encodeId($clienteIdPago, 'cliente')
-                        : null;
-                    $eventoPago = $p->evento ?: ($p->contrato ? $p->contrato->evento : null);
-                    $eventoConcluido =
-                        $eventoPago && in_array($eventoPago->estado, ['Realizado', 'Finalizado', 'Concluido']);
-                    $puedeAnular = $puedeGestionarPagos && !$eventoConcluido;
-                @endphp
-                <div class="flex items-center gap-3 px-4 py-2.5 {{ $anulado ? 'opacity-70' : '' }}">
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                            <span
-                                class="font-semibold text-sm {{ $anulado ? 'line-through text-rose-700 dark:text-rose-400' : 'text-gold-700 dark:text-gold-400' }}">{{ $p->numero_recibo }}</span>
-                            <span class="inline-flex items-center gap-1 text-xs text-ink-secondary">
+                    <div class="flex items-center gap-2 px-3 py-2 {{ $anulado ? 'opacity-70' : '' }}">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-1.5">
                                 <span
-                                    class="w-2 h-2 rounded-full {{ $anulado ? 'bg-rose-500' : 'bg-emerald-500' }}"></span>{{ $anulado ? 'Anulado' : 'Válido' }}
-                            </span>
+                                    class="font-semibold text-sm text-ink-primary truncate">{{ $p->cliente->nombre_completo ?? 'N/A' }}</span>
+                                <span
+                                    class="shrink-0 px-1.5 py-px rounded text-[10px] font-bold text-white {{ $anulado ? 'bg-rose-600' : 'bg-emerald-600' }}">{{ $anulado ? 'Anulado' : 'Válido' }}</span>
+                            </div>
+                            <div class="text-xs text-ink-muted truncate">{{ $p->numero_recibo }} -
+                                {{ $p->metodo_pago === 'QR' ? 'QR' : 'Efectivo' }} -
+                                {{ $p->fecha_pago->format('d/m/y H:i') }}</div>
+                            <div
+                                class="text-sm tabular-nums font-semibold {{ $anulado ? 'line-through text-ink-muted' : 'text-emerald-600 dark:text-emerald-400' }}">
+                                Bs {{ number_format($p->monto, 2) }}</div>
                         </div>
-                        <div class="text-sm font-semibold text-ink-primary truncate">
-                            {{ $p->cliente->nombre_completo ?? 'N/A' }}</div>
-                        <div class="text-xs text-ink-secondary truncate">{{ $p->contrato->numero_contrato ?? 'N/A' }}
-                            - {{ $metodosMap[$p->metodo_pago] ?? $p->metodo_pago }} -
-                            {{ $p->fecha_pago->format('d/m/Y H:i') }}</div>
-                        <div
-                            class="text-sm tabular-nums font-semibold {{ $anulado ? 'line-through text-ink-muted' : 'text-emerald-700 dark:text-emerald-400' }}">
-                            Bs {{ number_format($p->monto, 2) }}</div>
+                        <x-ui.action-menu>
+                            <x-ui.action-menu-item icon="fa-solid fa-print"
+                                href="{{ route('comercial.pagos.recibo', $p->codigo_verificacion) }}"
+                                target="_blank">Ver e imprimir recibo</x-ui.action-menu-item>
+                            <x-ui.action-menu-item icon="fa-solid fa-file-pdf"
+                                href="{{ route('comercial.pagos.pdf', $p->codigo_verificacion) }}"
+                                target="_blank">Recibo en PDF</x-ui.action-menu-item>
+                            @if (!$anulado && $puedeAnular)
+                                <x-ui.action-menu-item variant="danger" icon="fa-solid fa-ban"
+                                    wire:click="abrirModalAnular({{ $p->id }})">Anular
+                                    pago</x-ui.action-menu-item>
+                            @endif
+                        </x-ui.action-menu>
                     </div>
-                    <x-ui.action-menu>
-                        <x-ui.action-menu-item icon="fa-solid fa-print"
-                            href="{{ route('comercial.pagos.recibo', $p->codigo_verificacion) }}" target="_blank">Ver
-                            e imprimir recibo</x-ui.action-menu-item>
-                        <x-ui.action-menu-item icon="fa-solid fa-file-pdf"
-                            href="{{ route('comercial.pagos.pdf', $p->codigo_verificacion) }}" target="_blank">Recibo
-                            en PDF</x-ui.action-menu-item>
-                        @if ($clienteTokenPago)
-                            <x-ui.action-menu-item icon="fa-solid fa-file-invoice-dollar"
-                                href="{{ route('admin.clientes.estado-cuenta.pdf', ['token' => $clienteTokenPago, 'tipo' => 'general']) }}"
-                                target="_blank">Historial de pagos del cliente</x-ui.action-menu-item>
-                        @endif
-                        @if (!$anulado && $puedeAnular)
-                            <x-ui.action-menu-item variant="danger" icon="fa-solid fa-ban"
-                                wire:click="abrirModalAnular({{ $p->id }})">Anular pago</x-ui.action-menu-item>
-                        @endif
-                    </x-ui.action-menu>
-                </div>
-            @empty
-                <div class="text-center py-8 text-sm text-ink-secondary">No se encontraron registros de pagos.</div>
-            @endforelse
-        </div>
+                @empty
+                    <div class="text-center py-8 text-sm text-ink-secondary">No se encontraron cobros.</div>
+                @endforelse
+                @if ($pagos->total() > 0)
+                    <div class="px-3 py-2 bg-surface-sunken text-xs font-bold tabular-nums">
+                        <span class="text-ink-secondary uppercase">Total válidos:</span>
+                        <span class="text-emerald-600 dark:text-emerald-400">Bs
+                            {{ number_format($totalPagosValidos, 2) }}</span>
+                    </div>
+                @endif
+            </div>
+        @endif
 
         <x-slot:footer>
-            <span>Mostrando {{ $pagos->firstItem() ?? 0 }}–{{ $pagos->lastItem() ?? 0 }} de
-                {{ $pagos->total() }}</span>
-            <div>{{ $pagos->links() }}</div>
+            <label class="inline-flex items-center gap-2 text-sm text-ink-primary cursor-pointer select-none">
+                <input type="checkbox" wire:model.live="verDetalle"
+                    class="w-4 h-4 rounded border-outline accent-amber-500">
+                <span>Ver detalle de cada pago</span>
+            </label>
+            @php $lista = $verDetalle ? $pagos : $contratosLista; @endphp
+            <span class="text-xs text-ink-secondary">{{ $lista->firstItem() ?? 0 }}–{{ $lista->lastItem() ?? 0 }}
+                de {{ $lista->total() }}</span>
+            <div>{{ $lista->links() }}</div>
         </x-slot:footer>
     </x-ui.panel>
 

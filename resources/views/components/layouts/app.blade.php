@@ -17,11 +17,24 @@
     @php $empresaFavicon = \App\Models\Empresa::obtener(); @endphp
     @if ($empresaFavicon->logo_url)
         <link rel="icon" href="{{ asset($empresaFavicon->logo_url) }}" type="image/png">
-        <link rel="apple-touch-icon" href="{{ asset($empresaFavicon->logo_url) }}">
     @else
         <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
         <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png">
     @endif
+    <!-- PWA -->
+    <link rel="manifest" href="{{ route('pwa.manifest') }}">
+    <meta name="theme-color" content="#f59e0b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="León Guanajuato">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="{{ route('pwa.icono', ['size' => 192]) }}">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('{{ route('pwa.sw', [], false) }}')
+                .catch(() => {}));
+        }
+    </script>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

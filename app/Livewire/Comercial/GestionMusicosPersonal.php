@@ -26,6 +26,7 @@ class GestionMusicosPersonal extends Component
     public $sueldo_mensual = '';
     public $va_en_todos_eventos = false;
     public $es_dueno = false;
+    public $porcentaje_evento = '';
     public $estado = 'Activo';
     public $observaciones = '';
 
@@ -45,6 +46,7 @@ class GestionMusicosPersonal extends Component
             'telefono' => 'nullable|string|max:50',
             'ci_nit' => 'nullable|string|max:50',
             'modalidad_pago' => ['required', Rule::in(['por_evento', 'mensual'])],
+            'porcentaje_evento' => 'nullable|numeric|min:0|max:100',
             'tarifa_evento' => [
                 Rule::requiredIf($this->modalidad_pago === 'por_evento'),
                 'nullable',
@@ -137,6 +139,7 @@ class GestionMusicosPersonal extends Component
             'sueldo_mensual',
             'va_en_todos_eventos',
             'es_dueno',
+            'porcentaje_evento',
             'observaciones',
             'isEdit',
         ]);
@@ -161,6 +164,7 @@ class GestionMusicosPersonal extends Component
         $this->sueldo_mensual = $p->sueldo_mensual !== null ? (float) $p->sueldo_mensual : '';
         $this->va_en_todos_eventos = (bool) $p->va_en_todos_eventos;
         $this->es_dueno = (bool) ($p->es_dueno ?? false);
+        $this->porcentaje_evento = $p->porcentaje_evento ?? '';
         $this->estado = $p->estado ?: 'Activo';
         $this->observaciones = $p->observaciones;
         $this->isEdit = true;
@@ -199,12 +203,18 @@ class GestionMusicosPersonal extends Component
         if ($this->isEdit) {
             $p = MusicoPersonal::findOrFail($this->persona_id);
             $p->update($datos);
-            $p->forceFill(['es_dueno' => (bool) $this->es_dueno])->save();
+            $p->forceFill([
+                'es_dueno' => (bool) $this->es_dueno,
+                'porcentaje_evento' => is_numeric($this->porcentaje_evento) ? (float) $this->porcentaje_evento : null,
+            ])->save();
             $this->registrarAuditoria('Gestión Comercial', 'Editar Persona', 'Se actualizó a ' . $p->nombre_completo . ' (' . $p->tipo . ')');
             session()->flash('success', 'Datos actualizados correctamente.');
         } else {
             $p = MusicoPersonal::create($datos);
-            $p->forceFill(['es_dueno' => (bool) $this->es_dueno])->save();
+            $p->forceFill([
+                'es_dueno' => (bool) $this->es_dueno,
+                'porcentaje_evento' => is_numeric($this->porcentaje_evento) ? (float) $this->porcentaje_evento : null,
+            ])->save();
             $this->registrarAuditoria('Gestión Comercial', 'Crear Persona', 'Se registró a ' . $p->nombre_completo . ' (' . $p->tipo . ')');
             session()->flash('success', 'Persona registrada correctamente.');
         }
