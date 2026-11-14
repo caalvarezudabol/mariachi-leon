@@ -212,10 +212,10 @@
     <header class="fixed top-0 inset-x-0 z-50 border-b transition-all duration-300 backdrop-blur-lg"
         :class="scrolled ? 'bg-white/95 dark:bg-slate-950/95 border-slate-200 dark:border-slate-800 shadow-sm' :
             'bg-white/80 dark:bg-slate-950/80 border-transparent'">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-            <a href="{{ route('web.home') }}" class="flex items-center gap-3 group shrink-0">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
+            <a href="{{ route('web.home') }}" class="flex items-center gap-2 sm:gap-3 group min-w-0">
                 <div
-                    class="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-gold-500/40 p-1 flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden">
+                    class="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl bg-white dark:bg-slate-900 border border-gold-500/40 p-1 flex items-center justify-center group-hover:scale-105 transition-transform overflow-hidden">
                     @if ($empresaWeb->logo_url)
                         <img src="{{ asset($empresaWeb->logo_url) }}" alt="Logo {{ $empresaWeb->nombre_comercial }}"
                             class="w-full h-full object-contain rounded-lg">
@@ -223,11 +223,11 @@
                         <i class="fa-solid fa-guitar text-gold-600 dark:text-gold-400 text-lg"></i>
                     @endif
                 </div>
-                <div class="leading-none">
+                <div class="leading-none min-w-0">
                     <span
-                        class="font-serif font-black text-base sm:text-lg text-slate-900 dark:text-white tracking-wide block uppercase whitespace-nowrap">{{ $empresaWeb->nombre_comercial ?? 'MARIACHI LEÓN' }}</span>
+                        class="font-serif font-black text-[13px] min-[400px]:text-sm sm:text-lg text-slate-900 dark:text-white tracking-normal sm:tracking-wide block uppercase truncate">{{ $empresaWeb->nombre_comercial ?? 'MARIACHI LEÓN' }}</span>
                     <span
-                        class="text-[10px] text-gold-700 dark:text-gold-400 font-bold tracking-widest uppercase block mt-1">{{ $empresaWeb->ciudad_pais ?? 'Santa Cruz - Bolivia' }}</span>
+                        class="text-[9px] sm:text-[10px] text-gold-700 dark:text-gold-400 font-bold tracking-wider sm:tracking-widest uppercase block mt-1 truncate">{{ $empresaWeb->ciudad_pais ?? 'Santa Cruz - Bolivia' }}</span>
                 </div>
             </a>
 
@@ -245,7 +245,7 @@
                 @endforeach
             </nav>
 
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <!-- Tema claro / oscuro -->
                 <button type="button" x-data="{ dark: document.documentElement.classList.contains('dark') }"
                     @click="dark = !dark; document.documentElement.classList.toggle('dark', dark); try { localStorage.setItem('tema', dark ? 'dark' : 'light') } catch (e) {}"
@@ -266,7 +266,7 @@
                 </a>
 
                 <button @click="mobileMenuOpen = !mobileMenuOpen"
-                    class="md:hidden w-9 h-9 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                    class="md:hidden w-8 h-9 flex items-center justify-center text-slate-600 dark:text-slate-300">
                     <i class="fa-solid fa-bars text-xl" x-show="!mobileMenuOpen"></i>
                     <i class="fa-solid fa-xmark text-xl" x-show="mobileMenuOpen" x-cloak></i>
                 </button>
