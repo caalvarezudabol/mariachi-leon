@@ -418,12 +418,23 @@ trait ManejaFormularioEvento
         $this->completarTarifasVisibles();
     }
 
+    // Solo números: cualquier otra cosa (letras, 1e20, negativos) se limpia en el servidor
+    public function updatedParticipantesSugeridos($value, $name)
+    {
+        if (!str_ends_with((string) $name, 'monto_asignado')) {
+            return;
+        }
+        $txt = trim((string) $value);
+        $n = preg_match('/^\d+(\.\d{1,2})?$/', $txt) ? min((float) $txt, 99999) : 0;
+        data_set($this->participantesSugeridos, $name, $n);
+    }
+
     // Tarifa directa para los músicos y para los dueños del equipo.
     // No toca transporte, sonido ni mensualistas. Un campo vacío no cambia a nadie.
     public function aplicarTarifas($musico, $dueno)
     {
-        $musico = is_numeric($musico) && (float) $musico >= 0 ? round((float) $musico, 2) : null;
-        $dueno = is_numeric($dueno) && (float) $dueno >= 0 ? round((float) $dueno, 2) : null;
+        $musico = is_numeric($musico) && (float) $musico >= 0 ? min(round((float) $musico, 2), 99999) : null;
+        $dueno = is_numeric($dueno) && (float) $dueno >= 0 ? min(round((float) $dueno, 2), 99999) : null;
 
         if ($musico === null && $dueno === null) {
             session()->flash('participante_error', 'Escriba un monto válido para aplicar.');
@@ -630,7 +641,7 @@ trait ManejaFormularioEvento
         foreach ($this->participantesSugeridos as $p) {
             if (!empty($p['incluido'])) {
                 $monto = $p['monto_asignado'] ?? '';
-                if ($monto === '' || !is_numeric($monto) || (float)$monto < 0) {
+                if ($monto === '' || !is_numeric($monto) || (float)$monto < 0 || (float)$monto > 99999) {
                     $msg = "El monto asignado a {$p['nombre_completo']} debe ser un número válido mayor o igual a 0.";
                     $this->addError('participantes', $msg);
                     session()->flash('participante_error', $msg);

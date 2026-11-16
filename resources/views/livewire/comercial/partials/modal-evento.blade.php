@@ -78,12 +78,12 @@
                             <label class="block text-sm font-semibold text-ink-primary">Cliente: <span
                                     class="text-rose-500 font-black text-base leading-none">*</span></label>
                             @unless ($isEdit && $eventoTieneContrato)
-                                <button type="button" wire:click="abrirModalNuevoCliente"
-                                    class="text-[11px] font-semibold text-gold-600 dark:text-gold-400 hover:underline flex items-center gap-1 transition-colors"
-                                    title="Registrar un cliente nuevo sin salir de este formulario">
-                                    <i class="fa-solid fa-user-plus"></i>
-                                    <span>Nuevo cliente</span>
-                                </button>
+                            <button type="button" wire:click="abrirModalNuevoCliente"
+                                class="text-[11px] font-semibold text-gold-600 dark:text-gold-400 hover:underline flex items-center gap-1 transition-colors"
+                                title="Registrar un cliente nuevo sin salir de este formulario">
+                                <i class="fa-solid fa-user-plus"></i>
+                                <span>Nuevo cliente</span>
+                            </button>
                             @endunless
                         </div>
                         @php
@@ -106,8 +106,7 @@
                         @if ($isEdit && $eventoTieneContrato)
                             <div class="w-full h-9 px-3 flex items-center justify-between gap-2 bg-surface-hover border border-outline rounded-lg text-sm font-semibold text-ink-primary cursor-not-allowed"
                                 title="Bloqueado: el evento ya tiene contrato. Si fue un error, cancela este evento y crea uno nuevo.">
-                                <span
-                                    class="truncate">{{ optional($clientes->firstWhere('id', $cliente_id))->nombre_completo ?? 'Cliente' }}</span>
+                                <span class="truncate">{{ optional($clientes->firstWhere('id', $cliente_id))->nombre_completo ?? 'Cliente' }}</span>
                                 <i class="fa-solid fa-lock text-xs text-ink-muted shrink-0"></i>
                             </div>
                         @else
@@ -129,14 +128,8 @@
                                         'id' => $sv->id,
                                         'label' => $sv->nombre,
                                         'meta' => $sv->por_hora
-                                            ? 'Bs ' .
-                                                number_format($sv->precio_base, 0) .
-                                                ' por hora' .
-                                                ($sv->horas_minimas
-                                                    ? ' - mín. ' .
-                                                        rtrim(rtrim(number_format($sv->horas_minimas, 1), '0'), '.') .
-                                                        ' h'
-                                                    : '')
+                                            ? 'Bs ' . number_format($sv->precio_base, 0) . ' por hora' .
+                                                ($sv->horas_minimas ? ' - mín. ' . rtrim(rtrim(number_format($sv->horas_minimas, 1), '0'), '.') . ' h' : '')
                                             : 'Bs ' .
                                                 number_format($sv->precio_base, 2) .
                                                 ($sv->duracion_minutos ? ' - ' . $sv->duracion_minutos . ' min' : ''),
@@ -148,8 +141,7 @@
                         @if ($isEdit && $eventoTieneContrato)
                             <div class="w-full h-9 px-3 flex items-center justify-between gap-2 bg-surface-hover border border-outline rounded-lg text-sm font-semibold text-ink-primary cursor-not-allowed"
                                 title="Bloqueado: el evento ya tiene contrato. Si fue un error, cancela este evento y crea uno nuevo.">
-                                <span
-                                    class="truncate">{{ optional($servicios->firstWhere('id', $servicio_id))->nombre ?? 'Servicio' }}</span>
+                                <span class="truncate">{{ optional($servicios->firstWhere('id', $servicio_id))->nombre ?? 'Servicio' }}</span>
                                 <i class="fa-solid fa-lock text-xs text-ink-muted shrink-0"></i>
                             </div>
                         @else
@@ -329,9 +321,9 @@
                     </div>
 
                     <div class="min-w-0 sm:col-span-2">
-                        <x-ui.input type="number" step="1" min="1" inputmode="numeric"
-                            label="Minutos" required name="duracion_horas"
-                            wire:model.live.debounce.400ms="duracion_min" placeholder="60" />
+                        <x-ui.input type="number" step="1" min="1" inputmode="numeric" label="Minutos"
+                            required name="duracion_horas" wire:model.live.debounce.400ms="duracion_min"
+                            placeholder="60" />
                     </div>
 
                     <div class="sm:col-span-5 min-w-0">
@@ -345,8 +337,8 @@
                             }
                         @endphp
                         <div class="flex items-center justify-between mb-1">
-                            <label class="block text-sm font-semibold text-ink-primary whitespace-nowrap">Dirección:
-                                <span class="text-rose-500 font-black text-base leading-none">*</span></label>
+                            <label class="block text-sm font-semibold text-ink-primary whitespace-nowrap">Dirección: <span
+                                    class="text-rose-500 font-black text-base leading-none">*</span></label>
                             <div class="flex items-center gap-3 shrink-0">
                                 @if ($dirClienteEvento && trim($direccion_evento) === '')
                                     <button type="button" wire:click="usarDireccionCliente"
@@ -358,14 +350,12 @@
                                 @endif
                             </div>
                         </div>
-                        <textarea rows="1" wire:model="direccion_evento" x-data="{ ajustar() { $el.style.height = 'auto';
-                                $el.style.height = $el.scrollHeight + 'px'; } }" x-init="$nextTick(() => ajustar())"
-                            x-effect="$wire.direccion_evento; $nextTick(() => ajustar())" @input="ajustar()" placeholder="Lugar o dirección"
-                            class="w-full min-h-9 px-3.5 py-1.5 leading-6 resize-none overflow-hidden bg-surface-sunken border @error('direccion_evento')
-border-rose-500 ring-1 ring-rose-500
-@else
-border-outline
-@enderror rounded-lg text-ink-primary text-sm placeholder:text-ink-muted focus:border-gold-500 focus:outline-none transition-colors"></textarea>
+                        <textarea rows="1" wire:model="direccion_evento"
+                            x-data="{ ajustar() { $el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px'; } }"
+                            x-init="$nextTick(() => ajustar())" x-effect="$wire.direccion_evento; $nextTick(() => ajustar())"
+                            @input="ajustar()"
+                            placeholder="Lugar o dirección"
+                            class="w-full min-h-9 px-3.5 py-1.5 leading-6 resize-none overflow-hidden bg-surface-sunken border @error('direccion_evento') border-rose-500 ring-1 ring-rose-500 @else border-outline @enderror rounded-lg text-ink-primary text-sm placeholder:text-ink-muted focus:border-gold-500 focus:outline-none transition-colors"></textarea>
                         @error('direccion_evento')
                             <span class="text-xs text-rose-400 mt-1 block font-semibold">{{ $message }}</span>
                         @enderror
@@ -392,15 +382,15 @@ border-outline
                             </div>
 
                             <div class="min-w-0 sm:col-span-2">
-                                <x-ui.select label="Estado del evento" wire:model="estado">
-                                    <option value="Reservado">Reservado</option>
-                                    <option value="Confirmado">Confirmado</option>
-                                    <option value="Realizado">Realizado</option>
-                                    <option value="Cancelado">Cancelado</option>
-                                    @if (in_array($estado, ['Pendiente', 'Cotizado', 'Finalizado']))
-                                        <option value="{{ $estado }}">{{ $estado }}</option>
-                                    @endif
-                                </x-ui.select>
+                        <x-ui.select label="Estado del evento" wire:model="estado">
+                            <option value="Reservado">Reservado</option>
+                                <option value="Confirmado">Confirmado</option>
+                                <option value="Realizado">Realizado</option>
+                                <option value="Cancelado">Cancelado</option>
+                                @if (in_array($estado, ['Pendiente', 'Cotizado', 'Finalizado']))
+                                    <option value="{{ $estado }}">{{ $estado }}</option>
+                                @endif
+                        </x-ui.select>
                             </div>
                         </div>
                     </div>
@@ -431,8 +421,8 @@ border-outline
                                         wire:model.live.debounce.300ms="monto_contrato" placeholder="0.00" />
                                 </div>
                                 <div class="min-w-0">
-                                    <x-ui.input label="Adelanto (Bs)" type="number" step="0.01"
-                                        inputmode="decimal" name="adelanto" wire:model.live.debounce.300ms="adelanto"
+                                    <x-ui.input label="Adelanto (Bs)" type="number" step="0.01" inputmode="decimal"
+                                        name="adelanto" wire:model.live.debounce.300ms="adelanto"
                                         placeholder="0.00" />
                                 </div>
                                 <div class="min-w-0 col-span-2 sm:col-span-1">
@@ -527,218 +517,206 @@ border-outline
                     $nMusicosTarifa = $musicosTarifa->count() - $nDuenos;
                 @endphp
                 @php
-                    $esperaMonto =
-                        !$isEdit &&
-                        $contrato_opcion === 'si' &&
-                        !(is_numeric($monto_contrato) && (float) $monto_contrato > 0);
+                    $esperaMonto = !$isEdit && $contrato_opcion === 'si' && !(is_numeric($monto_contrato) && (float) $monto_contrato > 0);
                 @endphp
                 @if ($esperaMonto)
                     <div class="pt-2 border-t border-outline flex items-center gap-2 text-sm text-ink-secondary">
                         <i class="fa-solid fa-users text-gold-600 dark:text-gold-400"></i>
-                        <span><strong class="text-ink-primary">Equipo:</strong> escribe primero el monto total y aquí
-                            aparece el equipo con su pago calculado.</span>
+                        <span><strong class="text-ink-primary">Equipo:</strong> escribe primero el monto total y aquí aparece el equipo con su pago calculado.</span>
                     </div>
                 @else
-                    <div class="pt-2 border-t border-outline space-y-2" x-data="{ agregar: false }">
-                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                            <h4 class="text-sm font-bold text-ink-primary flex items-center gap-2 shrink-0">
-                                <i class="fa-solid fa-users text-gold-600 dark:text-gold-400"></i>
-                                <span>Equipo</span>
-                                <x-ui.badge variant="neutral">{{ $incluidosEquipo->count() }}</x-ui.badge>
-                            </h4>
+                <div class="pt-2 border-t border-outline space-y-2" x-data="{ agregar: false }">
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                        <h4 class="text-sm font-bold text-ink-primary flex items-center gap-2 shrink-0">
+                            <i class="fa-solid fa-users text-gold-600 dark:text-gold-400"></i>
+                            <span>Equipo</span>
+                            <x-ui.badge variant="neutral">{{ $incluidosEquipo->count() }}</x-ui.badge>
+                        </h4>
 
-                            @if ($disponiblesEquipo->count() > 0)
-                                <button type="button" @click="agregar = !agregar"
-                                    class="text-xs font-semibold text-gold-600 dark:text-gold-400 hover:underline flex items-center gap-1">
-                                    <i class="fa-solid text-[10px]" :class="agregar ? 'fa-minus' : 'fa-plus'"></i>
-                                    <span>Agregar <span
-                                            class="opacity-70">({{ $disponiblesEquipo->count() }})</span></span>
-                                </button>
-                            @endif
-
-                            {{-- Tarifa directa (no toca transporte, sonido ni mensuales) --}}
-                            @if ($nMusicosTarifa + $nDuenos > 1)
-                                <div class="flex items-center gap-1.5 ml-auto">
-                                    @if ($nMusicosTarifa > 0)
-                                        <span class="text-[11px] font-semibold text-ink-secondary">Músico</span>
-                                        <input type="number" step="0.50" min="0" inputmode="decimal"
-                                            wire:model="tarifa_musico"
-                                            @keydown.enter.prevent="$wire.aplicarTarifas($wire.tarifa_musico, $wire.tarifa_dueno)"
-                                            placeholder="Bs" title="Tarifa para los {{ $nMusicosTarifa }} músicos"
-                                            class="w-16 h-7 px-1.5 bg-surface-sunken border border-outline rounded-md text-ink-primary font-bold text-[13px] text-right tabular-nums placeholder:font-normal placeholder:text-ink-muted focus:border-gold-500 focus:outline-none">
-                                    @endif
-                                    @if ($nDuenos > 0)
-                                        <span class="text-[11px] font-semibold text-ink-secondary">Dueño</span>
-                                        <input type="number" step="0.50" min="0" inputmode="decimal"
-                                            wire:model="tarifa_dueno"
-                                            @keydown.enter.prevent="$wire.aplicarTarifas($wire.tarifa_musico, $wire.tarifa_dueno)"
-                                            placeholder="Bs" title="Tarifa para los {{ $nDuenos }} dueños"
-                                            class="w-16 h-7 px-1.5 bg-surface-sunken border border-outline rounded-md text-ink-primary font-bold text-[13px] text-right tabular-nums placeholder:font-normal placeholder:text-ink-muted focus:border-gold-500 focus:outline-none">
-                                    @endif
-                                    <button type="button"
-                                        @click="$wire.aplicarTarifas($wire.tarifa_musico, $wire.tarifa_dueno)"
-                                        title="Aplicar la tarifa al equipo"
-                                        class="h-7 px-2 rounded-md border border-gold-500 bg-gold-500/10 text-ink-primary text-xs font-semibold hover:bg-gold-500/20 disabled:opacity-40 transition-colors">
-                                        <i class="fa-solid fa-check"></i>
-                                    </button>
-                                </div>
-                            @endif
-                        </div>
-
-                        @if (session()->has('participante_error'))
-                            <div
-                                class="p-2 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-700 dark:text-rose-400 text-xs flex items-center gap-2">
-                                <i class="fa-solid fa-circle-exclamation text-sm"></i>
-                                <span>{{ session('participante_error') }}</span>
-                            </div>
+                        @if ($disponiblesEquipo->count() > 0)
+                            <button type="button" @click="agregar = !agregar"
+                                class="text-xs font-semibold text-gold-600 dark:text-gold-400 hover:underline flex items-center gap-1">
+                                <i class="fa-solid text-[10px]" :class="agregar ? 'fa-minus' : 'fa-plus'"></i>
+                                <span>Agregar <span class="opacity-70">({{ $disponiblesEquipo->count() }})</span></span>
+                            </button>
                         @endif
 
-                        @error('participantes')
-                            <div
-                                class="p-2 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-700 dark:text-rose-400 text-xs flex items-center gap-2">
-                                <i class="fa-solid fa-circle-exclamation text-sm"></i>
-                                <span>{{ $message }}</span>
-                            </div>
-                        @enderror
-
-                        <!-- Personas disponibles (se muestran con "Agregar"): un toque la agrega -->
-                        @if ($personasDisponibles->count() === 0)
-                            <p class="text-xs text-ink-muted">No hay músicos ni personal registrados. Se crean en
-                                Músicos y
-                                personal.</p>
-                        @elseif ($disponiblesEquipo->count() > 0)
-                            <div x-show="agregar" x-cloak class="relative">
-                                <button type="button"
-                                    @click="$refs.tira.scrollBy({ left: -260, behavior: 'smooth' })"
-                                    class="hidden sm:flex absolute -left-3 top-[calc(50%-4px)] -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-surface-card border border-outline shadow items-center justify-center text-ink-secondary hover:text-ink-primary hover:border-gold-500"
-                                    title="Anteriores">
-                                    <i class="fa-solid fa-chevron-left text-xs"></i>
-                                </button>
-                                <button type="button" @click="$refs.tira.scrollBy({ left: 260, behavior: 'smooth' })"
-                                    class="hidden sm:flex absolute -right-3 top-[calc(50%-4px)] -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-surface-card border border-outline shadow items-center justify-center text-ink-secondary hover:text-ink-primary hover:border-gold-500"
-                                    title="Siguientes">
-                                    <i class="fa-solid fa-chevron-right text-xs"></i>
-                                </button>
-                                <div x-ref="tira" class="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:thin]">
-                                    @foreach ($disponiblesEquipo as $pp)
-                                        @php
-                                            [$icoPp, $clsPp] = array_slice($estiloTipo($pp->tipo), 0, 2);
-                                            $mensualPp = ($pp->modalidad_pago ?? 'por_evento') === 'mensual';
-                                            $metaPp =
-                                                ($pp->tipo ?: 'Músico') .
-                                                ' - ' .
-                                                ($mensualPp
-                                                    ? 'Mensual'
-                                                    : ($pp->tarifa_evento
-                                                        ? 'Bs ' . number_format($pp->tarifa_evento, 0)
-                                                        : 'Sin tarifa'));
-                                        @endphp
-                                        <button type="button" wire:key="disp-{{ $pp->id }}"
-                                            wire:click="agregarPersona({{ $pp->id }})"
-                                            class="flex-none inline-flex items-center gap-2 pl-1.5 pr-2 py-1.5 bg-surface-card border border-outline rounded-xl text-left hover:border-gold-500 active:scale-[0.98] transition">
-                                            <span
-                                                class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 {{ $clsPp }}">
-                                                <i class="fa-solid {{ $icoPp }} text-sm"></i>
-                                            </span>
-                                            <span class="flex flex-col leading-tight">
-                                                <span
-                                                    class="text-sm font-semibold text-ink-primary whitespace-nowrap">{{ $pp->nombre_completo }}</span>
-                                                <span
-                                                    class="text-xs text-ink-muted whitespace-nowrap">{{ $metaPp }}</span>
-                                            </span>
-                                            <span
-                                                class="w-6 h-6 rounded-full bg-gold-500/15 text-gold-600 dark:text-gold-400 flex items-center justify-center shrink-0">
-                                                <i class="fa-solid fa-plus text-[11px]"></i>
-                                            </span>
-                                        </button>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
-
-                        <!-- Equipo del evento (2 columnas en pantalla ancha) -->
-                        <div
-                            class="border border-outline rounded-xl bg-surface-card overflow-hidden grid grid-cols-1 sm:grid-cols-2">
-                            @foreach ($participantesSugeridos as $idx => $pe)
-                                @if (empty($pe['incluido']))
-                                    @continue
+                        {{-- Tarifa directa (no toca transporte, sonido ni mensuales) --}}
+                        @if ($nMusicosTarifa + $nDuenos > 1)
+                            <div class="flex flex-wrap items-center gap-1.5 ml-auto w-full sm:w-auto rounded-md bg-gold-500/5 border border-dashed border-gold-500/40 px-2 py-1">
+                                <span class="text-[11px] font-bold text-gold-700 dark:text-gold-400 mr-auto sm:mr-0">Mismo monto para todos:</span>
+                                @if ($nMusicosTarifa > 0)
+                                    <span class="text-[11px] font-semibold text-ink-secondary">Músico</span>
+                                    <input type="number" step="0.50" min="0" inputmode="decimal" @keydown="if (['e','E','+','-'].includes($event.key)) $event.preventDefault()" max="99999" wire:model="tarifa_musico"
+                                        @keydown.enter.prevent="$wire.aplicarTarifas($wire.tarifa_musico, $wire.tarifa_dueno)" placeholder="Bs"
+                                        title="Tarifa para los {{ $nMusicosTarifa }} músicos"
+                                        class="w-16 h-7 px-1.5 bg-surface-sunken border border-outline rounded-md text-ink-primary font-bold text-[13px] text-right tabular-nums placeholder:font-normal placeholder:text-ink-muted focus:border-gold-500 focus:outline-none">
                                 @endif
-                                @php
-                                    [$icoPe, $clsPe] = array_slice($estiloTipo($pe['funcion'] ?? ''), 0, 2);
-                                    $esMensual = ($pe['modalidad'] ?? 'por_evento') === 'mensual';
-                                    $sinTarifa = !$esMensual && (float) ($pe['monto_asignado'] ?? 0) <= 0;
-                                @endphp
-                                <div class="flex items-center gap-1.5 pl-2 pr-0.5 py-0.5 border-b border-outline sm:[&:nth-child(odd)]:border-r"
-                                    wire:key="equipo-{{ $pe['persona_id'] }}">
-                                    <span
-                                        class="w-5 h-5 rounded flex items-center justify-center shrink-0 {{ $clsPe }}">
-                                        <i class="fa-solid {{ $icoPe }} text-[10px]"></i>
-                                    </span>
-                                    <div class="min-w-0 flex-1 flex items-baseline gap-x-1.5 overflow-hidden">
-                                        <span
-                                            class="text-[13.5px] font-semibold text-ink-primary truncate">{{ $pe['nombre_completo'] }}</span>
-                                        @if (!str_contains(mb_strtolower($pe['funcion'] ?? ''), 'sic'))
-                                            <span class="text-[12px] text-ink-muted whitespace-nowrap shrink-0">-
-                                                {{ $pe['funcion'] }}</span>
-                                        @endif
-                                        @if ($esMensual)
-                                            <span
-                                                class="text-[12px] text-sky-600 dark:text-sky-400 whitespace-nowrap shrink-0 hidden sm:inline">Mensual</span>
-                                        @endif
-                                        @if (!empty($pe['es_dueno']))
-                                            <span
-                                                class="text-[12px] font-semibold text-gold-700 dark:text-gold-400 whitespace-nowrap shrink-0">Dueño</span>
-                                        @endif
-                                        @if ($sinTarifa)
-                                            <i class="fa-solid fa-triangle-exclamation text-[11px] text-amber-500 shrink-0"
-                                                title="Sin tarifa: ingrese el monto"></i>
-                                        @endif
-                                        @if (!empty($pe['tiene_pagos']))
-                                            <i class="fa-solid fa-lock text-[11px] text-emerald-600 dark:text-emerald-400 shrink-0"
-                                                title="Ya tiene pagos por Bs {{ number_format($pe['total_pagado'], 2) }}"></i>
-                                        @endif
-                                    </div>
-                                    <div class="relative w-[4.75rem] shrink-0">
-                                        <span
-                                            class="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-ink-muted">Bs</span>
-                                        <input type="number" step="0.50" min="0" inputmode="decimal"
-                                            wire:model.live.debounce.400ms="participantesSugeridos.{{ $idx }}.monto_asignado"
-                                            class="w-full h-7 pl-5 pr-1.5 bg-surface-sunken border border-outline rounded-md text-ink-primary font-bold text-[13px] text-right tabular-nums focus:border-gold-500 focus:outline-none">
-                                    </div>
-                                    <button type="button" wire:click="quitarParticipante({{ $idx }})"
-                                        class="w-6 h-7 shrink-0 flex items-center justify-center text-ink-muted hover:text-rose-600 transition-colors"
-                                        title="{{ !empty($pe['tiene_pagos']) ? 'Tiene pagos registrados' : 'Quitar del evento' }}">
-                                        <i class="fa-solid fa-xmark"></i>
-                                    </button>
-                                </div>
-                            @endforeach
+                                @if ($nDuenos > 0)
+                                    <span class="text-[11px] font-semibold text-ink-secondary">Dueño</span>
+                                    <input type="number" step="0.50" min="0" inputmode="decimal" @keydown="if (['e','E','+','-'].includes($event.key)) $event.preventDefault()" max="99999" wire:model="tarifa_dueno"
+                                        @keydown.enter.prevent="$wire.aplicarTarifas($wire.tarifa_musico, $wire.tarifa_dueno)" placeholder="Bs"
+                                        title="Tarifa para los {{ $nDuenos }} dueños"
+                                        class="w-16 h-7 px-1.5 bg-surface-sunken border border-outline rounded-md text-ink-primary font-bold text-[13px] text-right tabular-nums placeholder:font-normal placeholder:text-ink-muted focus:border-gold-500 focus:outline-none">
+                                @endif
+                                <button type="button" @click="$wire.aplicarTarifas($wire.tarifa_musico, $wire.tarifa_dueno)"
+                                    title="Cambia el monto de TODOS los músicos / dueños"
+                                    class="h-7 px-2.5 rounded-md border border-gold-500 bg-gold-500/10 text-ink-primary text-xs font-semibold hover:bg-gold-500/20 disabled:opacity-40 transition-colors">
+                                    <i class="fa-solid fa-check"></i><span class="ml-1">Aplicar a todos</span>
+                                </button>
+                            </div>
+                        @endif
+                    </div>
 
-                            @if ($incluidosEquipo->count() === 0)
-                                <div class="sm:col-span-2 px-3 py-2.5 text-center text-[13px] text-ink-muted">
-                                    Toca una persona para agregarla al evento.
-                                </div>
-                            @else
-                                <div
-                                    class="sm:col-span-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 px-3 py-2 bg-surface-sunken text-sm text-ink-secondary">
-                                    <span>
-                                        Pagarás <strong class="text-ink-primary tabular-nums">Bs
-                                            {{ number_format($totalAsignadoEquipo, 0) }}</strong>
-                                        @if ($precioReferencia > 0)
-                                            de <span
-                                                class="tabular-nums">{{ number_format($precioReferencia, 0) }}</span>
-                                        @endif
-                                    </span>
-                                    @if ($precioReferencia > 0)
+                    @if (session()->has('participante_error'))
+                        <div
+                            class="p-2 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-700 dark:text-rose-400 text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-circle-exclamation text-sm"></i>
+                            <span>{{ session('participante_error') }}</span>
+                        </div>
+                    @endif
+
+                    @error('participantes')
+                        <div
+                            class="p-2 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-700 dark:text-rose-400 text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-circle-exclamation text-sm"></i>
+                            <span>{{ $message }}</span>
+                        </div>
+                    @enderror
+
+                    <!-- Personas disponibles (se muestran con "Agregar"): un toque la agrega -->
+                    @if ($personasDisponibles->count() === 0)
+                        <p class="text-xs text-ink-muted">No hay músicos ni personal registrados. Se crean en Músicos y
+                            personal.</p>
+                    @elseif ($disponiblesEquipo->count() > 0)
+                        <div x-show="agregar" x-cloak class="relative">
+                            <button type="button" @click="$refs.tira.scrollBy({ left: -260, behavior: 'smooth' })"
+                                class="hidden sm:flex absolute -left-3 top-[calc(50%-4px)] -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-surface-card border border-outline shadow items-center justify-center text-ink-secondary hover:text-ink-primary hover:border-gold-500"
+                                title="Anteriores">
+                                <i class="fa-solid fa-chevron-left text-xs"></i>
+                            </button>
+                            <button type="button" @click="$refs.tira.scrollBy({ left: 260, behavior: 'smooth' })"
+                                class="hidden sm:flex absolute -right-3 top-[calc(50%-4px)] -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-surface-card border border-outline shadow items-center justify-center text-ink-secondary hover:text-ink-primary hover:border-gold-500"
+                                title="Siguientes">
+                                <i class="fa-solid fa-chevron-right text-xs"></i>
+                            </button>
+                            <div x-ref="tira" class="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:thin]">
+                                @foreach ($disponiblesEquipo as $pp)
+                                    @php
+                                        [$icoPp, $clsPp] = array_slice($estiloTipo($pp->tipo), 0, 2);
+                                        $mensualPp = ($pp->modalidad_pago ?? 'por_evento') === 'mensual';
+                                        $metaPp =
+                                            ($pp->tipo ?: 'Músico') .
+                                            ' - ' .
+                                            ($mensualPp
+                                                ? 'Mensual'
+                                                : ($pp->tarifa_evento
+                                                    ? 'Bs ' . number_format($pp->tarifa_evento, 0)
+                                                    : 'Sin tarifa'));
+                                    @endphp
+                                    <button type="button" wire:key="disp-{{ $pp->id }}"
+                                        wire:click="agregarPersona({{ $pp->id }})"
+                                        class="flex-none inline-flex items-center gap-2 pl-1.5 pr-2 py-1.5 bg-surface-card border border-outline rounded-xl text-left hover:border-gold-500 active:scale-[0.98] transition">
                                         <span
-                                            class="font-bold tabular-nums {{ $restoEvento < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400' }}">
-                                            {{ $restoEvento < 0 ? 'Pasa por' : 'Quedan' }} Bs
-                                            {{ number_format(abs($restoEvento), 0) }}
+                                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 {{ $clsPp }}">
+                                            <i class="fa-solid {{ $icoPp }} text-sm"></i>
                                         </span>
+                                        <span class="flex flex-col leading-tight">
+                                            <span
+                                                class="text-sm font-semibold text-ink-primary whitespace-nowrap">{{ $pp->nombre_completo }}</span>
+                                            <span class="text-xs text-ink-muted whitespace-nowrap">{{ $metaPp }}</span>
+                                        </span>
+                                        <span
+                                            class="w-6 h-6 rounded-full bg-gold-500/15 text-gold-600 dark:text-gold-400 flex items-center justify-center shrink-0">
+                                            <i class="fa-solid fa-plus text-[11px]"></i>
+                                        </span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Equipo del evento (2 columnas en pantalla ancha) -->
+                    <div class="border border-outline rounded-xl bg-surface-card overflow-hidden grid grid-cols-1 sm:grid-cols-2">
+                        @foreach ($participantesSugeridos as $idx => $pe)
+                            @if (empty($pe['incluido']))
+                                @continue
+                            @endif
+                            @php
+                                [$icoPe, $clsPe] = array_slice($estiloTipo($pe['funcion'] ?? ''), 0, 2);
+                                $esMensual = ($pe['modalidad'] ?? 'por_evento') === 'mensual';
+                                $sinTarifa = !$esMensual && (float) ($pe['monto_asignado'] ?? 0) <= 0;
+                            @endphp
+                            <div class="flex items-center gap-1.5 pl-2 pr-0.5 py-0.5 border-b border-outline sm:[&:nth-child(odd)]:border-r"
+                                wire:key="equipo-{{ $pe['persona_id'] }}">
+                                <span
+                                    class="w-5 h-5 rounded flex items-center justify-center shrink-0 {{ $clsPe }}">
+                                    <i class="fa-solid {{ $icoPe }} text-[10px]"></i>
+                                </span>
+                                <div class="min-w-0 flex-1 flex items-baseline gap-x-1.5 overflow-hidden">
+                                    <span
+                                        class="text-[13.5px] font-semibold text-ink-primary truncate">{{ $pe['nombre_completo'] }}</span>
+                                    @if (!str_contains(mb_strtolower($pe['funcion'] ?? ''), 'sic'))
+                                        <span class="text-[12px] text-ink-muted whitespace-nowrap shrink-0">-
+                                            {{ $pe['funcion'] }}</span>
+                                    @endif
+                                    @if ($esMensual)
+                                        <span
+                                            class="text-[12px] text-sky-600 dark:text-sky-400 whitespace-nowrap shrink-0 hidden sm:inline">Mensual</span>
+                                    @endif
+                                    @if (!empty($pe['es_dueno']))
+                                        <span
+                                            class="text-[12px] font-semibold text-gold-700 dark:text-gold-400 whitespace-nowrap shrink-0">Dueño</span>
+                                    @endif
+                                    @if ($sinTarifa)
+                                        <i class="fa-solid fa-triangle-exclamation text-[11px] text-amber-500 shrink-0"
+                                            title="Sin tarifa: ingrese el monto"></i>
+                                    @endif
+                                    @if (!empty($pe['tiene_pagos']))
+                                        <i class="fa-solid fa-lock text-[11px] text-emerald-600 dark:text-emerald-400 shrink-0"
+                                            title="Ya tiene pagos por Bs {{ number_format($pe['total_pagado'], 2) }}"></i>
                                     @endif
                                 </div>
-                            @endif
-                        </div>
+                                <div class="relative w-[4.75rem] shrink-0">
+                                    <span
+                                        class="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-ink-muted">Bs</span>
+                                    <input type="number" step="0.50" min="0" inputmode="decimal"
+                                        @keydown="if (['e','E','+','-'].includes($event.key)) $event.preventDefault()" max="99999" wire:model.live.debounce.400ms="participantesSugeridos.{{ $idx }}.monto_asignado"
+                                        class="w-full h-7 pl-5 pr-1.5 bg-surface-sunken border border-outline rounded-md text-ink-primary font-bold text-[13px] text-right tabular-nums focus:border-gold-500 focus:outline-none">
+                                </div>
+                                <button type="button" wire:click="quitarParticipante({{ $idx }})"
+                                    class="w-6 h-7 shrink-0 flex items-center justify-center text-ink-muted hover:text-rose-600 transition-colors"
+                                    title="{{ !empty($pe['tiene_pagos']) ? 'Tiene pagos registrados' : 'Quitar del evento' }}">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                        @endforeach
+
+                        @if ($incluidosEquipo->count() === 0)
+                            <div class="sm:col-span-2 px-3 py-2.5 text-center text-[13px] text-ink-muted">
+                                Toca una persona para agregarla al evento.
+                            </div>
+                        @else
+                            <div
+                                class="sm:col-span-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 px-3 py-2 bg-surface-sunken text-sm text-ink-secondary">
+                                <span>
+                                    Pagarás <strong class="text-ink-primary tabular-nums">Bs
+                                        {{ number_format($totalAsignadoEquipo, 0) }}</strong>
+                                    @if ($precioReferencia > 0)
+                                        de <span class="tabular-nums">{{ number_format($precioReferencia, 0) }}</span>
+                                    @endif
+                                </span>
+                                @if ($precioReferencia > 0)
+                                    <span
+                                        class="font-bold tabular-nums {{ $restoEvento < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400' }}">
+                                        {{ $restoEvento < 0 ? 'Pasa por' : 'Quedan' }} Bs
+                                        {{ number_format(abs($restoEvento), 0) }}
+                                    </span>
+                                @endif
+                            </div>
+                        @endif
                     </div>
+                </div>
 
                 @endif
 
@@ -801,7 +779,7 @@ border-outline
         $cfMin = (int) round(((float) $duracion_horas) * 60);
         $cfDur =
             $cfMin >= 60
-                ? intdiv($cfMin, 60) . ' h' . ($cfMin % 60 ? ' ' . $cfMin % 60 . ' min' : '')
+                ? intdiv($cfMin, 60) . ' h' . ($cfMin % 60 ? ' ' . ($cfMin % 60) . ' min' : '')
                 : $cfMin . ' min';
         $cfConContrato = !$isEdit && $contrato_opcion === 'si';
         $cfMonto = is_numeric($monto_contrato) ? (float) $monto_contrato : 0;
