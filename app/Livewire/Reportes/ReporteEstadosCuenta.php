@@ -80,6 +80,13 @@ class ReporteEstadosCuenta extends Component
         }
 
         $clienteSeleccionado = $this->cliente_id ? Cliente::find($this->cliente_id) : null;
+
+        // Asegurar que si la modalidad es contrato se seleccione automáticamente el primer contrato válido
+        if ($this->modalidad === 'contrato' && $contratosCliente->isNotEmpty()) {
+            if (!$this->contrato_id || !$contratosCliente->contains('id', $this->contrato_id)) {
+                $this->contrato_id = $contratosCliente->first()->id;
+            }
+        }
         $contratoSeleccionado = null;
         $pagos = collect();
         $resumenFinanciero = [

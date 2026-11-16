@@ -1,10 +1,10 @@
 @php
     $urlPdf =
-        $clienteSeleccionado && $tokenCliente
-            ? route('admin.clientes.estado-cuenta.pdf', [
-                'token' => $tokenCliente,
-                'tipo' => $modalidad,
-                'contrato' => $modalidad === 'contrato' ? $tokenContrato : null,
+        $clienteSeleccionado
+            ? route('admin.reportes.estados-cuenta.pdf', [
+                'cliente_id' => $clienteSeleccionado->id,
+                'modalidad' => $modalidad,
+                'contrato_id' => $modalidad === 'contrato' ? ($contratoSeleccionado ? $contratoSeleccionado->id : $contrato_id) : null,
             ])
             : null;
     $saldo = (float) ($resumenFinanciero['saldo_pendiente'] ?? 0);

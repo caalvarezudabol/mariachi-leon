@@ -186,6 +186,7 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
         Route::get('/eventos-contratos/excel', [FinanzasExcelController::class, 'exportarEventosContratos'])->name('admin.reportes.eventos-contratos.excel');
 
         Route::get('/estados-cuenta', ReporteEstadosCuenta::class)->name('admin.reportes.estados-cuenta');
+        Route::get('/estados-cuenta/pdf', [EstadoCuentaPdfController::class, 'exportarDesdeReporte'])->name('admin.reportes.estados-cuenta.pdf');
 
         Route::get('/distribucion-economica', ReporteDistribucionEconomica::class)->name('admin.reportes.distribucion');
         Route::get('/distribucion-economica/pdf', [ReportesPdfController::class, 'exportarDistribucion'])->name('admin.reportes.distribucion.pdf');
@@ -207,8 +208,8 @@ Route::get('/comercial/contratos/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/comercial/contratos/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/comercial/eventos/comisiones/pdf', fn() => redirect()->route('web.home'));
 Route::get('/verificar/comisiones', fn() => redirect()->route('web.home'));
-Route::get('/admin/comercial/clientes/estado-cuenta', fn() => redirect()->route('web.home'));
-Route::get('/admin/comercial/clientes/estado-cuenta/pdf', fn() => redirect()->route('web.home'));
+Route::get('/admin/comercial/clientes/estado-cuenta', fn() => redirect()->route('admin.reportes.estados-cuenta'));
+Route::get('/admin/comercial/clientes/estado-cuenta/pdf', [EstadoCuentaPdfController::class, 'exportarDesdeReporte']);
 Route::get('/admin/comercial/clientes/historial-contratos/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/activos-fijos/kardex/pdf', fn() => redirect()->route('web.home'));
 Route::get('/admin/activos-fijos/comprobante', fn() => redirect()->route('web.home'));

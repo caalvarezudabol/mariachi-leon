@@ -1,462 +1,403 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
-    <title>Estado de Cuenta General - {{ $cliente->nombre_completo }}</title>
+    <title>Estado de cuenta general - {{ $cliente->nombre_completo }}</title>
     <style>
         @page {
             size: letter portrait;
-            margin: 12mm 14mm 14mm 14mm;
+            margin: 16mm 18mm 16mm 18mm;
         }
 
         body {
-            font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif;
-            font-size: 8pt;
-            color: #102846;
-            line-height: 1.35;
+            font-family: 'DejaVu Serif', 'Times New Roman', serif;
+            font-size: 8.5pt;
+            color: #111;
+            line-height: 1.4;
             margin: 0;
             padding: 0;
         }
 
-        .header-table {
+        .head {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px;
-            border-bottom: 2px solid #C99A2E;
+            border-bottom: 1.5px solid #111;
+            margin-bottom: 10px;
+        }
+
+        .head td {
+            vertical-align: middle;
             padding-bottom: 6px;
         }
 
-        .logo-col {
-            width: 20%;
-            vertical-align: middle;
-            text-align: left;
-        }
-
-        .logo-col img {
-            max-width: 95px;
-            max-height: 55px;
-        }
-
-        .title-col {
-            width: 55%;
-            vertical-align: middle;
-            text-align: center;
-        }
-
-        .company-name {
+        .empresa {
             font-size: 11pt;
             font-weight: bold;
-            color: #102846;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        .doc-title {
-            font-size: 10pt;
-            font-weight: bold;
-            color: #C99A2E;
-            margin-top: 2px;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
+        .sub {
+            font-size: 7.5pt;
+            color: #444;
         }
 
-        .meta-col {
-            width: 25%;
-            vertical-align: middle;
-            text-align: right;
-            font-size: 6.8pt;
-            color: #475569;
-        }
-
-        .client-box {
-            width: 100%;
-            border: 1px solid #cbd5e1;
-            background-color: #ffffff;
-            border-radius: 4px;
-            padding: 6px 10px;
-            margin-bottom: 8px;
-        }
-
-        .section-title {
-            font-size: 7.2pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #102846;
-            border-bottom: 1px solid #E7ECF2;
-            padding-bottom: 2px;
-            margin-bottom: 4px;
-            letter-spacing: 0.4px;
-        }
-
-        /* Financial Cards Table */
-        .cards-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-        }
-
-        .cards-table td {
-            width: 16.66%;
-            padding: 5px 3px;
+        .titulo {
             text-align: center;
-            border-radius: 4px;
-            border: 1px solid #cbd5e1;
-        }
-
-        .card-contract { background-color: #E7ECF2; }
-        .card-paid { background-color: #eaf5ec; border-color: #a3d9ad !important; }
-        .card-pending { background-color: #fcedeb; border-color: #f1aeb5 !important; }
-        .card-stat { background-color: #f8fafc; }
-
-        .card-label {
-            font-size: 5.8pt;
+            font-size: 12pt;
             font-weight: bold;
             text-transform: uppercase;
-            color: #475569;
-            margin-bottom: 2px;
+            letter-spacing: 1.5px;
+            margin: 8px 0 2px 0;
         }
 
-        .card-amount {
-            font-size: 8.8pt;
-            font-weight: bold;
-            font-family: 'DejaVu Sans Mono', monospace;
+        .ref {
+            text-align: center;
+            font-size: 8pt;
+            color: #444;
+            margin-bottom: 12px;
         }
 
-        .color-contract { color: #102846; }
-        .color-paid { color: #26733A; }
-        .color-pending { color: #A92323; }
-        .color-stat { color: #0f172a; }
-
-        /* Tables Styling */
-        .report-table {
+        /* Resumen de KPIs */
+        .resumen {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 12px;
+        }
+
+        .resumen td {
+            width: 33.33%;
+            text-align: center;
+            padding: 7px 4px;
+            border: 1px solid #111;
+        }
+
+        .resumen .k {
             font-size: 7pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #444;
+            margin-bottom: 2px;
         }
 
-        .report-table thead {
-            display: table-header-group;
+        .resumen .v {
+            font-size: 11pt;
+            font-weight: bold;
         }
 
-        .report-table th {
-            background-color: #102846;
-            color: #FFFFFF;
+        /* Tabla de Información */
+        .info-grid {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            font-size: 8pt;
+        }
+
+        .info-grid td {
+            width: 50%;
+            vertical-align: top;
+            padding: 0;
+        }
+
+        .info-box {
+            border: 0.75px solid #bbb;
+            padding: 6px 8px;
+        }
+
+        .info-title {
             font-weight: bold;
             text-transform: uppercase;
-            padding: 4px 5px;
-            border: 1px solid #102846;
-            font-size: 6.5pt;
-            letter-spacing: 0.3px;
+            font-size: 7.2pt;
+            border-bottom: 0.5px solid #ddd;
+            padding-bottom: 3px;
+            margin-bottom: 5px;
+            color: #222;
+            letter-spacing: 0.4px;
         }
 
-        .report-table td {
-            padding: 3.5px 5px;
-            border: 1px solid #cbd5e1;
+        .info-row {
+            margin-bottom: 2px;
+            line-height: 1.35;
+        }
+
+        .info-lbl {
+            font-weight: bold;
+            color: #444;
+            display: inline-block;
+            width: 95px;
+        }
+
+        /* Secciones y Tablas */
+        .sec {
+            font-size: 8pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            border-bottom: 0.75px solid #111;
+            padding-bottom: 2px;
+            margin: 12px 0 4px 0;
+        }
+
+        table.t {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8pt;
+        }
+
+        table.t th {
+            text-align: left;
+            font-weight: bold;
+            border-bottom: 0.75px solid #111;
+            padding: 4px 5px;
+            font-size: 7.5pt;
+            text-transform: uppercase;
+        }
+
+        table.t td {
+            padding: 4px 5px;
+            border-bottom: 0.5px solid #ccc;
+        }
+
+        table.t tr.tot td,
+        table.t tfoot td {
+            border-top: 0.75px solid #111;
+            border-bottom: none;
+            font-weight: bold;
+        }
+
+        .r {
+            text-align: right;
+        }
+
+        .c {
+            text-align: center;
+        }
+
+        /* Bloque de Verificación y Seguridad */
+        .verif-box {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 14px;
+            border-top: 0.75px dashed #aaa;
+            padding-top: 8px;
+            page-break-inside: avoid;
+        }
+
+        .verif-box td {
             vertical-align: middle;
         }
 
-        .report-table tr:nth-child(even) {
-            background-color: #f8fafc;
-        }
-
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .font-mono { font-family: 'DejaVu Sans Mono', monospace; }
-
-        .badge-valido {
-            background-color: #eaf5ec;
-            color: #26733A;
-            font-weight: bold;
-            padding: 1px 4px;
-            border-radius: 2px;
-            border: 1px solid #a3d9ad;
-            font-size: 6.2pt;
-            text-transform: uppercase;
-        }
-
-        .badge-anulado {
-            background-color: #fcedeb;
-            color: #A92323;
-            font-weight: bold;
-            padding: 1px 4px;
-            border-radius: 2px;
-            border: 1px solid #f1aeb5;
-            font-size: 6.2pt;
-            text-transform: uppercase;
-            text-decoration: line-through;
-        }
-
-        .badge-contract {
-            padding: 1px 4px;
-            border-radius: 2px;
-            font-size: 6.2pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            border: 1px solid #cbd5e1;
-        }
-
-        /* Footer */
-        .doc-footer {
-            margin-top: 15px;
+        .pie {
+            margin-top: 14px;
+            border-top: 0.75px solid #111;
             padding-top: 5px;
-            border-top: 1px solid #cbd5e1;
-            font-size: 6.5pt;
-            color: #64748b;
-            width: 100%;
+            font-size: 7.5pt;
+            color: #444;
         }
     </style>
 </head>
+
 <body>
+    @php
+        $nombreEmpresa = $empresa->razon_social ?? ($empresa->nombre_comercial ?? 'Mariachi León Guanajuato');
+        $nitEmpresa = $empresa->nit_ruc ?? ($empresa->nit ?? null);
+        $lineaEmpresa = collect([!empty($nitEmpresa) ? 'NIT: ' . $nitEmpresa : null, $empresa->ciudad_pais ?? null])
+            ->filter()
+            ->implode(' · ');
+
+        $liquidado = $saldoPendienteTotal <= 0.01;
+    @endphp
 
     <!-- Encabezado Institucional -->
-    <table class="header-table">
+    <table class="head">
         <tr>
-            <td class="logo-col">
-                @if($logoBase64)
-                    <img src="{{ $logoBase64 }}" alt="Logo Mariachi León">
+            <td style="width: 22%;">
+                @if (!empty($logoBase64))
+                    <img src="{{ $logoBase64 }}" alt="Logo" style="max-width: 80px; max-height: 48px;">
                 @else
-                    <strong style="color:#102846; font-size: 11pt;">MARIACHI LEÓN</strong>
+                    <div style="font-weight: bold; font-size: 11pt;">MARIACHI LEÓN</div>
                 @endif
             </td>
-            <td class="title-col">
-                <div class="company-name">{{ $empresa->razon_social ?? $empresa->nombre_comercial }}</div>
-                <div class="doc-title">ESTADO DE CUENTA E HISTORIAL DE PAGOS DEL CLIENTE</div>
-                <div style="font-size: 7.2pt; color: #64748b; margin-top: 1px;">NIT: {{ $empresa->nit_ruc }} &bull; {{ $empresa->ciudad_pais }}</div>
-            </td>
-            <td class="meta-col">
-                <div><strong>N° Reporte:</strong> EDC-GEN-{{ str_pad($cliente->id, 5, '0', STR_PAD_LEFT) }}</div>
-                <div><strong>Emisión:</strong> {{ $fechaEmision }}</div>
-                <div><strong>Generado por:</strong> {{ $usuarioGenerador }}</div>
+            <td style="width: 78%; text-align: right;">
+                <div class="empresa">{{ $nombreEmpresa }}</div>
+                @if ($lineaEmpresa !== '')
+                    <div class="sub">{{ $lineaEmpresa }}</div>
+                @endif
             </td>
         </tr>
     </table>
 
-    <!-- Datos del Cliente -->
-    <div class="client-box">
-        <table style="width: 100%; border-collapse: collapse; font-size: 7.3pt;">
-            <tr>
-                <td style="width: 50%;">
-                    <span style="font-weight: bold; color: #475569;">Cliente:</span> 
-                    <strong style="color: #0f172a; font-size: 8pt;">{{ $cliente->nombre_completo }}</strong>
-                </td>
-                <td style="width: 25%;">
-                    <span style="font-weight: bold; color: #475569;">CI / NIT:</span> 
-                    <span style="color: #0f172a;">{{ $cliente->ci_nit ?: 'S/N' }}</span>
-                </td>
-                <td style="width: 25%; text-align: right;">
-                    <span style="font-weight: bold; color: #475569;">Estado:</span> 
-                    <strong style="color: {{ $cliente->estado === 'Activo' ? '#26733A' : '#A92323' }};">{{ $cliente->estado }}</strong>
-                </td>
-            </tr>
-            <tr>
-                <td style="padding-top: 2px;">
-                    <span style="font-weight: bold; color: #475569;">Teléfono / Celular:</span> 
-                    <span style="color: #0f172a;">{{ $cliente->telefono ?: ($cliente->whatsapp ?: 'N/A') }}</span>
-                </td>
-                <td style="padding-top: 2px;" colspan="2">
-                    <span style="font-weight: bold; color: #475569;">Correo Electrónico:</span> 
-                    <span style="color: #0f172a;">{{ $cliente->email ?: 'N/A' }}</span>
-                </td>
-            </tr>
-        </table>
+    <div class="titulo">Estado de cuenta general de cliente</div>
+    <div class="ref">
+        Cliente: {{ $cliente->nombre_completo }} · C.I. / NIT: {{ $cliente->ci_nit ?: 'S/N' }}
     </div>
 
-    <!-- Tarjetas de Resumen Financiero Consolidado -->
-    <table class="cards-table">
+    <!-- Resumen Financiero Global -->
+    <table class="resumen">
         <tr>
-            <td class="card-stat">
-                <div class="card-label">Total Contratos</div>
-                <div class="card-amount color-stat">{{ $totalContratos }}</div>
+            <td>
+                <div class="k">Total Contratado</div>
+                <div class="v">Bs {{ number_format($montoContratadoTotal, 2) }}</div>
             </td>
-            <td class="card-contract">
-                <div class="card-label">Monto Contratado</div>
-                <div class="card-amount color-contract">Bs {{ number_format($montoContratadoTotal, 2) }}</div>
+            <td>
+                <div class="k">Total Abonado</div>
+                <div class="v" style="color: #1a6b32;">Bs {{ number_format($totalAbonadoNeto, 2) }}</div>
             </td>
-            <td class="card-paid">
-                <div class="card-label">Total Abonado Neto</div>
-                <div class="card-amount color-paid">Bs {{ number_format($totalAbonadoNeto, 2) }}</div>
-            </td>
-            <td class="card-pending">
-                <div class="card-label">Saldo Pendiente Global</div>
-                <div class="card-amount color-pending">Bs {{ number_format($saldoPendienteTotal, 2) }}</div>
-            </td>
-            <td class="card-stat">
-                <div class="card-label">Pagos Válidos</div>
-                <div class="card-amount color-stat">{{ $cantidadPagosValidosTotal }}</div>
-            </td>
-            <td class="card-stat">
-                <div class="card-label">Último Pago</div>
-                <div class="card-amount color-stat" style="font-size: 7.2pt;">
-                    {{ $ultimoPagoTotal ? $ultimoPagoTotal->fecha_pago->format('d/m/Y') : 'Sin pagos' }}
+            <td>
+                <div class="k">{{ $liquidado ? 'Estado Global' : 'Saldo Pendiente Global' }}</div>
+                <div class="v" style="color: {{ $liquidado ? '#1a6b32' : '#a01515' }};">
+                    {{ $liquidado ? 'Al día (Liquidado)' : 'Bs ' . number_format($saldoPendienteTotal, 2) }}
                 </div>
             </td>
         </tr>
     </table>
 
-    <!-- TABLA 1: Resumen de Contratos del Cliente -->
-    <div style="font-size: 7.8pt; font-weight: bold; color: #102846; margin-bottom: 3px; text-transform: uppercase;">
-        1. Resumen de Contratos Registrados (Monto Actual, Pagado y Saldo)
-    </div>
-
-    <table class="report-table">
-        <thead>
-            <tr>
-                <th style="width: 5%;">N°</th>
-                <th style="width: 14%;">Contrato</th>
-                <th style="width: 12%;">Fecha</th>
-                <th style="width: 25%;">Servicio / Evento</th>
-                <th style="width: 15%; text-align: right;">Monto Actual (Bs)</th>
-                <th style="width: 15%; text-align: right;">Monto Pagado (Bs)</th>
-                <th style="width: 14%; text-align: right;">Saldo (Bs)</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($contratos as $idx => $c)
-                @php
-                    $abonadoContrato = $c->pagos->where('estado', 'Valido')->sum('monto');
-                    $saldoContrato = max(0, $c->monto_total - $abonadoContrato);
-                @endphp
-                <tr>
-                    <td class="text-center font-mono">{{ $idx + 1 }}</td>
-                    <td class="text-center font-mono font-bold">{{ $c->numero_contrato }}</td>
-                    <td class="text-center">{{ $c->fecha_contrato ? $c->fecha_contrato->format('d/m/Y') : '-' }}</td>
-                    <td>{{ $c->servicio ? $c->servicio->nombre : 'Servicio Musical' }}</td>
-                    <td class="text-right font-mono">{{ number_format($c->monto_total, 2) }}</td>
-                    <td class="text-right font-mono color-paid font-bold">{{ number_format($abonadoContrato, 2) }}</td>
-                    <td class="text-right font-mono color-pending font-bold">{{ number_format($saldoContrato, 2) }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="7" class="text-center" style="padding: 10px; color: #64748b;">
-                        El cliente no tiene contratos registrados en el sistema.
-                    </td>
-                </tr>
-            @endforelse
-        </tbody>
-        @if(count($contratos) > 0)
-            <tfoot>
-                <tr style="background-color: #E7ECF2; font-weight: bold;">
-                    <td colspan="4" class="text-right" style="padding: 4px;">TOTALES CONSOLIDADOS:</td>
-                    <td class="text-right font-mono color-contract" style="padding: 4px;">Bs {{ number_format($montoContratadoTotal, 2) }}</td>
-                    <td class="text-right font-mono color-paid" style="padding: 4px;">Bs {{ number_format($totalAbonadoNeto, 2) }}</td>
-                    <td class="text-right font-mono color-pending" style="padding: 4px;">Bs {{ number_format($saldoPendienteTotal, 2) }}</td>
-                </tr>
-            </tfoot>
-        @endif
-    </table>
-
-    <!-- TABLA 2: Historial Consolidado de Pagos -->
-    <div style="font-size: 7.8pt; font-weight: bold; color: #102846; margin-top: 10px; margin-bottom: 3px; text-transform: uppercase;">
-        2. Historial de Pagos Realizados por Contrato
-    </div>
-
-    <table class="report-table">
-        <thead>
-            <tr>
-                <th style="width: 4%;">N°</th>
-                <th style="width: 12%;">Recibo</th>
-                <th style="width: 12%;">Contrato Asociado</th>
-                <th style="width: 13%;">Fecha y Hora</th>
-                <th style="width: 23%;">Detalle o Concepto</th>
-                <th style="width: 12%; text-align: right;">Monto Pagado (Bs)</th>
-                <th style="width: 10%;">Método</th>
-                <th style="width: 8%;">Estado</th>
-                <th style="width: 6%;">Cobrador</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($pagos as $index => $p)
-                <tr>
-                    <td class="text-center font-mono">{{ $index + 1 }}</td>
-                    <td class="text-center font-mono font-bold">{{ $p->numero_recibo }}</td>
-                    <td class="text-center font-mono" style="font-size: 6.5pt;">{{ $p->contrato ? $p->contrato->numero_contrato : 'N/A' }}</td>
-                    <td class="text-center">{{ $p->fecha_pago ? $p->fecha_pago->format('d/m/Y H:i') : '-' }}</td>
-                    <td>{{ $p->observaciones ?: 'Abono a cuenta por servicio musical' }}</td>
-                    <td class="text-right font-mono font-bold {{ $p->estado === 'Anulado' ? 'badge-anulado' : 'color-paid' }}">
-                        {{ number_format($p->monto, 2) }}
-                    </td>
-                    <td class="text-center">{{ $p->metodo_pago }}</td>
-                    <td class="text-center">
-                        @if($p->estado === 'Valido')
-                            <span class="badge-valido">Válido</span>
-                        @else
-                            <span class="badge-anulado">Anulado</span>
-                        @endif
-                    </td>
-                    <td class="text-center" style="font-size: 6.2pt;">{{ $p->user ? $p->user->name : 'Sistema' }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="9" class="text-center" style="padding: 10px; color: #64748b;">
-                        No se registran pagos en el rango seleccionado.
-                    </td>
-                </tr>
-            @endforelse
-        </tbody>
-        @if(count($pagos) > 0)
-            <tfoot>
-                <tr style="background-color: #E7ECF2; font-weight: bold;">
-                    <td colspan="5" class="text-right" style="padding: 4px;">TOTAL ABONADO NETO EN HISTORIAL:</td>
-                    <td class="text-right font-mono color-paid" style="padding: 4px;">
-                        Bs {{ number_format($totalAbonadoNeto, 2) }}
-                    </td>
-                    <td colspan="3"></td>
-                </tr>
-            </tfoot>
-        @endif
-    </table>
-
-    <!-- Bloque de Seguridad y Validación QR en la Parte Inferior Derecha -->
-    <table style="width: 100%; margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 8px; page-break-inside: avoid;">
+    <!-- Ficha de Datos del Cliente -->
+    <table class="info-grid">
         <tr>
-            <td style="width: 75%; vertical-align: middle; padding-right: 15px;">
-                <div style="font-size: 8pt; font-weight: bold; color: #102846; text-transform: uppercase; margin-bottom: 3px;">
-                    🛡️ Verificación de Autenticidad y Validez Oficial
+            <td style="padding-right: 5px;">
+                <div class="info-box">
+                    <div class="info-title">Datos del Cliente</div>
+                    <div class="info-row"><span class="info-lbl">Nombre:</span> <strong>{{ $cliente->nombre_completo }}</strong></div>
+                    <div class="info-row"><span class="info-lbl">C.I. / NIT:</span> {{ $cliente->ci_nit ?: 'S/N' }}</div>
+                    <div class="info-row"><span class="info-lbl">Teléfono:</span> {{ $cliente->telefono ?: ($cliente->whatsapp ?: 'S/N') }}</div>
+                    <div class="info-row"><span class="info-lbl">Correo:</span> {{ $cliente->email ?: 'S/N' }}</div>
                 </div>
-                <div style="font-size: 6.8pt; color: #475569; line-height: 1.35;">
-                    Documento financiero oficial de <strong>{{ $empresa->nombre_comercial ?? 'Mariachi León Guanajuato' }}</strong>. 
-                    Escanee el código QR adjunto para verificar la validez e integridad del estado de cuenta general del cliente en tiempo real.
+            </td>
+            <td style="padding-left: 5px;">
+                <div class="info-box">
+                    <div class="info-title">Resumen de Cuenta</div>
+                    <div class="info-row"><span class="info-lbl">Contratos:</span> <strong>{{ $totalContratos }} contrato(s) registrado(s)</strong></div>
+                    <div class="info-row"><span class="info-lbl">Pagos Válidos:</span> {{ $cantidadPagosValidosTotal }} movimiento(s)</div>
+                    <div class="info-row"><span class="info-lbl">Último Pago:</span> {{ $ultimoPagoTotal ? \Carbon\Carbon::parse($ultimoPagoTotal->fecha_pago)->format('d/m/Y') : 'Sin pagos registrados' }}</div>
+                    <div class="info-row"><span class="info-lbl">Emisión:</span> {{ $fechaEmision }}</div>
                 </div>
-                <table style="width: 100%; margin-top: 5px; font-size: 6.5pt; color: #334155; border-collapse: collapse;">
+            </td>
+        </tr>
+    </table>
+
+    <!-- Resumen de Contratos del Cliente (si existen) -->
+    @if($contratos->count() > 0)
+        <div class="sec">Contratos del cliente ({{ $totalContratos }})</div>
+        <table class="t">
+            <thead>
+                <tr>
+                    <th style="width: 18%;">N° Contrato</th>
+                    <th style="width: 14%;">Fecha</th>
+                    <th style="width: 26%;">Servicio</th>
+                    <th class="r" style="width: 14%;">Monto</th>
+                    <th class="r" style="width: 14%;">Abonado</th>
+                    <th class="r" style="width: 14%;">Saldo</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($contratos as $ct)
+                    @php
+                        $montoCt = (float)$ct->monto_total;
+                        $abonadoCt = (float)$ct->pagos->where('estado', 'Valido')->sum('monto');
+                        $saldoCt = max(0.0, $montoCt - $abonadoCt);
+                    @endphp
                     <tr>
-                        <td style="padding: 1.5px 0;"><strong>Fecha y Hora de Emisión:</strong> {{ $fechaEmision }}</td>
-                        <td style="padding: 1.5px 0;"><strong>Generado por:</strong> {{ $usuarioGenerador }}</td>
-                    </tr>
-                    @if(isset($token))
-                    <tr>
-                        <td colspan="2" style="padding: 1.5px 0; font-family: monospace; color: #64748b; font-size: 6pt;">
-                            TOKEN DE SEGURIDAD: {{ $token }}
+                        <td><strong>{{ $ct->numero_contrato }}</strong></td>
+                        <td>{{ $ct->fecha_contrato ? \Carbon\Carbon::parse($ct->fecha_contrato)->format('d/m/Y') : '-' }}</td>
+                        <td>{{ $ct->servicio->nombre ?? 'Servicio Musical' }}</td>
+                        <td class="r">Bs {{ number_format($montoCt, 2) }}</td>
+                        <td class="r" style="color: #1a6b32;">Bs {{ number_format($abonadoCt, 2) }}</td>
+                        <td class="r" style="font-weight: bold; color: {{ $saldoCt <= 0.01 ? '#1a6b32' : '#a01515' }};">
+                            Bs {{ number_format($saldoCt, 2) }}
                         </td>
                     </tr>
-                    @endif
-                </table>
-            </td>
-            <td style="width: 25%; text-align: right; vertical-align: middle;">
-                <div style="display: inline-block; text-align: center; border: 1px solid #cbd5e1; padding: 4px; border-radius: 4px; background: #ffffff;">
-                    @if(isset($qrBase64))
-                        <img src="{{ $qrBase64 }}" style="width: 75px; height: 75px;" alt="Código QR de Verificación">
-                    @endif
-                    <div style="font-size: 5.5pt; font-weight: bold; color: #102846; margin-top: 2px; text-transform: uppercase;">
-                        Escanear para verificar
-                    </div>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    <!-- Detalle Consolidado de Cobros y Movimientos -->
+    <div class="sec">Detalle consolidado de cobros y movimientos</div>
+
+    <table class="t">
+        <thead>
+            <tr>
+                <th style="width: 13%;">Fecha</th>
+                <th style="width: 15%;">Recibo</th>
+                <th style="width: 18%;">Contrato</th>
+                <th style="width: 14%;">Método</th>
+                <th class="r" style="width: 20%;">Importe</th>
+                <th class="r" style="width: 20%;">Saldo Acumulado</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($pagos as $p)
+                @php $anulado = $p->estado === 'Anulado'; @endphp
+                <tr @if($anulado) style="color: #888;" @endif>
+                    <td>{{ $p->fecha_pago ? \Carbon\Carbon::parse($p->fecha_pago)->format('d/m/Y') : '-' }}</td>
+                    <td>
+                        <strong>{{ $p->numero_recibo }}</strong>
+                        @if($anulado)
+                            <span style="font-size: 7pt; color: #a01515;">(Anulado)</span>
+                        @endif
+                    </td>
+                    <td>{{ $p->contrato->numero_contrato ?? '-' }}</td>
+                    <td>{{ $p->metodo_pago }}</td>
+                    <td class="r" @if($anulado) style="text-decoration: line-through;" @endif>
+                        Bs {{ number_format($p->monto, 2) }}
+                    </td>
+                    <td class="r" style="font-weight: bold; color: {{ ($p->saldo_posterior ?? 0) <= 0.01 ? '#1a6b32' : '#111' }};">
+                        Bs {{ number_format($p->saldo_posterior ?? 0, 2) }}
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="6" class="c" style="padding: 12px; color: #666;">
+                        No se registran cobros ni movimientos para este cliente.
+                    </td>
+                </tr>
+            @endforelse
+            @if(count($pagos) > 0)
+                <tr class="tot">
+                    <td colspan="4">Total abonado consolidado válido</td>
+                    <td class="r" style="color: #1a6b32;">Bs {{ number_format($totalAbonadoNeto, 2) }}</td>
+                    <td class="r" style="color: {{ $liquidado ? '#1a6b32' : '#a01515' }};">
+                        Bs {{ number_format($saldoPendienteTotal, 2) }}
+                    </td>
+                </tr>
+            @endif
+        </tbody>
+    </table>
+
+    <!-- Bloque de Seguridad y Validación QR -->
+    <table class="verif-box">
+        <tr>
+            <td style="width: 78%; padding-right: 15px;">
+                <div style="font-size: 7.5pt; font-weight: bold; text-transform: uppercase; margin-bottom: 2px;">
+                    Verificación de Autenticidad y Validez Oficial
+                </div>
+                <div style="font-size: 7pt; color: #444; line-height: 1.35;">
+                    Documento oficial emitido por el Sistema de Gestión de <strong>{{ $nombreEmpresa }}</strong>.
+                    Escanee el código QR adjunto para constatar la autenticidad e integridad de este estado de cuenta en tiempo real.
+                </div>
+                <div style="font-size: 6.8pt; color: #666; margin-top: 3px;">
+                    Código de verificación: {{ $token }} · Emisión: {{ $fechaEmision }}
                 </div>
             </td>
+            <td style="width: 22%; text-align: right;">
+                @if(!empty($qrBase64))
+                    <div style="display: inline-block; text-align: center; border: 0.75px solid #bbb; padding: 4px; background: #fff;">
+                        <img src="{{ $qrBase64 }}" style="width: 65px; height: 65px;" alt="Código QR de Verificación">
+                        <div style="font-size: 5.5pt; font-weight: bold; text-transform: uppercase; margin-top: 2px; color: #333;">
+                            Validación
+                        </div>
+                    </div>
+                @endif
+            </td>
         </tr>
     </table>
 
-    <!-- Pie del Documento -->
-    <table class="doc-footer">
-        <tr>
-            <td style="width: 60%;">
-                Documento de consulta oficial emitido por el Sistema de Gestión de <strong>{{ $empresa->nombre_comercial }}</strong>.<br>
-                Cualquier discrepancia debe ser informada al área de administración.
-            </td>
-            <td style="width: 40%; text-align: right;">
-                Impreso: {{ $fechaEmision }}
-            </td>
-        </tr>
-    </table>
+    <div class="pie">
+        Generado por {{ $usuarioGenerador }} el {{ $fechaEmision }}.
+    </div>
 
 </body>
+
 </html>
