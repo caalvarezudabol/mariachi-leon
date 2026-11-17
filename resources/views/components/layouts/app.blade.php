@@ -172,21 +172,30 @@
         });
     </script>
     @livewireStyles
+    {{-- Estado del menú en un store global: el menú lateral es @persist y sobrevive a wire:navigate,
+         así que no puede depender del x-data del <body> (que se reemplaza en cada navegación). --}}
+    <script>
+        document.addEventListener('alpine:init', () => {
+            if (!Alpine.store('ui')) Alpine.store('ui', {
+                sidebar: false
+            });
+        });
+    </script>
 </head>
 
-<body class="h-full bg-surface-page text-ink-primary font-sans antialiased" x-data="{ sidebarOpen: false }"
-    x-on:livewire:navigated.window="sidebarOpen = false">
+<body class="h-full bg-surface-page text-ink-primary font-sans antialiased" x-data
+    x-on:livewire:navigated.window="$store.ui.sidebar = false">
 
     <div class="min-h-screen flex flex-col md:flex-row">
         <!-- Sidebar Mobile Overlay -->
-        <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
+        <div x-show="$store.ui.sidebar" x-cloak @click="$store.ui.sidebar = false"
             class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"></div>
 
         <!-- Sidebar Navigation (persistida: no se vuelve a renderizar entre navegaciones wire:navigate) -->
         @persist('sidebar')
-            <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+            <aside :class="$store.ui.sidebar ? 'translate-x-0' : '-translate-x-full'"
                 class="fixed md:sticky md:top-0 md:h-screen shrink-0 inset-y-0 left-0 z-50 w-64 bg-surface-card border-r border-outline flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0"
-                @click="if ($event.target.closest('a[href]')) sidebarOpen = false">
+                @click="if ($event.target.closest('a[href]')) $store.ui.sidebar = false">
                 <!-- Brand Logo -->
                 @php $empresaGlobal = $empresaFavicon; @endphp
                 <div class="h-16 flex items-center justify-between px-5 border-b border-outline">
@@ -218,7 +227,7 @@
                                 {{ $empresaGlobal->ciudad_pais ?? 'Guanajuato • Bolivia' }}</p>
                         </div>
                     </div>
-                    <button @click="sidebarOpen = false" class="md:hidden text-ink-muted hover:text-ink-primary">
+                    <button @click="$store.ui.sidebar = false" class="md:hidden text-ink-muted hover:text-ink-primary">
                         <i class="fa-solid fa-xmark text-xl"></i>
                     </button>
                 </div>
@@ -638,7 +647,7 @@
             <header
                 class="h-16 bg-surface-card border-b border-outline px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
                 <div class="flex items-center gap-4">
-                    <button @click="sidebarOpen = true"
+                    <button @click="$store.ui.sidebar = true"
                         class="md:hidden text-ink-secondary hover:text-ink-primary p-2 rounded-lg bg-surface-sunken border border-outline">
                         <i class="fa-solid fa-bars text-lg"></i>
                     </button>
