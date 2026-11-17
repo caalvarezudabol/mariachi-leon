@@ -19,6 +19,9 @@
 @endphp
 
 <div class="space-y-3">
+    {{-- Situación de hoy (caja, deuda al personal, egresos del mes...) --}}
+    <x-ui.situacion-actual />
+
     <x-ui.panel>
         {{-- Cabecera --}}
         <x-slot:header>
@@ -105,12 +108,13 @@
                     </div>
                     <div class="rounded-lg border border-outline bg-surface-sunken px-3 py-2">
                         <div class="flex items-center justify-between text-xs text-ink-secondary">
-                            <span>Costos y gastos</span>
+                            <span>Costos del período</span>
                             <i class="fa-solid fa-arrow-trend-down text-rose-600 dark:text-rose-400"></i>
                         </div>
                         <div class="text-xl font-semibold tabular-nums text-rose-700 dark:text-rose-400">Bs
                             {{ number_format($kpis['costos_totales_reconocidos'], 2) }}</div>
-                        <div class="text-xs text-ink-secondary">Músicos + gastos de eventos + operativos</div>
+                        <div class="text-xs text-ink-secondary">Músicos asignados + gastos (aunque no se hayan pagado)
+                        </div>
                     </div>
                     <div class="rounded-lg border border-outline bg-surface-sunken px-3 py-2">
                         <div class="flex items-center justify-between text-xs text-ink-secondary">
@@ -175,7 +179,7 @@
                         </h2>
                         <dl class="px-3 divide-y divide-outline text-sm">
                             <div class="flex items-center justify-between gap-3 py-2">
-                                <dt class="text-ink-secondary">Asignado a músicos</dt>
+                                <dt class="text-ink-secondary">Asignado a músicos (shows del período)</dt>
                                 <dd class="tabular-nums font-semibold text-ink-primary">Bs
                                     {{ number_format($kpis['total_asignado_participantes'], 2) }}</dd>
                             </div>
@@ -185,7 +189,7 @@
                                     {{ number_format($kpis['total_pagado_participantes'], 2) }}</dd>
                             </div>
                             <div class="flex items-center justify-between gap-3 py-2">
-                                <dt class="text-ink-secondary">Saldo por pagar a músicos</dt>
+                                <dt class="text-ink-secondary">Saldo por pagar (solo este período)</dt>
                                 <dd class="tabular-nums font-semibold text-rose-700 dark:text-rose-400">Bs
                                     {{ number_format($kpis['saldo_pendiente_participantes'], 2) }}</dd>
                             </div>

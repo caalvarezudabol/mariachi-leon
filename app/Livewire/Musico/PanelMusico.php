@@ -120,19 +120,31 @@ class PanelMusico extends Component
         }
 
         // ---- Mis pagos ----
-        $asignadoQ = DB::table('evento_participantes as ep')
-            ->join('eventos as e', 'e.id', '=', 'ep.evento_id')
-            ->where('ep.persona_id', $persona->id)
-            ->where('e.estado', '!=', 'Cancelado');
-
-        $totalShows = (clone $asignadoQ)->count();
-        $asignado = $esMensual ? (float) $persona->sueldo_mensual : (float) (clone $asignadoQ)->sum('ep.monto_asignado');
-
-        $pagosQ = DB::table('pagos_participantes as pp')
+        // Por evento: solo se ve la SEMANA que se está mirando (shows de esa semana y lo pagado por ellos).
+        // Mensualista: su sueldo del mes.
+        $pagosBase = DB::table('pagos_participantes as pp')
             ->leftJoin('evento_participantes as ep', 'ep.id', '=', 'pp.evento_participante_id')
-            ->where('pp.estado', 'Valido')
-            ->whereRaw('COALESCE(pp.persona_id, ep.persona_id) = ?', [$persona->id])
-            ->when($esMensual, fn($q) => $q->where('pp.fecha_pago', '>=', now()->startOfMonth()->toDateTimeString()));
+            ->where('pp.estado', 'Valido');
+
+        if ($esMensual) {
+            $totalShows = DB::table('evento_participantes as ep')
+                ->join('eventos as e', 'e.id', '=', 'ep.evento_id')
+                ->where('ep.persona_id', $persona->id)->where('e.estado', '!=', 'Cancelado')->count();
+            $asignado = (float) $persona->sueldo_mensual;
+            $pagosQ = $pagosBase
+                ->whereRaw('COALESCE(pp.persona_id, ep.persona_id) = ?', [$persona->id])
+                ->where('pp.fecha_pago', '>=', now()->startOfMonth()->toDateTimeString());
+        } else {
+            $epSemana = DB::table('evento_participantes as ep')
+                ->join('eventos as e', 'e.id', '=', 'ep.evento_id')
+                ->where('ep.persona_id', $persona->id)
+                ->where('e.estado', '!=', 'Cancelado')
+                ->whereBetween('e.fecha_evento', [$ini->toDateString(), $fin->toDateString()]);
+            $totalShows = (clone $epSemana)->count();
+            $asignado = (float) (clone $epSemana)->sum('ep.monto_asignado');
+            $idsSemana = (clone $epSemana)->pluck('ep.id');
+            $pagosQ = $pagosBase->whereIn('pp.evento_participante_id', $idsSemana);
+        }
 
         $recibido = (float) (clone $pagosQ)->sum('pp.monto');
         $saldo = round($asignado - $recibido, 2);
@@ -147,10 +159,10 @@ class PanelMusico extends Component
         if (!$esMensual && $this->tab === 'pagos') {
             $showsPago = EventoParticipante::with(['evento.cliente', 'evento.servicio'])
                 ->where('persona_id', $persona->id)
-                ->whereHas('evento', fn($q) => $q->where('estado', '!=', 'Cancelado'))
+                ->whereHas('evento', fn($q) => $q->where('estado', '!=', 'Cancelado')
+                    ->whereBetween('fecha_evento', [$ini->toDateString(), $fin->toDateString()]))
                 ->get()
-                ->sortByDesc(fn($ep) => $ep->evento->fecha_evento)
-                ->take(20)
+                ->sortBy(fn($ep) => $ep->evento->fecha_evento)
                 ->values();
         }
 

@@ -20,7 +20,9 @@ class GestionPagosPersonal extends Component
 
     // Filtros
     public $search = '';
-    public $filtro = 'pendientes'; // pendientes | hoy | semana | mes | todos
+    public $filtro = 'fechas'; // pendientes | fechas | todos
+    public $desde = '';
+    public $hasta = '';
 
     // Filas desplegadas (ids de persona)
     public $abiertos = [];
@@ -39,6 +41,7 @@ class GestionPagosPersonal extends Component
 
     public function mount()
     {
+        $this->rangoSemana();
         abort_unless($this->puedeGestionar(), 403);
     }
 
@@ -70,6 +73,101 @@ class GestionPagosPersonal extends Component
             ->selectRaw('COALESCE(pp.persona_id, ep.persona_id) as pid, SUM(pp.monto) as total')
             ->groupByRaw('COALESCE(pp.persona_id, ep.persona_id)')
             ->pluck('total', 'pid');
+    }
+
+    // Si cambia una fecha a mano, se vuelve a la vista por fechas
+    public function updatedDesde()
+    {
+        $this->filtro = 'fechas';
+    }
+
+    public function updatedHasta()
+    {
+        $this->filtro = 'fechas';
+    }
+
+    // ---- Rango de fechas (por defecto: la semana actual, lunes a domingo) ----
+    public function rangoSemana()
+    {
+        $this->filtro = 'fechas';
+        $this->desde = now()->startOfWeek()->toDateString();
+        $this->hasta = now()->endOfWeek()->toDateString();
+    }
+
+    public function rangoHoy()
+    {
+        $this->desde = $this->hasta = now()->toDateString();
+    }
+
+    public function rangoMes()
+    {
+        $this->desde = now()->startOfMonth()->toDateString();
+        $this->hasta = now()->endOfMonth()->toDateString();
+    }
+
+    // Mueve el rango hacia atrás (-1) o adelante (+1) tanto como dure (una semana si es una semana)
+    public function moverRango($dir)
+    {
+        $this->filtro = 'fechas';
+        [$d, $h] = $this->rangoActual();
+        $dias = $d->diffInDays($h) + 1;
+        if ($d->isSameDay($d->copy()->startOfMonth()) && $h->isSameDay($d->copy()->endOfMonth())) {
+            $nd = $d->copy()->addMonthsNoOverflow((int) $dir)->startOfMonth();
+            $this->desde = $nd->toDateString();
+            $this->hasta = $nd->copy()->endOfMonth()->toDateString();
+            return;
+        }
+        $this->desde = $d->copy()->addDays($dias * (int) $dir)->toDateString();
+        $this->hasta = $h->copy()->addDays($dias * (int) $dir)->toDateString();
+    }
+
+    private function rangoActual(): array
+    {
+        try {
+            $d = Carbon::parse($this->desde)->startOfDay();
+            $h = Carbon::parse($this->hasta)->startOfDay();
+        } catch (\Throwable $e) {
+            $d = now()->startOfWeek()->startOfDay();
+            $h = now()->endOfWeek()->startOfDay();
+        }
+        if ($h->lt($d)) {
+            [$d, $h] = [$h, $d];
+        }
+        return [$d, $h];
+    }
+
+    /** Por persona (no mensualistas): lo asignado, lo pagado por esos shows y la cantidad, dentro de un periodo. */
+    private function periodoPorPersona(Carbon $desde, Carbon $hasta): array
+    {
+        $filas = DB::table('evento_participantes as ep')
+            ->join('eventos as e', 'e.id', '=', 'ep.evento_id')
+            ->leftJoin('pagos_participantes as pp', function ($j) {
+                $j->on('pp.evento_participante_id', '=', 'ep.id')->where('pp.estado', 'Valido');
+            })
+            ->where('e.estado', '!=', 'Cancelado')
+            ->whereBetween('e.fecha_evento', [$desde->toDateString(), $hasta->toDateString()])
+            ->selectRaw('ep.persona_id as pid, COUNT(DISTINCT ep.id) as shows, COALESCE(SUM(pp.monto),0) as pagado')
+            ->groupBy('ep.persona_id')
+            ->get();
+
+        // El asignado se suma aparte para no duplicar filas por varios pagos del mismo show
+        $asignado = DB::table('evento_participantes as ep')
+            ->join('eventos as e', 'e.id', '=', 'ep.evento_id')
+            ->where('e.estado', '!=', 'Cancelado')
+            ->whereBetween('e.fecha_evento', [$desde->toDateString(), $hasta->toDateString()])
+            ->selectRaw('ep.persona_id as pid, SUM(ep.monto_asignado) as total')
+            ->groupBy('ep.persona_id')
+            ->pluck('total', 'pid');
+
+        $out = [];
+        foreach ($filas as $f) {
+            $out[$f->pid] = [
+                'shows' => (int) $f->shows,
+                'deuda' => (float) ($asignado[$f->pid] ?? 0),
+                'pagado' => (float) $f->pagado,
+            ];
+        }
+        return $out;
     }
 
     /** Resumen por persona: asignado, pagado, saldo (positivo = se le debe, negativo = anticipo por descontar). */
@@ -116,7 +214,7 @@ class GestionPagosPersonal extends Component
     //  Pagar / anticipo
     // ------------------------------------------------------------------
 
-    public function abrir($personaId, $modo = 'pago')
+    public function abrir($personaId, $modo = 'pago', $sugerido = null)
     {
         $fila = $this->resumen()->firstWhere('id', (int) $personaId);
         abort_unless($fila, 404);
@@ -126,7 +224,9 @@ class GestionPagosPersonal extends Component
         $this->modo = $modo === 'anticipo' || $fila->saldo <= 0 ? 'anticipo' : 'pago';
         $this->metodo = 'Efectivo';
         $this->fondo = '';
-        $this->monto = $this->modo === 'pago' ? number_format($fila->saldo, 2, '.', '') : '';
+        $this->monto = $this->modo === 'pago'
+            ? number_format(is_numeric($sugerido) && (float) $sugerido > 0 ? min((float) $sugerido, $fila->saldo) : $fila->saldo, 2, '.', '')
+            : '';
         $this->modalOpen = true;
     }
 
@@ -356,30 +456,46 @@ class GestionPagosPersonal extends Component
         $todas = $this->resumen();
 
         // Cuántas hay en cada chip (sobre todo el listado)
-        $hoy = Carbon::today();
-        $idsHoy = $this->idsConShow($hoy, $hoy);
-        $idsSemana = $this->idsConShow($hoy->copy()->startOfWeek(), $hoy->copy()->endOfWeek());
-        $idsMes = $this->idsConShow($hoy->copy()->startOfMonth(), $hoy->copy()->endOfMonth());
+        [$rd, $rh] = $this->rangoActual();
+        $idsRango = $this->idsConShow($rd, $rh);
 
         $conActividad = fn($p) => $p->estado === 'Activo' || abs($p->saldo) > 0.001;
 
         $conteos = [
             'pendientes' => $todas->filter(fn($p) => abs($p->saldo) > 0.001)->count(),
-            'hoy' => $todas->filter(fn($p) => in_array($p->id, $idsHoy))->count(),
-            'semana' => $todas->filter(fn($p) => in_array($p->id, $idsSemana))->count(),
-            'mes' => $todas->filter(fn($p) => in_array($p->id, $idsMes))->count(),
+            'fechas' => $todas->filter(fn($p) => in_array($p->id, $idsRango))->count(),
             'todos' => $todas->filter($conActividad)->count(),
         ];
 
-        $personas = $todas->filter(function ($p) use ($idsHoy, $idsSemana, $idsMes, $conActividad) {
+        $personas = $todas->filter(function ($p) use ($idsRango, $conActividad) {
             return match ($this->filtro) {
                 'pendientes' => abs($p->saldo) > 0.001,
-                'hoy' => in_array($p->id, $idsHoy),
-                'semana' => in_array($p->id, $idsSemana),
-                'mes' => in_array($p->id, $idsMes),
+                'fechas' => in_array($p->id, $idsRango),
                 default => $conActividad($p),
             };
         });
+
+        // Con Hoy / Semana / Mes la cifra de cada persona es la de ese periodo (no el acumulado de siempre)
+        $rango = $this->filtro === 'fechas' ? [$rd, $rh] : null;
+        $semanaActual = $rd->isSameDay(now()->startOfWeek()) && $rh->isSameDay(now()->endOfWeek());
+        $etiquetaPeriodo = $rango
+            ? ($semanaActual ? 'Esta semana' : ($rd->isSameDay($rh) ? $rd->format('d/m/Y') : $rd->format('d/m') . ' al ' . $rh->format('d/m')))
+            : null;
+        $totalPeriodo = null;
+        if ($rango) {
+            $per = $this->periodoPorPersona($rango[0], $rango[1]);
+            $personas = $personas->map(function ($p) use ($per) {
+                if (!$p->es_mensual) {
+                    $x = $per[$p->id] ?? ['shows' => 0, 'deuda' => 0.0, 'pagado' => 0.0];
+                    $p->shows_ver = $x['shows'];
+                    $p->entregado_ver = $x['pagado'];
+                    $p->saldo_ver = round($x['deuda'] - $x['pagado'], 2);
+                }
+                return $p;
+            });
+            $totalPeriodo = (float) $personas->filter(fn($p) => isset($p->saldo_ver) && $p->saldo_ver > 0)->sum('saldo_ver')
+                + (float) $personas->filter(fn($p) => $p->es_mensual && $p->saldo > 0)->sum('saldo');
+        }
 
         if (trim($this->search) !== '') {
             $term = mb_strtolower(trim($this->search));
@@ -414,6 +530,8 @@ class GestionPagosPersonal extends Component
         return view('livewire.comercial.gestion-pagos-personal', [
             'personas' => $personas->values(),
             'conteos' => $conteos,
+            'etiquetaPeriodo' => $etiquetaPeriodo,
+            'totalPeriodo' => $totalPeriodo,
             'detalle' => $detalle,
             'modalFila' => $modalFila,
             'caja' => $caja,

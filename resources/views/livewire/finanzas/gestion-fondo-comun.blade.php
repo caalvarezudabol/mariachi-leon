@@ -27,7 +27,6 @@
         </div>
     @endif
 
-    <x-ui.caja-resumen />
 
     <x-ui.panel>
         <x-slot:header>

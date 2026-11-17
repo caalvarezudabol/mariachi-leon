@@ -98,15 +98,6 @@
             'tono' => 'text-sky-700 dark:text-sky-400',
             'href' => route('admin.contratos'),
         ];
-        $stats[] = [
-            'label' => 'Pendiente a personal',
-            'valor' => 'Bs ' . number_format($deudaPersonal, 2),
-            'sub' => $deudaPersonal > 0 ? 'por pagar a músicos' : 'todo al día',
-            'icon' => 'fa-hand-holding-dollar',
-            'tono' =>
-                $deudaPersonal > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400',
-            'href' => route('admin.pagos-personal'),
-        ];
     }
     $stats[] = ['label' => 'Eventos del mes', 'valor' => $eventosMes, 'href' => route('admin.agenda')];
     $stats[] = [

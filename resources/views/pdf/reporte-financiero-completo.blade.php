@@ -186,7 +186,7 @@
                 <div class="v">Bs {{ number_format($kpis['total_ingresos_consolidados'], 2) }}</div>
             </td>
             <td>
-                <div class="k">Egresos</div>
+                <div class="k">Egresos (asignados)</div>
                 <div class="v">Bs {{ number_format($kpis['costos_totales_reconocidos'], 2) }}</div>
             </td>
             <td>
@@ -218,7 +218,7 @@
     <table class="t">
         <tbody>
             <tr>
-                <td>Personal (músicos, transporte)</td>
+                <td>Personal asignado (músicos, transporte)</td>
                 <td class="r">{{ number_format($kpis['total_asignado_participantes'], 2) }}</td>
             </tr>
             <tr>
@@ -230,7 +230,7 @@
                 <td class="r">{{ number_format($kpis['total_gastos_operativos'], 2) }}</td>
             </tr>
             <tr class="tot">
-                <td>Total egresos</td>
+                <td>Total egresos asignados</td>
                 <td class="r">{{ number_format($kpis['costos_totales_reconocidos'], 2) }}</td>
             </tr>
         </tbody>
@@ -244,7 +244,7 @@
                 <td class="r">{{ number_format($kpis['saldo_pendiente_clientes'], 2) }}</td>
             </tr>
             <tr>
-                <td>Por pagar al personal</td>
+                <td>Por pagar al personal (de este período)</td>
                 <td class="r">{{ number_format($kpis['saldo_pendiente_participantes'], 2) }}</td>
             </tr>
             <tr>

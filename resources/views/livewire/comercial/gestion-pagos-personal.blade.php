@@ -35,40 +35,65 @@
         </x-slot:header>
 
         <x-slot:filters>
-            <div class="flex flex-col lg:flex-row lg:items-center gap-2">
-                <div class="relative flex-1 min-w-0">
+            <div class="flex flex-wrap lg:flex-nowrap items-center gap-1.5">
+                <div class="relative flex-1 min-w-[150px]">
                     <i
                         class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted text-xs"></i>
                     <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar persona..."
-                        class="w-full h-9 pl-8 pr-3 bg-surface-sunken border border-outline rounded-lg text-sm text-ink-primary placeholder:text-ink-muted focus:border-gold-500 focus:outline-none transition-colors">
+                        class="w-full h-8 pl-8 pr-3 bg-surface-sunken border border-outline rounded-lg text-sm text-ink-primary placeholder:text-ink-muted focus:border-gold-500 focus:outline-none transition-colors">
+                </div>
+                @php
+                    $porFechas = $filtro === 'fechas';
+                    $esSemanaActual =
+                        $desde === now()->startOfWeek()->toDateString() &&
+                        $hasta === now()->endOfWeek()->toDateString();
+                @endphp
+                <div class="flex items-center gap-1.5 shrink-0 transition-opacity {{ $porFechas ? '' : 'opacity-40' }}">
+                    <button type="button" wire:click="moverRango(-1)"
+                        class="w-8 h-8 shrink-0 rounded-lg bg-surface-sunken border border-outline text-ink-primary"
+                        title="Anterior"><i class="fa-solid fa-chevron-left"></i></button>
+                    <input type="date" wire:model.live="desde"
+                        class="h-8 w-[8.6rem] px-1.5 bg-surface-sunken border border-outline rounded-lg text-sm text-ink-primary focus:border-gold-500 focus:outline-none">
+                    <span class="text-ink-secondary text-xs">al</span>
+                    <input type="date" wire:model.live="hasta"
+                        class="h-8 w-[8.6rem] px-1.5 bg-surface-sunken border border-outline rounded-lg text-sm text-ink-primary focus:border-gold-500 focus:outline-none">
+                    <button type="button" wire:click="moverRango(1)"
+                        class="w-8 h-8 shrink-0 rounded-lg bg-surface-sunken border border-outline text-ink-primary"
+                        title="Siguiente"><i class="fa-solid fa-chevron-right"></i></button>
+                    <button type="button" wire:click="rangoSemana"
+                        class="h-8 px-2.5 shrink-0 rounded-lg border {{ $porFechas && $esSemanaActual ? 'border-gold-500 bg-gold-500/10' : 'border-outline bg-surface-sunken' }} text-xs font-semibold text-ink-primary">Esta
+                        semana</button>
                 </div>
                 <x-ui.filter-chips>
-                    <x-ui.filter-chip wire:click="$set('filtro', 'pendientes')" :active="$filtro === 'pendientes'">
+                    <x-ui.filter-chip
+                        wire:click="$set('filtro', '{{ $filtro === 'pendientes' ? 'fechas' : 'pendientes' }}')"
+                        :active="$filtro === 'pendientes'">
                         Pendientes <span class="opacity-70">{{ $conteos['pendientes'] }}</span>
-                    </x-ui.filter-chip>
-                    <x-ui.filter-chip wire:click="$set('filtro', 'hoy')" :active="$filtro === 'hoy'">
-                        Hoy <span class="opacity-70">{{ $conteos['hoy'] }}</span>
-                    </x-ui.filter-chip>
-                    <x-ui.filter-chip wire:click="$set('filtro', 'semana')" :active="$filtro === 'semana'">
-                        Semana <span class="opacity-70">{{ $conteos['semana'] }}</span>
-                    </x-ui.filter-chip>
-                    <x-ui.filter-chip wire:click="$set('filtro', 'mes')" :active="$filtro === 'mes'">
-                        Mes <span class="opacity-70">{{ $conteos['mes'] }}</span>
-                    </x-ui.filter-chip>
-                    <x-ui.filter-chip wire:click="$set('filtro', 'todos')" :active="$filtro === 'todos'">
-                        Todos <span class="opacity-70">{{ $conteos['todos'] }}</span>
                     </x-ui.filter-chip>
                 </x-ui.filter-chips>
             </div>
         </x-slot:filters>
+
+        @if ($totalPeriodo !== null)
+            <div
+                class="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-outline bg-surface-sunken text-sm">
+                <span class="font-semibold text-ink-primary">{{ $etiquetaPeriodo }}: por pagar</span>
+                <span
+                    class="font-extrabold tabular-nums {{ $totalPeriodo > 0.001 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400' }}">{{ $bs($totalPeriodo) }}</span>
+            </div>
+        @endif
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 p-2 items-start">
             @forelse ($personas as $p)
                 @php
                     [$icono, $tonoIcono] = $estiloTipo($p->tipo);
                     $abierto = in_array($p->id, $abiertos);
-                    $debe = $p->saldo > 0.001;
-                    $adelanto = $p->saldo < -0.001;
+                    $enPeriodo = isset($p->saldo_ver);
+                    $saldoV = $enPeriodo ? $p->saldo_ver : $p->saldo;
+                    $entregadoV = $enPeriodo ? $p->entregado_ver : $p->entregado;
+                    $showsV = $enPeriodo ? $p->shows_ver : $p->num_shows;
+                    $debe = $saldoV > 0.001;
+                    $adelanto = !$enPeriodo && $p->saldo < -0.001;
                     $esDueno = (bool) ($p->es_dueno ?? false);
                 @endphp
                 <div wire:key="persona-{{ $p->id }}"
@@ -93,10 +118,10 @@
                                     @if ($p->es_mensual)
                                         Mensual
                                     @else
-                                        {{ $p->num_shows }} {{ $p->num_shows === 1 ? 'show' : 'shows' }}
+                                        {{ $showsV }} {{ $showsV === 1 ? 'show' : 'shows' }}
                                     @endif
-                                    @if ($p->entregado > 0 && $debe)
-                                        - entregado {{ $bs($p->entregado) }}
+                                    @if ($entregadoV > 0 && $debe)
+                                        - entregado {{ $bs($entregadoV) }}
                                     @endif
                                 </span>
                             </span>
@@ -104,9 +129,9 @@
 
                         <div class="text-right shrink-0 leading-tight">
                             @if ($debe)
-                                <div class="text-sm font-bold tabular-nums text-ink-primary">{{ $bs($p->saldo) }}</div>
+                                <div class="text-sm font-bold tabular-nums text-ink-primary">{{ $bs($saldoV) }}</div>
                                 <div class="text-[11px] text-ink-secondary">
-                                    {{ $p->es_mensual ? 'Sueldo ' . now()->locale('es')->monthName : 'Se le debe' }}
+                                    {{ $p->es_mensual ? 'Sueldo ' . now()->locale('es')->monthName : ($enPeriodo ? 'Se le debe · ' . mb_strtolower($etiquetaPeriodo) : 'Se le debe') }}
                                 </div>
                             @elseif ($adelanto)
                                 <div class="text-sm font-bold tabular-nums text-rose-700 dark:text-rose-400">-
@@ -121,7 +146,7 @@
                         <div class="flex items-center gap-1 shrink-0">
                             @if ($debe)
                                 <x-ui.button size="sm" class="!h-7 !px-2.5"
-                                    wire:click="abrir({{ $p->id }}, 'pago')">Pagar</x-ui.button>
+                                    wire:click="abrir({{ $p->id }}, 'pago', {{ $enPeriodo ? $saldoV : 'null' }})">Pagar</x-ui.button>
                             @endif
                             <x-ui.button size="sm" variant="secondary" class="!h-7 !px-2"
                                 wire:click="abrir({{ $p->id }}, 'anticipo')"
@@ -214,7 +239,7 @@
                     @if ($filtro === 'pendientes')
                         Nadie tiene saldo pendiente.
                     @else
-                        No hay personas para este filtro.
+                        No hay personas con shows en esas fechas.
                     @endif
                 </div>
             @endforelse

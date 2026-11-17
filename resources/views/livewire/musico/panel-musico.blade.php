@@ -152,7 +152,11 @@
                         class="w-full flex items-center gap-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-1.5 text-left">
                         <i class="fa-solid fa-coins text-amber-600 dark:text-amber-400"></i>
                         <span class="min-w-0 flex-1 text-sm font-semibold text-ink-primary">Se te debe
-                            {{ $bs($saldo) }}</span>
+                            {{ $bs($saldo) }} @if (!$esMensual)
+                                <span class="font-normal text-ink-secondary">·
+                                    {{ $semana === 0 ? 'esta semana' : 'esa semana' }}</span>
+                            @endif
+                        </span>
                         <span class="text-xs text-ink-secondary">Ver pagos</span>
                         <i class="fa-solid fa-chevron-right text-xs text-ink-muted"></i>
                     </button>
@@ -296,10 +300,28 @@
         {{-- Resumen de pagos --}}
         <div class="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
             <div class="space-y-3">
+                {{-- Semana (los pagos se ven por semana) --}}
+                @if (!$esMensual)
+                    <div
+                        class="flex items-center justify-between rounded-xl border border-outline bg-surface-card p-1.5">
+                        <button type="button" wire:click="semanaAnterior"
+                            class="w-9 h-9 rounded-lg bg-surface-sunken border border-outline text-ink-primary"
+                            title="Semana anterior"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button type="button" wire:click="irHoy"
+                            class="text-sm font-bold text-ink-primary text-center leading-tight">
+                            {{ $ini->translatedFormat('d M') }} - {{ $fin->translatedFormat('d M') }}
+                            <span
+                                class="block text-[11px] font-semibold {{ $semana === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-sky-600 dark:text-sky-400' }}">{{ $semana === 0 ? 'Esta semana' : 'Ir a hoy' }}</span>
+                        </button>
+                        <button type="button" wire:click="semanaSiguiente"
+                            class="w-9 h-9 rounded-lg bg-surface-sunken border border-outline text-ink-primary"
+                            title="Semana siguiente"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                @endif
                 <div class="grid grid-cols-3 gap-2">
                     <div class="rounded-xl border border-outline bg-surface-card px-2.5 py-2 text-center">
                         <div class="text-[11px] text-ink-secondary leading-tight">
-                            {{ $esMensual ? 'Sueldo mensual' : 'Total · ' . $totalShows . ' shows' }}</div>
+                            {{ $esMensual ? 'Sueldo mensual' : 'Semana · ' . $totalShows . ' shows' }}</div>
                         <div class="text-base font-extrabold tabular-nums text-ink-primary mt-0.5">
                             {{ $bs($asignado) }}</div>
                     </div>
@@ -323,7 +345,7 @@
                     <div class="rounded-xl border border-outline bg-surface-card overflow-hidden">
                         <div
                             class="px-3 py-2 border-b border-outline text-xs font-bold uppercase tracking-wide text-ink-secondary">
-                            Mis shows</div>
+                            Shows de la semana</div>
                         @forelse ($showsPago as $ep)
                             @php
                                 $ev = $ep->evento;
@@ -343,7 +365,7 @@
                                     class="text-sm font-bold tabular-nums text-ink-primary shrink-0">{{ $bs($ep->monto_asignado) }}</span>
                             </div>
                         @empty
-                            <div class="px-3 py-4 text-sm text-ink-secondary">Aún no tienes shows asignados.</div>
+                            <div class="px-3 py-4 text-sm text-ink-secondary">No tienes shows esta semana.</div>
                         @endforelse
                     </div>
                 @endif
@@ -352,7 +374,7 @@
             <div class="rounded-xl border border-outline bg-surface-card overflow-hidden">
                 <div
                     class="px-3 py-2 border-b border-outline text-xs font-bold uppercase tracking-wide text-ink-secondary">
-                    Lo que ya recibiste{{ $esMensual ? ' este mes' : '' }}</div>
+                    Lo que ya recibiste{{ $esMensual ? ' este mes' : ' de esta semana' }}</div>
                 @forelse ($pagos as $pg)
                     <div class="flex items-center gap-2.5 px-3 py-2 border-b border-outline/60 last:border-0">
                         <span
