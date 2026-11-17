@@ -47,6 +47,9 @@ class Dashboard extends Component
 
         // ---- Finanzas (solo con permiso) ----
         $cobradoMes = 0.0;
+        $egresosMes = 0.0;
+        $egresoPersonalMes = 0.0;
+        $egresoGastosMes = 0.0;
         $porCobrar = 0.0;
         $contratosConSaldo = 0;
         $contratosSaldo = collect();
@@ -55,6 +58,15 @@ class Dashboard extends Component
             $cobradoMes = (float) Pago::where('estado', 'Valido')
                 ->whereBetween('fecha_pago', [$inicioMes->copy()->startOfDay()->toDateTimeString(), $finMes->copy()->endOfDay()->toDateTimeString()])
                 ->sum('monto');
+
+            // Lo que realmente salió este mes: pagos al personal + gastos
+            $desdeMes = $inicioMes->copy()->startOfDay()->toDateTimeString();
+            $hastaMes = $finMes->copy()->endOfDay()->toDateTimeString();
+            $egresoPersonalMes = (float) \App\Models\PagoParticipante::where('estado', 'Valido')
+                ->whereBetween('fecha_pago', [$desdeMes, $hastaMes])->sum('monto');
+            $egresoGastosMes = (float) \App\Models\MovimientoFinanciero::valido()->egresos()
+                ->whereBetween('fecha', [$inicioMes->toDateString(), $finMes->toDateString()])->sum('monto');
+            $egresosMes = $egresoPersonalMes + $egresoGastosMes;
 
             // Los contratos de eventos cancelados no cuentan como "por cobrar"
             $vigentes = fn($q) => $q->whereDoesntHave('evento', fn($e) => $e->where('estado', 'Cancelado'));
@@ -138,6 +150,9 @@ class Dashboard extends Component
             'personasActivas' => $personasActivas,
             'proximosEventos' => $proximosEventos,
             'cobradoMes' => $cobradoMes,
+            'egresosMes' => $egresosMes,
+            'egresoPersonalMes' => $egresoPersonalMes,
+            'egresoGastosMes' => $egresoGastosMes,
             'porCobrar' => $porCobrar,
             'contratosConSaldo' => $contratosConSaldo,
             'contratosSaldo' => $contratosSaldo,

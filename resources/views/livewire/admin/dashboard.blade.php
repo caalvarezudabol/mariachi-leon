@@ -91,6 +91,15 @@
             'href' => route('admin.pagos'),
         ];
         $stats[] = [
+            'label' => 'Egresos del mes',
+            'valor' => $moneda . ' ' . number_format($egresosMes, 2),
+            'sub' =>
+                'personal ' . number_format($egresoPersonalMes, 0) . ' · gastos ' . number_format($egresoGastosMes, 0),
+            'icon' => 'fa-arrow-trend-down',
+            'tono' => 'text-rose-700 dark:text-rose-400',
+            'href' => route('admin.finanzas.movimientos'),
+        ];
+        $stats[] = [
             'label' => 'Por cobrar',
             'valor' => $moneda . ' ' . number_format($porCobrar, 2),
             'sub' => $contratosConSaldo . ' contratos con saldo',
