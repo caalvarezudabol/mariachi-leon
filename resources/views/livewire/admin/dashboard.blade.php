@@ -151,9 +151,10 @@
         </div>
         <div class="flex items-center gap-2">
             {{-- Campanita de alertas --}}
-            <div class="relative" x-data="{ open: false }" @click.outside="open = false"
-                @keydown.escape.window="open = false">
-                <button type="button" @click="open = !open" title="Alertas"
+            <div class="relative" x-data="{ open: false, top: 0 }" @click.outside="open = false"
+                @keydown.escape.window="open = false" @scroll.window.passive="open = false">
+                <button type="button" @click="top = $el.getBoundingClientRect().bottom + 6; open = !open"
+                    title="Alertas"
                     class="relative h-8 w-9 inline-flex items-center justify-center rounded-lg border transition-colors {{ $nRojas > 0 ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400' : ($nAlertas > 0 ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'border-outline bg-surface-card text-ink-secondary') }}">
                     <i class="fa-solid fa-bell {{ $nRojas > 0 ? 'animate-pulse' : '' }}"></i>
                     @if ($nAlertas > 0)
@@ -161,8 +162,11 @@
                             class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center {{ $nRojas > 0 ? 'bg-rose-600' : 'bg-amber-500' }}">{{ $nAlertas }}</span>
                     @endif
                 </button>
+                {{-- Celular: panel fijo con márgenes de 12px a cada lado (así nunca se sale de la pantalla).
+                     Escritorio: cae debajo de la campana, alineado a la derecha. --}}
                 <div x-show="open" x-cloak x-transition.opacity
-                    class="absolute right-0 z-30 mt-1.5 w-[min(92vw,22rem)] max-h-[70vh] overflow-y-auto rounded-lg border border-outline bg-surface-card shadow-xl">
+                    :style="window.innerWidth < 640 ? 'top:' + top + 'px' : ''"
+                    class="fixed left-3 right-3 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-1.5 sm:w-[22rem] z-30 max-h-[65vh] overflow-y-auto rounded-lg border border-outline bg-surface-card shadow-xl">
                     <div class="px-3 py-2 border-b border-outline text-sm font-semibold text-ink-primary">Alertas</div>
                     @forelse ($alertas as $al)
                         @php
