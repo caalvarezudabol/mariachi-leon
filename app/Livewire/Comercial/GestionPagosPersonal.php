@@ -69,7 +69,7 @@ class GestionPagosPersonal extends Component
         return DB::table('pagos_participantes as pp')
             ->leftJoin('evento_participantes as ep', 'ep.id', '=', 'pp.evento_participante_id')
             ->where('pp.estado', 'Valido')
-            ->when($desde, fn($q) => $q->where('pp.fecha_pago', '>=', $desde->toDateTimeString()))
+            ->when($desde, fn ($q) => $q->where('pp.fecha_pago', '>=', $desde->toDateTimeString()))
             ->selectRaw('COALESCE(pp.persona_id, ep.persona_id) as pid, SUM(pp.monto) as total')
             ->groupByRaw('COALESCE(pp.persona_id, ep.persona_id)')
             ->pluck('total', 'pid');
@@ -347,10 +347,10 @@ class GestionPagosPersonal extends Component
             if (!$fila->es_mensual) {
                 $pendientes = EventoParticipante::with('pagos')
                     ->where('persona_id', $fila->id)
-                    ->whereHas('evento', fn($q) => $q->where('estado', '!=', 'Cancelado'))
+                    ->whereHas('evento', fn ($q) => $q->where('estado', '!=', 'Cancelado'))
                     ->get()
-                    ->sortBy(fn($ep) => optional($ep->evento)->fecha_evento)
-                    ->filter(fn($ep) => $ep->saldo_pendiente > 0);
+                    ->sortBy(fn ($ep) => optional($ep->evento)->fecha_evento)
+                    ->filter(fn ($ep) => $ep->saldo_pendiente > 0);
 
                 foreach ($pendientes as $ep) {
                     if ($restante <= 0) break;
@@ -459,11 +459,11 @@ class GestionPagosPersonal extends Component
         [$rd, $rh] = $this->rangoActual();
         $idsRango = $this->idsConShow($rd, $rh);
 
-        $conActividad = fn($p) => $p->estado === 'Activo' || abs($p->saldo) > 0.001;
+        $conActividad = fn ($p) => $p->estado === 'Activo' || abs($p->saldo) > 0.001;
 
         $conteos = [
-            'pendientes' => $todas->filter(fn($p) => abs($p->saldo) > 0.001)->count(),
-            'fechas' => $todas->filter(fn($p) => in_array($p->id, $idsRango))->count(),
+            'pendientes' => $todas->filter(fn ($p) => abs($p->saldo) > 0.001)->count(),
+            'fechas' => $todas->filter(fn ($p) => in_array($p->id, $idsRango))->count(),
             'todos' => $todas->filter($conActividad)->count(),
         ];
 
@@ -493,34 +493,51 @@ class GestionPagosPersonal extends Component
                 }
                 return $p;
             });
-            $totalPeriodo = (float) $personas->filter(fn($p) => isset($p->saldo_ver) && $p->saldo_ver > 0)->sum('saldo_ver')
-                + (float) $personas->filter(fn($p) => $p->es_mensual && $p->saldo > 0)->sum('saldo');
+            $totalPeriodo = (float) $personas->filter(fn ($p) => isset($p->saldo_ver) && $p->saldo_ver > 0)->sum('saldo_ver')
+                + (float) $personas->filter(fn ($p) => $p->es_mensual && $p->saldo > 0)->sum('saldo');
         }
 
         if (trim($this->search) !== '') {
             $term = mb_strtolower(trim($this->search));
-            $personas = $personas->filter(fn($p) => str_contains(mb_strtolower($p->nombre_completo . ' ' . $p->tipo), $term));
+            $personas = $personas->filter(fn ($p) => str_contains(mb_strtolower($p->nombre_completo . ' ' . $p->tipo), $term));
         }
 
-        // Detalle de las filas desplegadas
+        // Detalle de las filas desplegadas (con "Por fechas" solo lo de ese rango)
         $detalle = [];
+        $dDesde = $rango ? $rango[0]->toDateString() : null;
+        $dHasta = $rango ? $rango[1]->toDateString() : null;
         foreach ($this->abiertos as $id) {
+            $qShows = EventoParticipante::with('evento.cliente', 'pagos')
+                ->where('persona_id', $id)
+                ->whereHas('evento', function ($q) use ($dDesde, $dHasta) {
+                    $q->where('estado', '!=', 'Cancelado');
+                    if ($dDesde) {
+                        $q->whereBetween('fecha_evento', [$dDesde, $dHasta]);
+                    }
+                });
+
+            $qPagos = PagoParticipante::with('participante.evento.cliente')
+                ->where('estado', 'Valido')
+                ->where(function ($q) use ($id) {
+                    $q->where('persona_id', $id)
+                        ->orWhereHas('participante', fn ($p) => $p->where('persona_id', $id));
+                });
+            if ($dDesde) {
+                // Pagos de los shows del rango + anticipos sueltos hechos dentro del rango
+                $qPagos->where(function ($q) use ($dDesde, $dHasta) {
+                    $q->whereHas('participante.evento', fn ($e) => $e->whereBetween('fecha_evento', [$dDesde, $dHasta]))
+                        ->orWhere(function ($w) use ($dDesde, $dHasta) {
+                            $w->whereNull('evento_participante_id')
+                                ->whereBetween('fecha_pago', [$dDesde . ' 00:00:00', $dHasta . ' 23:59:59']);
+                        });
+                });
+            }
+
             $detalle[$id] = [
-                'shows' => EventoParticipante::with('evento.cliente', 'pagos')
-                    ->where('persona_id', $id)
-                    ->whereHas('evento', fn($q) => $q->where('estado', '!=', 'Cancelado'))
-                    ->get()
-                    ->sortByDesc(fn($ep) => optional($ep->evento)->fecha_evento)
-                    ->take(12),
-                'pagos' => PagoParticipante::with('participante.evento.cliente')
-                    ->where('estado', 'Valido')
-                    ->where(function ($q) use ($id) {
-                        $q->where('persona_id', $id)
-                            ->orWhereHas('participante', fn($p) => $p->where('persona_id', $id));
-                    })
-                    ->orderByDesc('fecha_pago')
-                    ->take(15)
-                    ->get(),
+                'shows' => $qShows->get()
+                    ->sortByDesc(fn ($ep) => optional($ep->evento)->fecha_evento)
+                    ->take($dDesde ? 40 : 12),
+                'pagos' => $qPagos->orderByDesc('fecha_pago')->take(15)->get(),
             ];
         }
 
