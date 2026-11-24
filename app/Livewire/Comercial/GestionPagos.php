@@ -6,6 +6,8 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Pago;
 use App\Models\Contrato;
+use App\Models\QrTransaccion;
+use App\Services\BanecoQrService;
 use App\Traits\Auditable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -41,6 +43,16 @@ class GestionPagos extends Component
     public $pagoParaAnular = null;
     public $motivoAnulacion = '';
     public $ultimoRecibo = null;
+
+    // Integración QR Banco Económico (Temporizador 4 minutos)
+    public $modalQrAdminOpen = false;
+    public $qrAdminGenerando = false;
+    public $qrAdminError = '';
+    public $qrAdminId = null;
+    public $qrAdminImageBase64 = null;
+    public $qrAdminSegundosRestantes = 240;
+    public $qrAdminExpirado = false;
+    public $qrAdminTransaccionId = null;
 
     protected function rules()
     {
@@ -204,7 +216,27 @@ class GestionPagos extends Component
                 $contrato->evento->update(['estado' => 'Confirmado']);
             }
 
-            $this->registrarAuditoria('Gestión Comercial', 'Registrar Pago Cliente', 'Se registró el pago recibo N° ' . $pago->numero_recibo . ' por Bs ' . number_format($montoPago, 2) . ' para el contrato N° ' . $contrato->numero_contrato);
+            if ($this->qrAdminTransaccionId) {
+                QrTransaccion::where('id', $this->qrAdminTransaccionId)->update([
+                    'pago_id' => $pago->id,
+                    'cliente_id' => $contrato->cliente_id,
+                    'contrato_id' => $contrato->id,
+                    'estado' => 'PAGADO',
+                    'pagado_en' => now(),
+                ]);
+            }
+
+            $detalleAuditoria = 'Se registró el pago recibo N° ' . $pago->numero_recibo . ' por Bs ' . number_format($montoPago, 2) . ' para el contrato N° ' . $contrato->numero_contrato . ' mediante método ' . $pago->metodo_pago;
+            if ($pago->metodo_pago === 'QR') {
+                $detalleAuditoria .= ' (Cobro QR Banco Económico ' . ($pago->comprobante_referencia ? '- ' . $pago->comprobante_referencia : '') . ')';
+                $this->registrarAuditoria(
+                    'Cobros QR',
+                    'Cobro QR Confirmado en Sistema',
+                    'Cobro confirmado por QR Banco Económico de Bs ' . number_format($montoPago, 2) . ' para contrato N° ' . $contrato->numero_contrato . ' (Cliente: ' . ($contrato->cliente ? $contrato->cliente->nombre_completo : 'N/A') . ', Recibo: ' . $pago->numero_recibo . ')'
+                );
+            }
+
+            $this->registrarAuditoria('Gestión Comercial', 'Registrar Pago Cliente', $detalleAuditoria);
 
             $this->ultimoRecibo = [
                 'id' => $pago->id,
@@ -216,6 +248,149 @@ class GestionPagos extends Component
             session()->flash('success_pago', 'Pago ' . $pago->numero_recibo . ' registrado exitosamente por Bs ' . number_format($montoPago, 2) . '.');
             $this->modalOpen = false;
         });
+    }
+
+    /**
+     * Iniciar cobro dinámico mediante QR Banco Económico (4 minutos)
+     */
+    public function iniciarCobroQrAdmin(BanecoQrService $qrService)
+    {
+        if (!$this->contrato_id) {
+            $this->addError('contrato_id', 'Seleccione primero un contrato para generar el cobro por QR.');
+            return;
+        }
+
+        if ((float) $this->monto <= 0) {
+            $this->addError('monto', 'Ingrese un importe válido mayor a 0 para generar el QR.');
+            return;
+        }
+
+        $contrato = Contrato::with('cliente')->findOrFail($this->contrato_id);
+
+        $this->qrAdminGenerando = true;
+        $this->qrAdminError = '';
+        $this->qrAdminExpirado = false;
+        $this->modalQrAdminOpen = true;
+
+        $descripcion = 'Cobro contrato N° ' . $contrato->numero_contrato;
+
+        $res = $qrService->generarQr([
+            'monto' => (float) $this->monto,
+            'descripcion' => $descripcion,
+            'origen' => 'pago_contrato',
+            'contrato_id' => $contrato->id,
+            'cliente_id' => $contrato->cliente_id,
+            'created_by' => Auth::id(),
+        ]);
+
+        $this->qrAdminGenerando = false;
+
+        if ($res['success']) {
+            $this->qrAdminId = $res['qr_id'];
+            $this->qrAdminImageBase64 = $res['qr_image_base64'];
+            $this->qrAdminSegundosRestantes = 240; // 4 minutos
+            $this->qrAdminTransaccionId = $res['transaccion']->id;
+        } else {
+            $this->qrAdminError = $res['message'] ?? 'No se pudo generar el código QR con el Banco Económico.';
+        }
+    }
+
+    /**
+     * Verificar estado del QR generado en el panel administrativo
+     */
+    public function verificarEstadoQrAdmin(BanecoQrService $qrService)
+    {
+        if (!$this->modalQrAdminOpen || !$this->qrAdminId || $this->qrAdminExpirado) {
+            return;
+        }
+
+        $res = $qrService->consultarEstado($this->qrAdminId);
+
+        if ($res['es_pagado']) {
+            $transaccionId = $res['payment']['transactionId'] ?? $this->qrAdminId;
+            $this->metodo_pago = 'QR';
+            $this->comprobante_referencia = 'QR-BANECO-' . $transaccionId;
+            $this->observaciones = ($this->observaciones ? $this->observaciones . ' | ' : '') .
+                'Cobro confirmado automáticamente mediante QR Banco Económico (Transacción: ' . $transaccionId . ')';
+
+            $this->modalQrAdminOpen = false;
+            $this->qrAdminId = null;
+            $this->qrAdminImageBase64 = null;
+
+            $this->guardar();
+        } elseif ($res['es_expirado']) {
+            $this->qrAdminExpirado = true;
+            $this->qrAdminSegundosRestantes = 0;
+        } else {
+            $this->qrAdminSegundosRestantes = $res['segundos_restantes'];
+            if ($this->qrAdminSegundosRestantes <= 0) {
+                $this->qrAdminExpirado = true;
+            }
+        }
+    }
+
+    /**
+     * El temporizador de 4 minutos llegó a cero en pantalla
+     */
+    public function tiempoExpiradoAdmin()
+    {
+        $this->qrAdminExpirado = true;
+        $this->qrAdminSegundosRestantes = 0;
+        if ($this->qrAdminTransaccionId) {
+            QrTransaccion::where('id', $this->qrAdminTransaccionId)
+                ->where('estado', 'PENDIENTE')
+                ->update(['estado' => 'EXPIRADO']);
+        }
+    }
+
+    /**
+     * Simulación de pago para pruebas administrativas
+     */
+    public function simularPagoAdminPrueba()
+    {
+        if (!config('app.debug') && config('app.env') === 'production') {
+            return;
+        }
+
+        if ($this->qrAdminTransaccionId) {
+            QrTransaccion::where('id', $this->qrAdminTransaccionId)->update([
+                'estado' => 'PAGADO',
+                'pagado_en' => now(),
+                'datos_pago' => [
+                    'qrId' => $this->qrAdminId,
+                    'transactionId' => 'SIM-ADMIN-' . time(),
+                    'paymentDate' => now()->format('Y-m-d\TH:i:s'),
+                    'amount' => (float) $this->monto,
+                    'currency' => 'BOB',
+                    'senderName' => 'SIMULADOR DE PRUEBAS BANCO',
+                    'senderBankCode' => '1016',
+                ],
+            ]);
+        }
+
+        $this->metodo_pago = 'QR';
+        $this->comprobante_referencia = 'QR-SIM-' . time();
+        $this->observaciones = ($this->observaciones ? $this->observaciones . ' | ' : '') .
+            'Pago simulado en ambiente de pruebas sandbox';
+
+        $this->modalQrAdminOpen = false;
+        $this->qrAdminId = null;
+        $this->qrAdminImageBase64 = null;
+
+        $this->guardar();
+    }
+
+    /**
+     * Cancelar cobro por QR
+     */
+    public function cancelarQrAdmin(BanecoQrService $qrService)
+    {
+        if ($this->qrAdminId) {
+            $qrService->anularQr($this->qrAdminId);
+        }
+        $this->modalQrAdminOpen = false;
+        $this->qrAdminId = null;
+        $this->qrAdminImageBase64 = null;
     }
 
     public function abrirModalAnular($id)

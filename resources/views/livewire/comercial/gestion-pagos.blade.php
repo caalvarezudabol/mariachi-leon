@@ -585,6 +585,16 @@
                         @error('metodo_pago')
                             <span class="text-xs text-rose-400 mt-1 block">{{ $message }}</span>
                         @enderror
+
+                        @if ($metodo_pago === 'QR')
+                            <div class="mt-2">
+                                <button type="button" wire:click="iniciarCobroQrAdmin" wire:loading.attr="disabled"
+                                    class="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition-all">
+                                    <i class="fa-solid fa-qrcode"></i>
+                                    <span>Generar QR Banco Económico (4 min)</span>
+                                </button>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="sm:col-span-2">
@@ -681,5 +691,123 @@
                 </x-slot:footer>
             </x-ui.modal>
         </form>
+    @endif
+
+    {{-- Modal Cobro QR Banco Económico (4 Minutos con detección en vivo) --}}
+    @if ($modalQrAdminOpen)
+        <div x-data="{
+                open: @entangle('modalQrAdminOpen'),
+                segundos: @entangle('qrAdminSegundosRestantes'),
+                timer: null,
+                iniciarTimer() {
+                    if (this.timer) clearInterval(this.timer);
+                    this.timer = setInterval(() => {
+                        if (this.segundos > 0) {
+                            this.segundos--;
+                        } else {
+                            clearInterval(this.timer);
+                            $wire.tiempoExpiradoAdmin();
+                        }
+                    }, 1000);
+                },
+                format(s) {
+                    const m = Math.floor(Math.max(0, s) / 60);
+                    const sec = Math.max(0, s) % 60;
+                    return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+                }
+            }"
+            x-init="iniciarTimer()"
+            class="fixed inset-0 z-50 overflow-y-auto">
+            
+            <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+                wire:click="cancelarQrAdmin"></div>
+
+            <div class="flex min-h-full items-center justify-center p-4"
+                @if ($modalQrAdminOpen && $qrAdminId && !$qrAdminExpirado) wire:poll.3s="verificarEstadoQrAdmin" @endif>
+                
+                <div class="relative w-full max-w-md transform rounded-2xl bg-surface-card border border-outline p-6 shadow-2xl transition-all space-y-4">
+                    
+                    @if ($qrAdminExpirado)
+                        <!-- QR EXPIRADO -->
+                        <div class="text-center space-y-3 py-4">
+                            <div class="w-14 h-14 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 text-2xl">
+                                <i class="fa-regular fa-clock"></i>
+                            </div>
+                            <h3 class="font-bold text-lg text-ink-primary">Tiempo de cobro agotado</h3>
+                            <p class="text-xs text-ink-secondary">
+                                El límite de <strong>4 minutos</strong> ha expirado. Puedes regenerar el QR para reiniciar el tiempo.
+                            </p>
+                            <div class="flex items-center gap-2 pt-2">
+                                <x-ui.button type="button" variant="secondary" class="flex-1" wire:click="cancelarQrAdmin">
+                                    Cerrar
+                                </x-ui.button>
+                                <x-ui.button type="button" class="flex-1" wire:click="iniciarCobroQrAdmin">
+                                    <i class="fa-solid fa-rotate-right"></i>
+                                    <span>Reintentar (4 min)</span>
+                                </x-ui.button>
+                            </div>
+                        </div>
+
+                    @elseif ($qrAdminGenerando)
+                        <!-- GENERANDO QR -->
+                        <div class="text-center py-10 space-y-3">
+                            <i class="fa-solid fa-circle-notch fa-spin text-3xl text-gold-500"></i>
+                            <h4 class="font-bold text-sm text-ink-primary">Generando QR con Banco Económico...</h4>
+                            <p class="text-xs text-ink-muted">Por favor espere un momento...</p>
+                        </div>
+
+                    @elseif ($qrAdminImageBase64)
+                        <!-- VISOR DEL QR -->
+                        <div class="text-center space-y-3">
+                            <div class="flex items-center justify-between border-b border-outline pb-3">
+                                <div class="text-left">
+                                    <span class="text-[10px] font-bold text-ink-muted uppercase tracking-wider block">Cobro por QR</span>
+                                    <span class="text-xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">Bs {{ number_format($monto, 2) }}</span>
+                                </div>
+                                <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg border"
+                                    :class="segundos <= 60 ? 'bg-rose-500/10 border-rose-500/40 text-rose-500 animate-pulse' : 'bg-gold-500/10 border-gold-500/30 text-gold-500'">
+                                    <i class="fa-regular fa-clock text-xs"></i>
+                                    <span class="font-mono font-bold text-sm tabular-nums" x-text="format(segundos)">04:00</span>
+                                </div>
+                            </div>
+
+                            <div class="p-2 bg-white rounded-xl inline-block shadow border border-slate-200">
+                                <img src="data:image/png;base64,{{ $qrAdminImageBase64 }}" alt="QR Cobro" class="w-52 h-52 object-contain mx-auto">
+                            </div>
+
+                            <div class="flex items-center justify-center gap-2 text-xs font-semibold text-gold-600 dark:text-gold-400">
+                                <i class="fa-solid fa-spinner fa-spin text-xs"></i>
+                                <span>Esperando que el cliente transfiera desde su banco...</span>
+                            </div>
+
+                            <div class="text-left text-[11px] bg-surface-sunken p-2.5 rounded-lg border border-outline space-y-1 text-ink-secondary">
+                                <div class="font-bold text-ink-primary">Instrucciones para el cliente:</div>
+                                <ol class="list-decimal list-inside space-y-0.5">
+                                    <li>Escanear desde cualquier app bancaria (<strong>BCP, BNB, Banco Unión, Banco Económico, Mercantil Santa Cruz, FIE, BISA, Ganadero</strong>, etc.).</li>
+                                    <li>Confirmar el importe de <strong>Bs {{ number_format($monto, 2) }}</strong>.</li>
+                                    <li>Al completarse, el cobro se guardará y registrará automáticamente.</li>
+                                </ol>
+                            </div>
+
+                            <div class="pt-2 space-y-2">
+                                <x-ui.button type="button" variant="secondary" class="w-full" wire:click="cancelarQrAdmin">
+                                    <i class="fa-solid fa-xmark"></i>
+                                    <span>Cancelar cobro QR</span>
+                                </x-ui.button>
+
+                                @if (config('app.debug'))
+                                    <button type="button" wire:click="simularPagoAdminPrueba"
+                                        class="w-full py-1.5 px-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold text-[11px] border border-amber-500/30 transition-colors flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-flask"></i>
+                                        <span>Simular Pago Aprobado (Ambiente de Pruebas Sandbox)</span>
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+
+                </div>
+            </div>
+        </div>
     @endif
 </div>

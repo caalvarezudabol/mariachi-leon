@@ -65,6 +65,7 @@ use App\Livewire\Reportes\ReporteEventosContratos;
 use App\Livewire\Reportes\ReporteEstadosCuenta;
 use App\Livewire\Reportes\ReporteDistribucionEconomica;
 use App\Livewire\Reportes\ReporteFinanciero;
+use App\Livewire\Reportes\ReporteCobrosQr;
 use App\Http\Controllers\Finanzas\FinanzasPdfController;
 use App\Http\Controllers\Finanzas\FinanzasExcelController;
 use App\Http\Controllers\Reportes\ReportesPdfController;
@@ -195,6 +196,9 @@ Route::middleware(['auth', 'session.timeout'])->prefix('admin')->group(function 
         Route::get('/financieros', ReporteFinanciero::class)->name('admin.reportes.financieros');
         Route::get('/financieros/pdf', [FinanzasPdfController::class, 'exportarReporteFinanciero'])->name('admin.reportes.financieros.pdf');
         Route::get('/financieros/excel', [FinanzasExcelController::class, 'exportarFinanciero'])->name('admin.reportes.financieros.excel');
+
+        Route::get('/cobros-qr', ReporteCobrosQr::class)->name('admin.reportes.cobros-qr');
+        Route::get('/cobros-qr/pdf', [ReportesPdfController::class, 'exportarCobrosQr'])->name('admin.reportes.cobros-qr.pdf');
 
         Route::get('/gastos/pdf', [FinanzasPdfController::class, 'exportarGastos'])->name('admin.reportes.gastos.pdf');
         Route::get('/fondo-comun/pdf', [FinanzasPdfController::class, 'exportarFondoComun'])->name('admin.reportes.fondo-comun.pdf');

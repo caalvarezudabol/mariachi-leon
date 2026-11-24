@@ -10,6 +10,9 @@ use App\Models\Cliente;
 use App\Models\Servicio;
 use App\Models\MusicoPersonal;
 use App\Models\EventoParticipante;
+use App\Models\QrTransaccion;
+use App\Models\User;
+use Carbon\Carbon;
 use App\Traits\Auditable;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
@@ -225,5 +228,118 @@ class ReportesPdfController extends Controller
             ->setOption('defaultFont', 'DejaVu Sans');
 
         return $pdf->stream('distribucion_economica_' . date('Ymd_His') . '.pdf');
+    }
+
+    public function exportarCobrosQr(Request $request)
+    {
+        $fechaDesde = $request->get('desde') ?: null;
+        $fechaHasta = $request->get('hasta') ?: null;
+        $mes = $request->get('mes') ?: null;
+        $origen = $request->get('origen') ?: null;
+        $usuarioId = $request->get('usuario_id') ?: null;
+        $estado = $request->get('estado');
+        $search = $request->get('search') ?: null;
+
+        if ($mes && (!$fechaDesde || !$fechaHasta)) {
+            try {
+                $carbon = Carbon::createFromFormat('Y-m', $mes);
+                $fechaDesde = $carbon->startOfMonth()->format('Y-m-d');
+                $fechaHasta = $carbon->endOfMonth()->format('Y-m-d');
+            } catch (\Exception $e) {
+                // mantener
+            }
+        }
+
+        $query = QrTransaccion::with(['contactoWeb', 'contrato.cliente', 'pago.cliente', 'cliente', 'creador']);
+
+        if ($fechaDesde) {
+            $query->whereDate('created_at', '>=', $fechaDesde);
+        }
+        if ($fechaHasta) {
+            $query->whereDate('created_at', '<=', $fechaHasta);
+        }
+
+        if ($origen === 'web') {
+            $query->where('origen', 'contacto_web');
+        } elseif ($origen === 'sistema') {
+            $query->where(function ($q) {
+                $q->where('origen', '!=', 'contacto_web')
+                  ->orWhereNotNull('created_by');
+            });
+            if ($usuarioId) {
+                $query->where('created_by', $usuarioId);
+            }
+        } else {
+            if ($usuarioId) {
+                $query->where('created_by', $usuarioId);
+            }
+        }
+
+        if ($estado !== null && $estado !== '') {
+            $query->where('estado', $estado);
+        }
+
+        if ($search) {
+            $s = '%' . trim($search) . '%';
+            $query->where(function ($q) use ($s) {
+                $q->where('transaction_id', 'like', $s)
+                  ->orWhere('qr_id', 'like', $s)
+                  ->orWhere('descripcion', 'like', $s)
+                  ->orWhereHas('cliente', fn($c) => $c->where('nombre_completo', 'like', $s)->orWhere('telefono', 'like', $s))
+                  ->orWhereHas('contactoWeb', fn($cw) => $cw->where('nombre', 'like', $s)->orWhere('telefono', 'like', $s))
+                  ->orWhereHas('contrato.cliente', fn($cc) => $cc->where('nombre_completo', 'like', $s)->orWhere('telefono', 'like', $s))
+                  ->orWhereHas('creador', fn($u) => $u->where('name', 'like', $s));
+            });
+        }
+
+        $transacciones = $query->orderBy('created_at', 'desc')->get();
+
+        $resumen = [
+            'total_registros' => $transacciones->count(),
+            'total_monto' => (float) $transacciones->sum('monto'),
+            'total_cobrado' => (float) $transacciones->where('estado', 'PAGADO')->sum('monto'),
+            'cantidad_cobrados' => $transacciones->where('estado', 'PAGADO')->count(),
+            'total_web' => (float) $transacciones->where('estado', 'PAGADO')->where('origen', 'contacto_web')->sum('monto'),
+            'cantidad_web' => $transacciones->where('estado', 'PAGADO')->where('origen', 'contacto_web')->count(),
+            'total_sistema' => (float) $transacciones->where('estado', 'PAGADO')->filter(fn($t) => $t->origen !== 'contacto_web' || $t->created_by !== null)->sum('monto'),
+            'cantidad_sistema' => $transacciones->where('estado', 'PAGADO')->filter(fn($t) => $t->origen !== 'contacto_web' || $t->created_by !== null)->count(),
+            'total_pendientes' => (float) $transacciones->where('estado', 'PENDIENTE')->sum('monto'),
+            'cantidad_pendientes' => $transacciones->where('estado', 'PENDIENTE')->count(),
+        ];
+
+        $empresa = Empresa::obtener();
+        $logoBase64 = $empresa->obtenerLogoBase64();
+        $fechaEmision = now()->format('d/m/Y H:i:s');
+        $usuarioGenerador = Auth::check() ? Auth::user()->name : 'Sistema';
+        $usuarioFiltro = $usuarioId ? User::find($usuarioId) : null;
+
+        $this->registrarAuditoria(
+            'Informes y Reportes',
+            'Generar PDF Reporte Cobros QR',
+            "Se exportó el reporte de cobros por QR en PDF ({$transacciones->count()} registros, {$resumen['cantidad_cobrados']} cobrados por Bs. " . number_format($resumen['total_cobrado'], 2) . ")."
+        );
+
+        $pdf = Pdf::loadView('pdf.reporte-cobros-qr', [
+            'empresa' => $empresa,
+            'logoBase64' => $logoBase64,
+            'transacciones' => $transacciones,
+            'resumen' => $resumen,
+            'fechaDesde' => $fechaDesde,
+            'fechaHasta' => $fechaHasta,
+            'mes' => $mes,
+            'origen' => $origen,
+            'usuarioFiltro' => $usuarioFiltro,
+            'estado' => $estado,
+            'search' => $search,
+            'fechaEmision' => $fechaEmision,
+            'usuarioGenerador' => $usuarioGenerador,
+        ])
+        ->setPaper('letter', 'portrait')
+        ->setOption('isRemoteEnabled', false)
+        ->setOption('isPhpEnabled', true)
+        ->setOption('isFontSubsettingEnabled', true)
+        ->setOption('defaultFont', 'DejaVu Serif');
+
+        return $pdf->stream('reporte_cobros_qr_' . date('Ymd_His') . '.pdf');
     }
 }

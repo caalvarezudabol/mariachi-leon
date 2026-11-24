@@ -375,9 +375,234 @@
                     <i class="fa-solid fa-paper-plane" wire:loading.remove></i>
                     <i class="fa-solid fa-spinner fa-spin" wire:loading></i>
                     <span wire:loading.remove>Enviar solicitud</span>
-                    <span wire:loading>Enviando...</span>
+                    <span wire:loading>Procesando...</span>
                 </button>
             </form>
         </div>
     </div>
+
+    <!-- MODAL 1: Pregunta de Anticipo Fijo de Bs. 100 mediante QR -->
+    <div x-data="{ open: @entangle('modalAnticipoOpen') }" x-show="open" x-cloak
+        class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+            @click="$wire.set('modalAnticipoOpen', false)"></div>
+
+        <!-- Contenedor Centrado -->
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative w-full max-w-lg transform rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl transition-all space-y-4">
+                
+                <div class="text-center space-y-2">
+                    <div class="w-14 h-14 mx-auto rounded-2xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-600 dark:text-gold-400 text-2xl shadow-inner">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <h3 class="font-serif font-bold text-xl text-slate-900 dark:text-white">
+                        ¿Deseas asegurar tu fecha con un anticipo?
+                    </h3>
+                    <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Puedes reservar tu evento en este momento dejando un anticipo fijo de <strong class="text-gold-700 dark:text-gold-400 font-bold">Bs. 100.00</strong> mediante <strong class="text-slate-900 dark:text-white">QR Simple</strong> de la red bancaria nacional. Así tu horario quedará bloqueado con máxima prioridad.
+                    </p>
+                </div>
+
+                <!-- Tarjeta informativa del anticipo -->
+                <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-gold-500/20 space-y-2">
+                    <div class="flex items-center justify-between text-xs font-semibold">
+                        <span class="text-slate-600 dark:text-slate-400">Monto de reserva inicial:</span>
+                        <span class="text-base font-bold text-gold-700 dark:text-gold-400">Bs. 100.00</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                        <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+                        <span>Generado de forma segura a través de la API del <strong>Banco Económico</strong>.</span>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="space-y-2 pt-2">
+                    <button type="button" wire:click="iniciarPagoQr" wire:loading.attr="disabled"
+                        class="w-full py-3 px-4 rounded-xl font-bold bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-slate-950 text-sm shadow-lg shadow-gold-500/20 transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-qrcode text-base"></i>
+                        <span>Pagar anticipo de Bs. 100 con QR</span>
+                    </button>
+
+                    <button type="button" wire:click="enviarSinAnticipo" wire:loading.attr="disabled"
+                        class="w-full py-2.5 px-4 rounded-xl font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs sm:text-sm border border-slate-300 dark:border-slate-700 transition-all">
+                        Enviar solo cotización (sin anticipo)
+                    </button>
+
+                    <button type="button" @click="$wire.set('modalAnticipoOpen', false)"
+                        class="w-full text-center text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors pt-1">
+                        Volver al formulario para revisar datos
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Visor del Código QR con Temporizador de 4 Minutos e Instrucciones -->
+    <div x-data="{
+            open: @entangle('modalQrOpen'),
+            segundos: @entangle('qrSegundosRestantes'),
+            interval: null,
+            iniciarContador() {
+                if (this.interval) clearInterval(this.interval);
+                this.interval = setInterval(() => {
+                    if (this.segundos > 0) {
+                        this.segundos--;
+                    } else {
+                        clearInterval(this.interval);
+                        $wire.tiempoExpirado();
+                    }
+                }, 1000);
+            },
+            format(s) {
+                const m = Math.floor(Math.max(0, s) / 60);
+                const sec = Math.max(0, s) % 60;
+                return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+            }
+        }"
+        x-init="$watch('open', value => { if (value) iniciarContador(); else if (interval) clearInterval(interval); })"
+        x-show="open" x-cloak
+        class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+
+        <div class="fixed inset-0 bg-slate-950/85 backdrop-blur-md transition-opacity"></div>
+
+        <div class="flex min-h-full items-center justify-center p-3 sm:p-4"
+            @if ($modalQrOpen && $qrId && !$pagoConfirmadoExito && !$qrExpirado) wire:poll.3s="verificarEstadoQr" @endif>
+            
+            <div class="relative w-full max-w-md transform rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-2xl transition-all space-y-4">
+
+                @if ($pagoConfirmadoExito)
+                    <!-- ESTADO 1: PAGO CONFIRMADO CON ÉXITO -->
+                    <div class="text-center space-y-3 py-4">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-emerald-500/10 border-2 border-emerald-500 flex items-center justify-center text-emerald-500 text-3xl animate-bounce">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <h3 class="font-serif font-bold text-2xl text-slate-900 dark:text-white">
+                            ¡Anticipo confirmado!
+                        </h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
+                            Recibimos tu anticipo de <strong class="text-emerald-600 font-bold">Bs. 100.00</strong> con éxito mediante Pago Simple QR.
+                        </p>
+                        <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-500/30 text-xs text-emerald-800 dark:text-emerald-200 space-y-1 text-left">
+                            <div><strong>Operación:</strong> Anticipo de reserva formal</div>
+                            <div><strong>Importe:</strong> Bs. 100.00</div>
+                            <div><strong>Estado:</strong> Confirmado en línea por Banco Económico</div>
+                        </div>
+                        <button type="button" @click="open = false; window.location.href = '{{ route('web.home') }}'"
+                            class="w-full py-3 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white text-sm shadow-lg shadow-emerald-600/30 transition-all">
+                            Finalizar y volver al inicio
+                        </button>
+                    </div>
+
+                @elseif ($qrExpirado)
+                    <!-- ESTADO 2: CÓDIGO QR EXPIRADO (LÍMITE 4 MINUTOS ALCANZADO) -->
+                    <div class="text-center space-y-3 py-4">
+                        <div class="w-14 h-14 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 text-2xl">
+                            <i class="fa-regular fa-clock"></i>
+                        </div>
+                        <h3 class="font-serif font-bold text-xl text-slate-900 dark:text-white">
+                            Tiempo de QR agotado
+                        </h3>
+                        <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                            El tiempo máximo de <strong class="text-slate-900 dark:text-white">4 minutos</strong> ha expirado por seguridad bancaria. Puedes generar uno nuevo o enviar tu solicitud sin anticipo.
+                        </p>
+
+                        <div class="space-y-2 pt-2">
+                            <button type="button" wire:click="generarNuevoQr" wire:loading.attr="disabled"
+                                class="w-full py-2.5 rounded-xl font-bold bg-gold-500 hover:bg-gold-400 text-slate-950 text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-rotate-right"></i>
+                                <span>Generar nuevo QR (4 minutos)</span>
+                            </button>
+
+                            <button type="button" wire:click="enviarSinAnticipo" wire:loading.attr="disabled"
+                                class="w-full py-2.5 rounded-xl font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs border border-slate-300 dark:border-slate-700 transition-all">
+                                Enviar solicitud sin anticipo
+                            </button>
+                        </div>
+                    </div>
+
+                @elseif ($qrGenerando)
+                    <!-- ESTADO 3: GENERANDO QR EN TIEMPO REAL -->
+                    <div class="text-center py-12 space-y-3">
+                        <i class="fa-solid fa-circle-notch fa-spin text-4xl text-gold-500"></i>
+                        <h4 class="font-serif font-bold text-lg text-slate-900 dark:text-white">Generando Código QR Simple...</h4>
+                        <p class="text-xs text-slate-500">Conectando de forma segura con la red del Banco Económico...</p>
+                    </div>
+
+                @elseif ($qrImageBase64)
+                    <!-- ESTADO 4: VISOR DEL QR ACTIVO CON TEMPORIZADOR DE 4 MINUTOS -->
+                    <div class="text-center space-y-2">
+                        <!-- Cabecera de Monto y Temporizador -->
+                        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                            <div class="text-left">
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Importe a pagar</span>
+                                <span class="text-xl font-black text-slate-900 dark:text-white font-mono">Bs. 100.00</span>
+                            </div>
+
+                            <!-- Temporizador de 4 minutos con alerta visual -->
+                            <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl border"
+                                :class="segundos <= 60 ? 'bg-rose-500/10 border-rose-500/40 text-rose-600 dark:text-rose-400 animate-pulse' : 'bg-gold-500/10 border-gold-500/30 text-gold-700 dark:text-gold-400'">
+                                <i class="fa-regular fa-clock text-sm"></i>
+                                <span class="font-mono font-bold text-sm tabular-nums" x-text="format(segundos)">04:00</span>
+                            </div>
+                        </div>
+
+                        <!-- Imagen del Código QR -->
+                        <div class="pt-2">
+                            <div class="inline-block p-2.5 bg-white rounded-2xl shadow-xl border-2 border-gold-500/30">
+                                <img src="data:image/png;base64,{{ $qrImageBase64 }}" alt="QR Pago Simple Banco Económico"
+                                    class="w-56 h-56 object-contain block mx-auto">
+                            </div>
+                        </div>
+
+                        <!-- Indicador pulsante de detección en vivo -->
+                        <div class="pt-1 flex items-center justify-center gap-2 text-xs font-semibold text-gold-700 dark:text-gold-400">
+                            <i class="fa-solid fa-spinner fa-spin text-xs"></i>
+                            <span>Esperando confirmación de tu app bancaria...</span>
+                        </div>
+
+                        <!-- Instrucciones oficiales para Banca Boliviana -->
+                        <div class="text-left text-xs bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1.5">
+                            <div class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                <i class="fa-solid fa-mobile-screen text-gold-600"></i>
+                                <span>Instrucciones para pagar desde tu banco:</span>
+                            </div>
+                            <ol class="list-decimal list-inside text-[11px] text-slate-600 dark:text-slate-300 space-y-1 leading-relaxed">
+                                <li>Abre tu app bancaria (<strong>Banco Unión, BCP, BNB, Banco Económico, Mercantil Santa Cruz, FIE, BISA, Ganadero, Sol</strong>, etc.).</li>
+                                <li>Ingresa a la sección <strong>Pago Simple / Cobro con QR</strong> y presiona <strong>Escanear QR</strong>.</li>
+                                <li>Verifica el monto de <strong>Bs. 100.00</strong> y confirma la transferencia.</li>
+                                <li><strong>No cierres esta ventana:</strong> tu pago se detectará y confirmará automáticamente en unos segundos.</li>
+                            </ol>
+                        </div>
+
+                        <!-- Botones inferiores de cancelación o auxilio -->
+                        <div class="pt-2 flex items-center justify-between gap-3 text-xs">
+                            <button type="button" wire:click="cancelarQr"
+                                class="text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">
+                                <i class="fa-solid fa-xmark mr-1"></i>Cancelar QR
+                            </button>
+
+                            <button type="button" wire:click="enviarSinAnticipo"
+                                class="text-gold-700 dark:text-gold-400 font-semibold hover:underline">
+                                Enviar sin anticipo &rarr;
+                            </button>
+                        </div>
+
+                        @if (config('app.debug'))
+                            <div class="pt-2 border-t border-dashed border-amber-500/30">
+                                <button type="button" wire:click="simularPagoPrueba"
+                                    class="w-full py-1.5 px-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold text-[11px] border border-amber-500/30 transition-colors flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-flask"></i>
+                                    <span>Simular Pago Exitoso (Ambiente de Pruebas Sandbox)</span>
+                                </button>
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
+            </div>
+        </div>
+    </div>
+
 </div>

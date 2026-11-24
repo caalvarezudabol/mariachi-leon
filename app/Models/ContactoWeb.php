@@ -19,11 +19,21 @@ class ContactoWeb extends Model
         'fecha_estimada',
         'mensaje',
         'estado',
+        'monto_anticipo',
+        'anticipo_pagado',
+        'qr_transaccion_id',
     ];
 
     protected $casts = [
         'fecha_estimada' => 'date',
+        'monto_anticipo' => 'decimal:2',
+        'anticipo_pagado' => 'boolean',
     ];
+
+    public function qrTransaccion(): BelongsTo
+    {
+        return $this->belongsTo(QrTransaccion::class, 'qr_transaccion_id');
+    }
 
     public function tipoEvento(): BelongsTo
     {

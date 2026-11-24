@@ -428,6 +428,7 @@
                             route('admin.reportes.estados-cuenta', [], false),
                             route('admin.reportes.distribucion', [], false),
                             route('admin.reportes.financieros', [], false),
+                            route('admin.reportes.cobros-qr', [], false),
                         ];
                     @endphp
                     <div x-data="{
@@ -473,6 +474,12 @@
                                 class="flex items-center gap-3 px-3 py-1.5 rounded-lg font-medium text-[13px] transition-colors text-ink-secondary hover:bg-surface-hover hover:text-ink-primary">
                                 <i class="fa-solid fa-scale-balanced w-5 text-center"></i>
                                 <span>Balances & Financiero</span>
+                            </a>
+                            <a href="{{ route('admin.reportes.cobros-qr') }}" wire:navigate
+                                wire:current="!bg-gold-500 !text-slate-950 !font-semibold"
+                                class="flex items-center gap-3 px-3 py-1.5 rounded-lg font-medium text-[13px] transition-colors text-ink-secondary hover:bg-surface-hover hover:text-ink-primary">
+                                <i class="fa-solid fa-qrcode w-5 text-center"></i>
+                                <span>Cobros por QR</span>
                             </a>
                         </div>
                     </div>
